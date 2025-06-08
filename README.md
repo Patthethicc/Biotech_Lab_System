@@ -4,7 +4,7 @@ CSSWENG
 1. `flutter run` on the frontend repo <br>
 2. `flutter test` to test all function <br>
 
-<h2>backend<h2>
-1. need endpoints to connect front and backend
-  
+<h2>backend</h2>
+1. need endpoints to connect front and backend <br>
+<br>
 note: lis is backend
