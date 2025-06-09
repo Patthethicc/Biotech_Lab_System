@@ -6,5 +6,6 @@ CSSWENG
 
 <h2>backend</h2>
 1. need endpoints to connect front and backend <br>
+2. entities (model) are now implemented
 <br>
 note: lis is backend
