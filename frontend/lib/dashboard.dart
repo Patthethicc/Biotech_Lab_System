@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -30,6 +31,7 @@ class _DashboardState extends State<Dashboard> {
               width: 250,
               height: 70,
               child: Card(
+                elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                 child: ListTile(
                   leading: Text("img"),
@@ -43,6 +45,7 @@ class _DashboardState extends State<Dashboard> {
               width: 250,
               height: 70,
               child: Card(
+                elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                 child: ListTile(
                   leading: Text("img"),
@@ -56,6 +59,7 @@ class _DashboardState extends State<Dashboard> {
               width: 250,
               height: 70,
               child: Card(
+                elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                 child: ListTile(
                   leading: Text("img"),
@@ -93,7 +97,8 @@ class _DashboardState extends State<Dashboard> {
                       width: 300,
                       height: 250,
                       child: Card(
-                        child: Row(
+                        elevation: 4,
+                        child: Column(
                           children: [
                             Text("No. of users"),
                             ListTile(
@@ -101,7 +106,11 @@ class _DashboardState extends State<Dashboard> {
                               title: Text(totalCustomers.toString()),
                               subtitle: Text("Total Customers"),
                             ),
-                            ListTile(),
+                            ListTile(
+                              leading: Text("img"),
+                              title: Text(totalSuppliers.toString()),
+                              subtitle: Text("Total Suppliers"),
+                            ),
                           ],
                         ),
                       ),
@@ -110,7 +119,26 @@ class _DashboardState extends State<Dashboard> {
                     SizedBox(
                       width: 400,
                       height: 250,
-                      child: Card(),
+                      child: Card( 
+                        elevation: 4,
+                        child: PieChart(
+                            PieChartData(
+                              centerSpaceRadius: 0,
+                              sections: [
+                                PieChartSectionData(
+                                  value: 60,
+                                  color: Colors.blueGrey,
+                                  radius: 70
+                                  ),
+                                PieChartSectionData(
+                                  value: 40, 
+                                  color: Colors.grey,
+                                  radius: 70
+                                  )
+                              ]
+                            )
+                           )
+                      ),
                     )
                 ],),
                 Row(
@@ -119,7 +147,22 @@ class _DashboardState extends State<Dashboard> {
                     SizedBox(
                       width: 725,
                       height: 250,
-                      child: Card(),
+                      child: Card(
+                        elevation: 4,
+                        child: LineChart(
+                          LineChartData(
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: [
+                                  FlSpot(0, 0),
+                                  FlSpot(3, 2),
+                                  FlSpot(6, 10)
+                                ]
+                              )
+                            ]
+                          )
+                        ),
+                      ),
                     )
                   ],
                 )
@@ -132,7 +175,64 @@ class _DashboardState extends State<Dashboard> {
                   SizedBox(
                       width: 725,
                       height: 530,
-                      child: Card(),
+                      child: Card(
+                        elevation: 4,
+                        child: BarChart(
+                          BarChartData(
+                            rotationQuarterTurns: 45,
+                            barGroups: [
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 10)
+                                ]
+                              ),
+
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 9)
+                                ]
+                              ),
+
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 8)
+                                ]
+                              ),
+
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 7)
+                                ]
+                              ),
+
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 6)
+                                ]
+                              ),
+
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 5)
+                                ]
+                              ),
+
+                              BarChartGroupData(
+                                x: 0,
+                                barRods: [
+                                  BarChartRodData(toY: 4)
+                                ]
+                              ),
+                            ]
+                          )
+                        ),
+                      ),
                     )
                 ],
               )
@@ -143,3 +243,4 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 }
+
