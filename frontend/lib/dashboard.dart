@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class Dashboard extends StatefulWidget {
@@ -73,6 +72,7 @@ class _DashboardState extends State<Dashboard> {
               width: 250,
               height: 70,
               child: Card(
+                elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                 child: ListTile(
                   leading: Text("img"),
