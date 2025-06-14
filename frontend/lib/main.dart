@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/dashboard.dart';
+
 import 'login.dart';
 import 'register.dart';
 import 'home.dart';
@@ -22,6 +24,7 @@ class MyApp extends StatelessWidget{
         '/home': (context) => HomePage(),
         '/view_profile': (context) => ViewProfilePage(),
         '/edit_profile': (context) => EditProfilePage(),
+        '/dashboard': (context) => Dashboard()
       },
     );
   }
