@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/dashboard.dart';
+import 'package:frontend/models/ui/dashboard.dart';
 
 import 'login.dart';
 import 'register.dart';

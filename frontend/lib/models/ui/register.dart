@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
+import 'package:frontend/models/api/new_user.dart';
+import 'package:frontend/services/new_user_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -9,16 +11,42 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage>{
-  final TextEditingController usernameInput = TextEditingController();
+  NewUser? user;
+  final TextEditingController firstNameInput = TextEditingController();
+  final TextEditingController lastNameInput = TextEditingController();
   final TextEditingController emailInput = TextEditingController();
   final TextEditingController passwordInput = TextEditingController();
 
   @override
   void dispose() {
-    usernameInput.dispose();
+    firstNameInput.dispose();
+    lastNameInput.dispose();
     emailInput.dispose();
     passwordInput.dispose();
     super.dispose();
+  }
+
+  Future<void> registerUser() async {
+    final newUser = NewUser(
+      firstname: firstNameInput.text,
+      lastname: lastNameInput.text,
+      email: emailInput.text,
+      password: passwordInput.text
+    );
+
+    try {
+      final response = await NewUserService.createUser(newUser);
+      setState(() {
+        user = response;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User registered successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e, User registration unsuccesful')),
+      );
+    }
   }
 
   @override
@@ -34,14 +62,29 @@ class _RegisterPageState extends State<RegisterPage>{
             children: [
               const SizedBox(height: 40),
 
-              //username textfied
+              //firstname textfied
               SizedBox(
                 width: 400,
                 child: TextField(
-                  controller: usernameInput,
+                  controller: firstNameInput,
                   decoration: const InputDecoration(
-                    labelText: 'Username',
-                    hintText: 'Enter your Username...',
+                    labelText: 'First Name',
+                    hintText: 'Enter your First Name...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+             //lastname textfied
+              SizedBox(
+                width: 400,
+                child: TextField(
+                  controller: lastNameInput,
+                  decoration: const InputDecoration(
+                    labelText: 'Last Name',
+                    hintText: 'Enter your Last Name...',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -86,10 +129,13 @@ class _RegisterPageState extends State<RegisterPage>{
                 width: 400,
                 child: ElevatedButton(
                   onPressed: () {
-                    print('Username: ${usernameInput.text}');
+                    //for debugging
+                    print('First Name: ${firstNameInput.text}');
+                    print('Last Name: ${lastNameInput.text}');
                     print('Email: ${emailInput.text}');
                     print('Password: ${passwordInput.text}');
                     // backend / auth logic here
+                    registerUser();
                   },
                   style: ElevatedButton.styleFrom(
                     //fill ts out
