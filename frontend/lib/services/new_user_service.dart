@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:frontend/models/api/new_user.dart';
 
 class NewUserService {
-  static const String baseUrl = '$API_URL/user/v1';
+  static const String baseUrl = 'localhost:8080/user/v1';
   
   static Future<NewUser> createUser(NewUser user) async {
     final response = await http.post(
