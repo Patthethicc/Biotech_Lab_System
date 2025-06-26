@@ -28,8 +28,8 @@ class _RegisterPageState extends State<RegisterPage>{
 
   Future<void> registerUser() async {
     final newUser = NewUser(
-      firstname: firstNameInput.text,
-      lastname: lastNameInput.text,
+      firstName: firstNameInput.text,
+      lastName: lastNameInput.text,
       email: emailInput.text,
       password: passwordInput.text
     );
