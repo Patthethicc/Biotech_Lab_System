@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'register.dart';
+import 'package:frontend/models/api/login_user.dart';
+import 'package:frontend/services/login_user_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,6 +20,33 @@ class _LoginPageState extends State<LoginPage> {
     emailInput.dispose();
     passwordInput.dispose();
     super.dispose();
+  }
+
+  Future<void> logInUser() async {
+    final logInUser = LogInUser(
+      email: emailInput.text,
+      password: passwordInput.text,
+      check: false
+    );
+
+    try {
+      final response = await LogInUserService.logInUser(logInUser);
+        if(response.check) {
+          setState(() {
+            Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HomePage()),
+                  );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User Logged In successfully!')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e, User log in unsuccessful')),
+      );
+    }
   }
 
   @override
@@ -73,6 +102,7 @@ class _LoginPageState extends State<LoginPage> {
                     print('Email: ${emailInput.text}');
                     print('Password: ${passwordInput.text}');
                     // backend / auth logic here
+                    logInUser();
                   },
                   style: ElevatedButton.styleFrom(
                     //fill ts out
