@@ -44,7 +44,7 @@ class _RegisterPageState extends State<RegisterPage>{
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e, User registration unsuccesful')),
+        SnackBar(content: Text('Error: $e, User registration unsuccessful')),
       );
     }
   }

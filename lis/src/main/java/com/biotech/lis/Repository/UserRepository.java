@@ -7,5 +7,5 @@ import com.biotech.lis.Entity.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    public User findUserByFirstName(String firstName);
+    public User findUserByEmail(String email);
 }
