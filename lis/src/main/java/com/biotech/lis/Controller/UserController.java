@@ -41,8 +41,8 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Boolean> logIn(@RequestBody LogInReq logInReq) {
-        Boolean check = userService.logInPass(logInReq.getEmail(), logInReq.getPassword());
+    public ResponseEntity<LogInReq> logIn(@RequestBody LogInReq logInReq) {
+        LogInReq check = userService.logInPass(logInReq.getEmail(), logInReq.getPassword());
         return ResponseEntity.ok(check);
     }
     

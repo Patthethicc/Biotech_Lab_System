@@ -2,6 +2,7 @@ package com.biotech.lis.Service;
 
 import org.springframework.stereotype.Service;
 import com.biotech.lis.Repository.UserRepository;
+import com.biotech.lis.Entity.LogInReq;
 import com.biotech.lis.Entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -33,15 +34,18 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    public Boolean logInPass(String email, String password) {
+    public LogInReq logInPass(String email, String password) {
         User stored_User = getUserByEmail(email);
-
+        LogInReq request = new LogInReq();
+        request.setEmail(email);
+        request.setPassword(password);
+        request.setCheck(false);
         if(stored_User != null) {
             if(BCrypt.checkpw(password, String.valueOf(stored_User.getPassword()))) {
-                return true;
+                request.setCheck(true);
             }
         }
 
-        return false;
+        return request;
     }
 }
