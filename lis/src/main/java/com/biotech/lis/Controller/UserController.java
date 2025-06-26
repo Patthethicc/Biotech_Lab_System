@@ -1,5 +1,6 @@
 package com.biotech.lis.Controller;
 
+import com.biotech.lis.Entity.LogInReq;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +22,10 @@ public class UserController {
         return ResponseEntity.ok(savedUser);
     }
 
-    @GetMapping("/getUser/{name}")
-    public ResponseEntity<User> getUserByName(@PathVariable("name") String name) {
-        final User userByName = userService.getUserByName(name);
-        return ResponseEntity.ok(userByName);
+    @GetMapping("/getUser/{email}")
+    public ResponseEntity<User> getUserByEmail(@PathVariable("email") String email) {
+        final User userByEmail = userService.getUserByEmail(email);
+        return ResponseEntity.ok(userByEmail);
     }
 
     @PutMapping("/updateUser")
@@ -38,5 +39,12 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<Boolean> logIn(@RequestBody LogInReq logInReq) {
+        Boolean check = userService.logInPass(logInReq.getEmail(), logInReq.getPassword());
+        return ResponseEntity.ok(check);
+    }
     
+
 }
