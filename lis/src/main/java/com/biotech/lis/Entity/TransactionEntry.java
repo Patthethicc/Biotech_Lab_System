@@ -11,34 +11,34 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "Transaction_Entry")
+@Table(name = "transactionEntry")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionEntry {
     
     @Id
-    @Column(name = "DR_SI_Reference_Num")
-    private String drSiReferenceNum;
+    @Column(name = "drSIReferenceNum")
+    private String drSIReferenceNum;
     
-    @Column(name = "Transaction_Date")
+    @Column(name = "transactionDate")
     private LocalDate transactionDate;
     
-    @Column(name = "Brand")
+    @Column(name = "brand")
     private String brand;
     
-    @Column(name = "Product_Description")
+    @Column(name = "productDescription")
     private String productDescription;
     
-    @Column(name = "Lot_Serial_Number")
+    @Column(name = "lotSerialNumber")
     private String lotSerialNumber;
     
-    @Column(name = "Expiry_Date")
+    @Column(name = "expiryDate")
     private LocalDate expiryDate;
     
-    @Column(name = "Quantity")
+    @Column(name = "quantity")
     private Integer quantity;
     
-    @Column(name = "Stock_Location")
+    @Column(name = "stockLocation")
     private String stockLocation;
 }

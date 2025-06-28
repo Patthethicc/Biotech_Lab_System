@@ -7,5 +7,4 @@ import com.biotech.lis.Entity.TransactionEntry;
 
 @Repository
 public interface TransactionEntryRepository extends JpaRepository<TransactionEntry, String> {
-    // public TransactionEntry findById(String id);
 }
