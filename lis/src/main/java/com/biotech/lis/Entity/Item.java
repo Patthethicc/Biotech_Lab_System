@@ -23,4 +23,7 @@ public class Item {
     private Date expiryDate;
     private String StocksManila;
     private String StocksCebu;
+    private String purchaseOrderReferenceNumber;
+    private String supplierPackingList;
+    private String drsiReferenceNumber;
 }
