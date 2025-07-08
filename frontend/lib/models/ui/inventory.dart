@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:csv/csv.dart';
+import 'item_details.dart';
 
 class Inventory extends StatefulWidget {
   const Inventory({super.key});
@@ -125,26 +126,6 @@ class _InventoryState extends State<Inventory> {
                       padding: EdgeInsets.symmetric(horizontal: 30.0),
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Brand',
-                        style: TextStyle(
-                          color: Color.fromRGBO(225, 225, 225, 1),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 250,
-                  height: 50,
-                  child: Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 30.0),
-                      alignment: Alignment.centerLeft,
-                      child: Text(
                         '2025-05-25 : 2025-05-25',
                         style: TextStyle(
                           color: Color.fromRGBO(225, 225, 225, 1),
@@ -226,19 +207,32 @@ class _InventoryState extends State<Inventory> {
                       );
                     }).toList(),
                     rows: currentRows.map((r) {
-                      return DataRow(cells: [
-                        for (int i = 0; i < headers.length; i++)
-                          DataCell(
-                            SizedBox(
-                              width: (headers[i] == 'Item')
-                                  ? 200
-                                  : (headers[i] == 'Description')
-                                      ? 250
-                                      : 100,
-                              child: Text(i < r.length && r[i].trim().isNotEmpty ? r[i] : '-'),
+                      return DataRow(
+                        onSelectChanged: (_) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ItemDetailsScreen(
+                                itemData: r,
+                                headers: headers,
+                              ),
                             ),
-                          )
-                      ]);
+                          );
+                        },
+                        cells: [
+                          for (int i = 0; i < headers.length; i++)
+                            DataCell(
+                              SizedBox(
+                                width: (headers[i] == 'title')
+                                    ? 200
+                                    : (headers[i] == 'description')
+                                        ? 250
+                                        : 120,
+                                child: Text(i < r.length && r[i].trim().isNotEmpty ? r[i] : '-'),
+                              ),
+                            )
+                        ],
+                      );
                     }).toList(),
                   ),
                 ),
