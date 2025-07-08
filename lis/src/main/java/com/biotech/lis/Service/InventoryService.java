@@ -15,6 +15,14 @@ public class InventoryService {
         return inventoryRepository.save(inventory);
     }
 
+    public Inventory getInventoryById(Integer inventoryId) {
+        return inventoryRepository.getReferenceById(inventoryId);
+    }
+
+    public Inventory updateInventory(Inventory inventory) {
+        return inventoryRepository.save(inventory);
+    }
+
     public void deleteByInventoryId(Integer inventoryId) {
         inventoryRepository.deleteById(inventoryId);
     }
