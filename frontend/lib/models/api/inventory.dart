@@ -1,18 +1,18 @@
 class Inventory {
-  final int inventoryID;
-  final String itemCode;
-  final int quantityOnHand;
+  int inventoryID = 0;
+  String itemCode = "";
+  int quantityOnHand = 0;
 
-  const Inventory({
-    required this.inventoryID,
-    required this.itemCode,
-    required this.quantityOnHand
-  });
-
-  static Inventory fromJson(json) => Inventory(
-    inventoryID: json["inventoryId"],
-    itemCode: json["itemCode"],
-    quantityOnHand: json["quantityOnHand"]
+  Inventory(
+    this.inventoryID,
+    this.itemCode,
+    this.quantityOnHand
   );
+
+  Inventory.fromJson(Map<String, dynamic> json) {
+    inventoryID = json["inventoryId"];
+    itemCode = json["itemCode"];
+    quantityOnHand = json["quantityOnHand"];
+  }
 
 }

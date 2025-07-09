@@ -9,14 +9,24 @@ class StockAlertService {
 
   static Future<List<Inventory>> getStockAlerts() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/inv/v1/stockAlert'),
+      Uri.parse('${baseUrl}inv/v1/stockAlert/10'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
     );
 
-    final List<dynamic> jsonList = jsonDecode(response.body);
-    return jsonList.map((json) => Inventory.fromJson(json)).toList();
+    List<Inventory> inventoryItems = [];
+
+    if (response.statusCode == 200) {
+      var inventory = json.decode(response.body);
+      for(var inventoryJson in inventory){
+        inventoryItems.add(Inventory.fromJson(inventoryJson));
+      }
+    } else {
+      print(response.body);
+      print("error 404");
+    }
+    return inventoryItems;
   }
 }

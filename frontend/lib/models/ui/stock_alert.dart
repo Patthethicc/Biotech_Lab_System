@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/stock_alert_service.dart';
-import 'package:intl/intl.dart';
 
 
 class StockAlert extends StatefulWidget {
@@ -12,56 +11,50 @@ class StockAlert extends StatefulWidget {
 }
 
 class _StockAlertState extends State<StockAlert> {
-  late Future<List<Inventory>> _stockAlerts;
+
+  List<Inventory> _stockAlerts = [];
 
   @override
-  void initState() {
+
+  void initState(){
+    StockAlertService.getStockAlerts().then((value) {
+      print("Fetched data: $value");
+      setState(() {
+        _stockAlerts.addAll(value); 
+      });
+    });
     super.initState();
-    _stockAlerts = StockAlertService.getStockAlerts();
   }
 
   @override
   Widget build(BuildContext context) {
+
+    print(_stockAlerts);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Stock Alerts"),
       ),
-      body: FutureBuilder<List<Inventory>>(
-        future: _stockAlerts,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No stock alerts."));
-          }
-
-          final data = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: data.length,
-            itemBuilder: (context, index) {
-              final item = data[index];
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 15, bottom: 15, left: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.itemCode,
-                        style: const TextStyle(fontSize: 25),
-                      ),
-                      Text("inv ID: ${item.inventoryID}"),
-                      Text("Quantity on Hand: ${item.quantityOnHand}"),
-                    ],
-                  ),
-                ),
-              );
-            },
+      body: ListView.builder(
+        itemBuilder: (context, index) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.only(top:15, bottom: 15, left: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Item Code: ${_stockAlerts[index].itemCode}",
+                  style: TextStyle(
+                    fontSize: 25
+                  ),),
+                  Text("Quantity on Hand: ${_stockAlerts[index].quantityOnHand.toString()}"),
+                  Text("Inventory ID: ${_stockAlerts[index].inventoryID.toString()}")
+                ],
+              ),
+            ),
           );
         },
+        itemCount: _stockAlerts.length,
       ),
     );
   }
