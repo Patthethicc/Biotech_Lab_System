@@ -1,5 +1,7 @@
 package com.biotech.lis.Service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,5 +27,9 @@ public class InventoryService {
 
     public void deleteByInventoryId(Integer inventoryId) {
         inventoryRepository.deleteById(inventoryId);
+    }
+
+    public List<Inventory> getStockAlerts(Integer amount) {
+        return inventoryRepository.findByQuantityOnHandLessThan(amount);
     }
 }

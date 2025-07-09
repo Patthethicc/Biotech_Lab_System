@@ -1,5 +1,7 @@
 package com.biotech.lis.Controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,5 +40,11 @@ public class InventoryController {
     public ResponseEntity<Inventory> deleteInv(@PathVariable("id") Integer id) {
         inventoryService.deleteByInventoryId(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("stockAlert/{amt}")
+    public ResponseEntity<List<Inventory>> getStockAlerts(@PathVariable("amt") Integer amount) {
+        final List<Inventory> stockAlerts = inventoryService.getStockAlerts(amount);
+        return ResponseEntity.ok(stockAlerts);
     }
 }

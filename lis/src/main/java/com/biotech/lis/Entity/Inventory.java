@@ -2,6 +2,7 @@ package com.biotech.lis.Entity;
 
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "`Inventory`")
+@Table(name = "`inventory`")
 public class Inventory {
     @Id
     @GeneratedValue
