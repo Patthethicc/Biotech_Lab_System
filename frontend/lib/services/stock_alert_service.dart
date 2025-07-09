@@ -9,7 +9,7 @@ class StockAlertService {
 
   static Future<List<Inventory>> getStockAlerts() async {
     final response = await http.get(
-      Uri.parse('${baseUrl}inv/v1/stockAlert/10'),
+      Uri.parse('${baseUrl}/inv/v1/stockAlert/10'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
