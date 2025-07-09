@@ -1,84 +1,93 @@
-CREATE TABLE Inventory (
-    Inventory_ID VARCHAR(64) PRIMARY KEY,
-    Item_Code VARCHAR(64),
-    Quantity_on_Hand INT,
-    Last_Updated DATETIME,
-    FOREIGN KEY (Item_Code) REFERENCES Item_List(Item_Code)
+CREATE TABLE user(
+    user_id INT PRIMARY KEY ,
+    firstname VARCHAR(45) ,
+    lastname VARCHAR(45) ,
+    email VARCHAR(45) ,
+    password VARCHAR(20) 
+    -- i dont think position and department are needed because admin lang naman mag access eh
 );
 
-CREATE TABLE Transaction_Entry (
-    DR_SI_Reference_Num VARCHAR(64) PRIMARY KEY,
-    Transaction_Date DATETIME,
+CREATE TABLE inventory (
+    inventoryId INT PRIMARY KEY,
+    itemCode VARCHAR(64),
+    quantityOnHand INT,
+    lastUpdated DATETIME,
+    FOREIGN KEY (itemCode) REFERENCES itemList(itemCode)
+);
+
+CREATE TABLE transactionEntry (
+    drSIReferenceNum VARCHAR(64) PRIMARY KEY,
+    transactionDate DATETIME,
+    brand VARCHAR(255),
+    productDescription VARCHAR(255),
+    lotSerialNumber VARCHAR(64),
+    expiryDate DATE,
+    quantity INT,
+    stockLocation VARCHAR(255)
+);
+
+CREATE TABLE purchaseOrder (
+    purchaseOrderCode VARCHAR(64) PRIMARY KEY,
+    purchaseOrderFile BLOB,
+    suppliersPackingList BLOB,
+    quantityPurchased INT,
+    orderDate DATE,
+    expectedDeliveryDate DATE,
+    -- Items_Purchased VARCHAR(255),  (i feel like this column is not needed bcs we have itemPurchased table)
+    cost DECIMAL(20,2)
+);
+
+
+CREATE TABLE itemPurchased (
+    purchaseOrderCode VARCHAR(64),
+    itemCode VARCHAR(64),
+    PRIMARY KEY (purchaseOrderCode, itemCode),
+    FOREIGN KEY (purchaseOrderCode) REFERENCES purchaseOrder(purchaseOrderCode),
+    FOREIGN KEY (itemCode) REFERENCES itemList(itemCode)
+);
+
+CREATE TABLE itemCodeDetails (
+    itemCode VARCHAR(64) PRIMARY KEY,
     Brand VARCHAR(255),
-    Product_Description VARCHAR(255),
-    Lot_Serial_Number VARCHAR(64),
-    Expiry_Date DATE,
-    Quantity INT,
-    Stock_Location VARCHAR(255)
+    productDescription VARCHAR(255),
+    lotSerialNumber VARCHAR(64),
+    purchaseOrderRef VARCHAR(64),
+    suppliersPackingList BLOB,
+    drSIReferenceNum VARCHAR(64),
+    FOREIGN KEY (drSIReferenceNum) REFERENCES transactionEntry(drSIReferenceNum)
 );
 
-CREATE TABLE Purchase_Order (
-    Purchase_Order_Code VARCHAR(64) PRIMARY KEY,
-    Purchase_Order_File BLOB,
-    Suppliers_Packing_List BLOB,
-    Quantity_Purchased INT,
-    Order_Date DATE,
-    Expected_Delivery_Date DATE,
-    -- Items_Purchased VARCHAR(255),  (i feel like this column is not needed bcs we have Item_Purchased table)
-    Cost DECIMAL(20,2)
-);
-
-
-CREATE TABLE Item_Purchased (
-    Purchase_Order_Code VARCHAR(64),
-    Item_Code VARCHAR(64),
-    PRIMARY KEY (Purchase_Order_Code, Item_Code),
-    FOREIGN KEY (Purchase_Order_Code) REFERENCES Purchase_Order(Purchase_Order_Code),
-    FOREIGN KEY (Item_Code) REFERENCES Item_List(Item_Code)
-);
-
-CREATE TABLE Item_Code_Details (
-    Item_Code VARCHAR(64) PRIMARY KEY,
-    Brand VARCHAR(255),
-    Product_Description VARCHAR(255),
-    Lot_Serial_Number VARCHAR(64),
-    Purchase_Order_Ref VARCHAR(64),
-    Suppliers_Packing_List BLOB,
-    DR_SI_Reference_Num VARCHAR(64),
-    FOREIGN KEY (DR_SI_Reference_Num) REFERENCES Transaction_Entry(DR_SI_Reference_Num)
-);
-
-CREATE TABLE Item_List (
-    Item_Code VARCHAR(64) PRIMARY KEY,
-    Brand VARCHAR(255),
-    Product_Description VARCHAR(255),
-    Lot_Serial_Number VARCHAR(64),
-    Expiry_Date DATE,
-    Stocks_Manila VARCHAR(64),
-    Stocks_Cebu VARCHAR(64)
+CREATE TABLE itemList (
+    itemCode VARCHAR(64) PRIMARY KEY,
+    brand VARCHAR(255),
+    productDescription VARCHAR(255),
+    lotSerialNumber VARCHAR(64),
+    expiryDate DATE,
+    stocksManila INT,
+    stocksCebu INT
 ); 
 
-CREATE TABLE Stock_Locator (
-    Item_Code VARCHAR(64),
-    Brand VARCHAR(255),
-    Product_Description VARCHAR(255),
-    Lazcano_Ref1 VARCHAR(64),
-    Lazcano_Ref2 VARCHAR(64),
-    Gandia_ColdStorage VARCHAR(64),
-    Gandia_Ref1 VARCHAR(64),
-    Gandia_Ref2 VARCHAR(64),
-    Limbaga VARCHAR(64),
-    Cebu VARCHAR(64),
-    PRIMARY KEY (Item_Code),
-    FOREIGN KEY (Item_Code) REFERENCES Item_List(Item_Code)
+CREATE TABLE stockLocator (
+    itemCode VARCHAR(64),
+    brand VARCHAR(255),
+    productDescription VARCHAR(255),
+    lazcanoRef1 INT,
+    lazcanoRef2 INT,
+    gandiaColdStorage INT,
+    gandiaRef1 INT,
+    gandiaRef2 INT,
+    limbaga INT,
+    cebu INT,
+    PRIMARY KEY (itemCode),
+    FOREIGN KEY (itemCode) REFERENCES itemList(itemCode)
 );
 
-CREATE TABLE Sales_Order (
-    Sales_Order_Code VARCHAR(64) PRIMARY KEY,
-    Quantity_on_Sales_Order INT,
-    Order_Date DATE,
-    Expected_Delivery_Date DATE,
-    -- Item_Purchased VARCHAR(255),  same comment as the one in purchase order
-    Cost DECIMAL(20,2),
+CREATE TABLE salesOrder (
+    salesOrderCode VARCHAR(64) PRIMARY KEY,
+    quantityOnSalesOrder INT,
+    orderDate DATE,
+    expectedDeliveryDate DATE,
+    -- itemPurchased VARCHAR(255),  same comment as the one in purchase order
+    cost DECIMAL(20,2),
     Status ENUM('Pending', 'Shipped', 'Delivered') NOT NULL
 );
