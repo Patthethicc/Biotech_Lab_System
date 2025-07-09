@@ -2,6 +2,7 @@ package com.biotech.lis.Service;
 
 import org.springframework.stereotype.Service;
 import com.biotech.lis.Repository.UserRepository;
+import com.biotech.lis.config.JwtService;
 import com.biotech.lis.Entity.LogInReq;
 import com.biotech.lis.Entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,8 +10,14 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 
 @Service
 public class UserService {
+    private final UserRepository userRepository;
+    private final JwtService jwtService;
+
     @Autowired
-    UserRepository userRepository;
+    public UserService(UserRepository userRepository, JwtService jwtService) {
+        this.userRepository = userRepository;
+        this.jwtService = jwtService;
+    }
 
     public User addUser(User user) {
 
@@ -38,14 +45,14 @@ public class UserService {
         User stored_User = getUserByEmail(email);
         LogInReq request = new LogInReq();
         request.setEmail(email);
-        request.setPassword(password);
         request.setCheck(false);
         if(stored_User != null) {
             if(BCrypt.checkpw(password, String.valueOf(stored_User.getPassword()))) {
                 request.setCheck(true);
+                request.setPassword("password");
+                request.setToken(jwtService.generateToken(email));
             }
         }
-
         return request;
     }
 }
