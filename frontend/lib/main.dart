@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget{
         '/edit_profile': (context) => EditProfilePage(),
         '/dashboard': (context) => Dashboard(),
         '/data_recording': (context) => DataRecording(),
-        '/inventory': (context) => Inventory()
+        '/inventory': (context) => Inventory(),
         '/stock_alert': (context) => StockAlert()
 
       },
