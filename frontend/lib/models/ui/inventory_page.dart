@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'item_details.dart';
+import 'package:frontend/models/ui/item_details.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/models/api/inventory.dart';
+import 'package:frontend/models/api/item_model.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -46,7 +47,6 @@ class _InventoryPageState extends State<InventoryPage> {
     }
   }
 
-
   void _goToPage(int delta) {
     setState(() {
       currentPage += delta;
@@ -79,17 +79,25 @@ class _InventoryPageState extends State<InventoryPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ItemDetailsScreen(
-                inventory: Inventory(
-                  inventoryID: null,
+              builder: (_) => ItemDetails(
+                item: Item(
                   itemCode: '',
-                  quantityOnHand: 0,
-                  lastUpdated: DateTime.now().toIso8601String(),
+                  brand: '',
+                  productDescription: '',
+                  lotSerialNumber: '',
+                  expiryDate: null,
+                  stocksManila: '',
+                  stocksCebu: '',
+                  purchaseOrderReferenceNumber: '',
+                  supplierPackingList: '',
+                  drsiReferenceNumber: '',
                 ),
-                onSave: loadInventoryData,
+                headers: headers,
               ),
             ),
-          );
+          ).then((changed) {
+            if (changed == true) loadInventoryData();
+          });
         },
         child: const Icon(Icons.add),
       ),
@@ -224,22 +232,30 @@ class _InventoryPageState extends State<InventoryPage> {
                       rows: currentRows.map((r) {
                         return DataRow(
                           onSelectChanged: (_) {
-                            final inventory = Inventory(
-                              inventoryID: int.tryParse(r[0]),
+                            final item = Item(
                               itemCode: r[1],
-                              quantityOnHand: int.tryParse(r[2]) ?? 0,
-                              lastUpdated: r[3],
+                              brand: '',
+                              productDescription: '',
+                              lotSerialNumber: '',
+                              expiryDate: null,
+                              stocksManila: '',
+                              stocksCebu: '',
+                              purchaseOrderReferenceNumber: '',
+                              supplierPackingList: '',
+                              drsiReferenceNumber: '',
                             );
 
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => ItemDetailsScreen(
-                                  inventory: inventory,
-                                  onSave: loadInventoryData,
+                                builder: (_) => ItemDetails(
+                                  item: item,
+                                  headers: headers,
                                 ),
                               ),
-                            );
+                            ).then((changed) {
+                              if (changed == true) loadInventoryData();
+                            });
                           },
                           cells: [
                             for (int i = 0; i < headers.length; i++)
