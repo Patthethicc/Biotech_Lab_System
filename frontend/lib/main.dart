@@ -9,7 +9,7 @@ import 'models/ui/home.dart';
 import 'models/ui/view_profile.dart';
 import 'models/ui/edit_profile.dart';
 import 'models/ui/data_recording.dart';
-import 'models/ui/inventory_page.dart';
+import 'models/ui/inventory.dart';
 
 void main() async{
   await dotenv.load(fileName: ".env");
@@ -30,9 +30,10 @@ class MyApp extends StatelessWidget{
         '/view_profile': (context) => ViewProfilePage(),
         '/edit_profile': (context) => EditProfilePage(),
         '/dashboard': (context) => Dashboard(),
-        '/inventory': (context) => InventoryPage(),
         '/data_recording': (context) => DataRecording(),
+        '/inventory': (context) => Inventory()
         '/stock_alert': (context) => StockAlert()
+
       },
     );
   }
