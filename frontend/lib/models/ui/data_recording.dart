@@ -43,18 +43,20 @@ class _DataRecordingState extends State<DataRecording> {
   String? _selectedStockLocation;
   bool _dontAskAgain = false;
 
-  final List<String> _brands = ['BioTech', 'BrandX', 'LabCorp', 'MediSupply', 'ChemTech'];
+  final List<String> _brands = ['Anbio', 'Biorex', 'Bioelab', 'Bioway', 'Biobase', 'Dymind', 'DH', 'Ediagnosis', 'Genrui',
+    'Lifotronic', 'Mindray', 'Olympus', 'Render', 'Rayto', 'Uniper'];
   final List<String> _stockLocations = [
-    'Warehouse A, Shelf 1',
-    'Warehouse A, Shelf 2', 
-    'Warehouse A, Shelf 3',
-    'Warehouse B, Shelf 1',
-    'Cold Storage A',
-    'Cold Storage B'
+    'Lazcano Ref 1',
+    'Lazcano Ref 2', 
+    'Gandia (Cold Storage)',
+    'Gandia (Ref 1)',
+    'Gandia (Ref 2)',
+    'Limbaga',
+    'Cebu'
   ];
   
   final Map<String, List<int>> _lotNumbers = {
-    'BioTech': [1001, 1002, 1003, 1004],
+    'Anbio': [1001, 1002, 1003, 1004],
     'BrandX': [2001, 2002, 2003, 2004],
     'LabCorp': [3001, 3002, 3003, 3004],
     'MediSupply': [4001, 4002, 4003, 4004],
@@ -318,7 +320,7 @@ class _DataRecordingState extends State<DataRecording> {
                       ),
                       const SizedBox(height: 16),
 
-                      Column(
+                      Column( // make this a text field instead of just a drop down
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           TextField(
@@ -399,7 +401,39 @@ class _DataRecordingState extends State<DataRecording> {
                       ),
                       const SizedBox(height: 16),
 
-                      InputDecorator(
+                      
+                      InkWell(
+                        onTap: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _automaticExpiryDate = picked;
+                            });
+                            this.setState(() {
+                              _automaticExpiryDate = picked;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Expiration Date',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.edit),
+                            suffixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _automaticExpiryDate != null
+                                ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!)
+                                : 'Select expiration date',
+                          ),
+                        ),
+                      ),
+                      /*InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'Expiry Date',
                           border: OutlineInputBorder(),
@@ -413,7 +447,7 @@ class _DataRecordingState extends State<DataRecording> {
                             color: _automaticExpiryDate != null ? Colors.green : Colors.grey,
                           ),
                         ),
-                      ),
+                      ),*/
                       const SizedBox(height: 16),
 
                       TextField(
