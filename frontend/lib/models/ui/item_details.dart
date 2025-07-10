@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart'; 
-import 'package:your_project_name/models/item_model.dart'; 
-
+import 'package:frontend/models/api/item_model.dart';
 
 const String _backendBaseUrl = 'http://10.0.2.2:8080/item/v1'; 
 
