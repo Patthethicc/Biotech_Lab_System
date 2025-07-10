@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:intl/intl.dart'; 
 import 'package:frontend/models/api/item_model.dart'; 
 
-
 const String _backendBaseUrl = 'http://localhost:8080/item/v1'; 
 
 class ItemDetails extends StatefulWidget {
