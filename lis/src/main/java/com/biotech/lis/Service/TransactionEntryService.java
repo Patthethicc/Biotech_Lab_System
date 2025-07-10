@@ -15,8 +15,16 @@ public class TransactionEntryService {
     @Autowired
     TransactionEntryRepository transactionEntryRepository;
 
+    @Autowired
+    StockLocatorService stockLocatorService;
+
     public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
-        return transactionEntryRepository.save(transactionEntry);
+
+        TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
+        
+        stockLocatorService.updateStockFromTransaction(savedEntry, true); // automatically update stockLocator
+        
+        return savedEntry;        
     }
  
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
@@ -35,7 +43,6 @@ public class TransactionEntryService {
         transactionEntryRepository.deleteById(id);
     }
 
-    // util method for updating transaction entry
     public boolean existsById(String id) {
         return transactionEntryRepository.existsById(id);
     }
