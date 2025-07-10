@@ -15,7 +15,7 @@ public class UserController {
     public UserController(UserService userService){
         this.userService = userService;
     }
-
+    
     @PostMapping("/addUser")
     public ResponseEntity<User> addUser(@RequestBody User user) {
             User savedUser = userService.addUser(user);
@@ -45,6 +45,4 @@ public class UserController {
         LogInReq check = userService.logInPass(logInReq.getEmail(), logInReq.getPassword());
         return ResponseEntity.ok(check);
     }
-    
-
 }
