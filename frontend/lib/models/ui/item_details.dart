@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart'; 
 import 'package:frontend/models/api/item_model.dart'; 
-
-const String _backendBaseUrl = 'http://localhost:8080/item/v1'; 
+import 'package:frontend/services/item_details_service.dart';
 
 class ItemDetails extends StatefulWidget {
   final Item item;
@@ -102,72 +101,48 @@ class _ItemDetailsState extends State<ItemDetails> {
     );
   }
 
-  Future<void> _updateItemOnBackend(Item updatedItem) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$_backendBaseUrl/updateItem'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(updatedItem.toJson()),
-      );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Changes saved successfully!')),
-        );
-        Navigator.of(context).pop(true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save changes: ${response.statusCode} ${response.body}')),
-        );
-        print('Backend Error (Update): ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error communicating with backend: $e')),
-      );
-      print('Network Error (Update): $e');
-    }
-  }
-
   void _saveChanges() {
-    if (_formKey.currentState!.validate()) {
-      _showConfirmationDialog(
-        title: 'Confirm Changes',
-        content: 'Are you sure you want to save these changes to the server?',
-        onConfirm: () {
-          DateTime? parsedExpiryDate;
-          try {
-            if (_controllers['expiryDate']!.text.isNotEmpty) {
-              parsedExpiryDate = DateFormat('yyyy-MM-dd').parse(_controllers['expiryDate']!.text);
-            }
-          } catch (e) {
-            print('Error parsing expiry date: $e');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Invalid Expiry Date format. Use YYYY-MM-DD.')),
-            );
-            return; 
+  if (_formKey.currentState!.validate()) {
+    _showConfirmationDialog(
+      title: 'Confirm Changes',
+      content: 'Are you sure you want to save these changes to the server?',
+      onConfirm: () async {
+        DateTime? parsedExpiryDate;
+        try {
+          if (_controllers['expiryDate']!.text.isNotEmpty) {
+            parsedExpiryDate = DateFormat('yyyy-MM-dd').parse(_controllers['expiryDate']!.text);
           }
-
-          final Item updatedItem = Item(
-            itemCode: _controllers['itemCode']!.text, 
-            brand: _controllers['brand']!.text,
-            productDescription: _controllers['productDescription']!.text,
-            lotSerialNumber: _controllers['lotSerialNumber']!.text,
-            expiryDate: parsedExpiryDate,
-            stocksManila: _controllers['stocksManila']!.text,
-            stocksCebu: _controllers['stocksCebu']!.text,
-            purchaseOrderReferenceNumber: _controllers['purchaseOrderReferenceNumber']!.text,
-            supplierPackingList: _controllers['supplierPackingList']!.text,
-            drsiReferenceNumber: _controllers['drsiReferenceNumber']!.text,
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid Expiry Date format. Use YYYY-MM-DD.')),
           );
+          return;
+        }
 
-          _updateItemOnBackend(updatedItem);
-        },
-      );
-    }
+        final updatedItem = Item(
+          itemCode: _controllers['itemCode']!.text,
+          brand: _controllers['brand']!.text,
+          productDescription: _controllers['productDescription']!.text,
+          lotSerialNumber: _controllers['lotSerialNumber']!.text,
+          expiryDate: parsedExpiryDate,
+          stocksManila: _controllers['stocksManila']!.text,
+          stocksCebu: _controllers['stocksCebu']!.text,
+          purchaseOrderReferenceNumber: _controllers['purchaseOrderReferenceNumber']!.text,
+          supplierPackingList: _controllers['supplierPackingList']!.text,
+          drsiReferenceNumber: _controllers['drsiReferenceNumber']!.text,
+        );
+
+        final (success, message) = await ItemDetailsService().updateItemOnBackend(updatedItem);
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+
+        if (success) {
+          Navigator.of(context).pop(true); // Return success to parent widget
+        }
+      },
+    );
   }
+}
 
  
   String _getLabelForField(String fieldName) {
@@ -186,42 +161,6 @@ class _ItemDetailsState extends State<ItemDetails> {
     }
   }
 
-  
-  Future<void> _deleteItemOnBackend() async {
-    _showConfirmationDialog(
-      title: 'Confirm Deletion',
-      content: 'Are you sure you want to delete this item? This action cannot be undone.',
-      onConfirm: () async {
-        try {
-          final response = await http.delete(
-            Uri.parse('$_backendBaseUrl/deleteItem/${widget.item.itemCode}'),
-            headers: <String, String>{
-              'Content-Type': 'application/json; charset=UTF-8',
-            },
-          );
-
-          if (response.statusCode == 200) { // 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Item deleted successfully!')),
-            );
-            Navigator.of(context).pop(true); 
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to delete item: ${response.statusCode} ${response.body}')),
-            );
-            print('Backend Error (Delete): ${response.statusCode} - ${response.body}');
-          }
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error communicating with backend during delete: $e')),
-          );
-          print('Network Error (Delete): $e');
-        }
-      },
-    );
-  }
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,7 +169,15 @@ class _ItemDetailsState extends State<ItemDetails> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),
-            onPressed: _deleteItemOnBackend, 
+            onPressed:  () async {
+                        final (success, message) = await ItemDetailsService().deleteItem(widget.item.itemCode);
+
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+
+                        if (success) {
+                          Navigator.of(context).pop(true); // Go back to previous screen
+                        }
+                      }, 
             tooltip: 'Delete Item',
           ),
         ],
@@ -262,7 +209,7 @@ class _ItemDetailsState extends State<ItemDetails> {
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: TextFormField(
                     controller: _controllers[fieldName],
-                    readOnly: isItemCodeField, 
+                    //readOnly: isItemCodeField, 
                     decoration: InputDecoration(
                       labelText: _getLabelForField(fieldName),
                       border: OutlineInputBorder(

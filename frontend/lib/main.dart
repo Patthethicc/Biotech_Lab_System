@@ -10,6 +10,7 @@ import 'models/ui/view_profile.dart';
 import 'models/ui/edit_profile.dart';
 import 'models/ui/data_recording.dart';
 import 'models/ui/inventory_page.dart';
+import 'models/ui/item_details.dart';
 
 
 void main() async{
