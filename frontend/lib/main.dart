@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/models/ui/dashboard.dart';
+import 'package:frontend/models/ui/stock_alert.dart';
 
 import 'models/ui/login.dart';
 import 'models/ui/register.dart';
@@ -8,6 +9,8 @@ import 'models/ui/home.dart';
 import 'models/ui/view_profile.dart';
 import 'models/ui/edit_profile.dart';
 import 'models/ui/data_recording.dart';
+import 'models/ui/inventory_page.dart';
+
 
 void main() async{
   await dotenv.load(fileName: ".env");
@@ -28,7 +31,10 @@ class MyApp extends StatelessWidget{
         '/view_profile': (context) => ViewProfilePage(),
         '/edit_profile': (context) => EditProfilePage(),
         '/dashboard': (context) => Dashboard(),
-        '/data_recording': (context) => DataRecording()
+        '/data_recording': (context) => DataRecording(),
+        '/inventory': (context) => InventoryPage(),
+        '/stock_alert': (context) => StockAlert()
+
       },
     );
   }

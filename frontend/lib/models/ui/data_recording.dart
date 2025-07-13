@@ -312,6 +312,7 @@ class _DataRecordingState extends State<DataRecording> {
                       ),
                       const SizedBox(height: 16),
 
+
                       Autocomplete<String>(
                         optionsBuilder: (TextEditingValue textEditingValue) {
                           this.setState(() {
@@ -411,9 +412,11 @@ class _DataRecordingState extends State<DataRecording> {
                         onTap: () async {
                           final DateTime? picked = await showDatePicker(
                             context: context,
+
                             initialDate: _automaticExpiryDate ?? DateTime.now(),
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2100),
+
                           );
                           if (picked != null) {
                             setState(() {
