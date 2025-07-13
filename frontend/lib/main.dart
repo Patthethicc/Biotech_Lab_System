@@ -8,7 +8,7 @@ import 'models/ui/register.dart';
 import 'models/ui/home.dart';
 import 'models/ui/view_profile.dart';
 import 'models/ui/edit_profile.dart';
-import 'models/ui/transaction_entry.dart';
+import 'models/ui/transaction_entry_page.dart';
 import 'models/ui/inventory_page.dart';
 import 'models/ui/item_details.dart';
 
