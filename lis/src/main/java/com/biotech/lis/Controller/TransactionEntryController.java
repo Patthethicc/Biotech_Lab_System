@@ -73,4 +73,10 @@ public class TransactionEntryController {
         return ResponseEntity.ok(exists);
     }
 
+    @GetMapping("/all") // gets all the transactions
+    public ResponseEntity<Iterable<TransactionEntry>> getAllTransactions() {
+        Iterable<TransactionEntry> allEntries = transactionEntryService.getAllTransactionEntries();
+        return ResponseEntity.ok(allEntries);
+    }
+
 }
