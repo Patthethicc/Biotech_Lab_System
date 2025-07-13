@@ -64,8 +64,6 @@ public class TransactionEntryController {
         return ResponseEntity.ok().build(); 
     }
 
-
-
     // util method for updating transaction entry
     @GetMapping("/exists/{id}")
     public ResponseEntity<Boolean> transactionExists(@PathVariable("id") String id) {

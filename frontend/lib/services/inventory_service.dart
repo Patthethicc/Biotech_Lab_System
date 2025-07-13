@@ -4,38 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// class Inventory {
-//   final int inventoryId;
-//   final String itemCode;
-//   final int quantityOnHand;
-//   final String lastUpdated;
-
-//   Inventory({
-//     required this.inventoryId,
-//     required this.itemCode,
-//     required this.quantityOnHand,
-//     required this.lastUpdated,
-//   });
-
-//   factory Inventory.fromJson(Map<String, dynamic> json) {
-//     return Inventory(
-//       inventoryId: json['inventoryId'],
-//       itemCode: json['itemCode'],
-//       quantityOnHand: json['quantityOnHand'],
-//       lastUpdated: json['lastUpdated'],
-//     );
-//   }
-
-//   Map<String, dynamic> toJson() {
-//     return {
-//       'inventoryId': inventoryId,
-//       'itemCode': itemCode,
-//       'quantityOnHand': quantityOnHand,
-//       'lastUpdated': lastUpdated,
-//     };
-//   }
-// }
-
 class InventoryService {
   static final String baseUrl = dotenv.env['API_URL']!;
   final storage = FlutterSecureStorage();
