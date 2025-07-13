@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 
 class RecordingData {
   final String reference;
@@ -21,6 +24,19 @@ class RecordingData {
     required this.quantity,
     required this.stockLocation,
   });
+
+  factory RecordingData.fromJson(Map<String, dynamic> json) {
+    return RecordingData(
+      reference: json['drSIReferenceNum'],
+      transactionDate: DateTime.parse(json['transactionDate']),
+      brand: json['brand'],
+      itemDescription: json['productDescription'],
+      lotNumber: int.tryParse(json['lotSerialNumber'].toString()) ?? 0,
+      expiryDate: DateTime.parse(json['expiryDate']),
+      quantity: json['quantity'],
+      stockLocation: json['stockLocation'],
+    );
+  }
 }
 
 class DataRecording extends StatefulWidget {
@@ -32,8 +48,10 @@ class DataRecording extends StatefulWidget {
 
 class _DataRecordingState extends State<DataRecording> {
   final TextEditingController _referenceController = TextEditingController();
-  final TextEditingController _itemSearchController = TextEditingController();
+  late TextEditingController _itemSearchController;
   final TextEditingController _quantityController = TextEditingController();
+  List<RecordingData> _records = [];
+
   
   DateTime? _selectedTransactionDate;
   DateTime? _automaticExpiryDate;
@@ -43,18 +61,20 @@ class _DataRecordingState extends State<DataRecording> {
   String? _selectedStockLocation;
   bool _dontAskAgain = false;
 
-  final List<String> _brands = ['BioTech', 'BrandX', 'LabCorp', 'MediSupply', 'ChemTech'];
+  final List<String> _brands = ['Anbio', 'Biorex', 'Bioelab', 'Bioway', 'Biobase', 'Dymind', 'DH', 'Ediagnosis', 'Genrui',
+    'Lifotronic', 'Mindray', 'Olympus', 'Render', 'Rayto', 'Uniper'];
   final List<String> _stockLocations = [
-    'Warehouse A, Shelf 1',
-    'Warehouse A, Shelf 2', 
-    'Warehouse A, Shelf 3',
-    'Warehouse B, Shelf 1',
-    'Cold Storage A',
-    'Cold Storage B'
+    'Lazcano Ref 1',
+    'Lazcano Ref 2', 
+    'Gandia (Cold Storage)',
+    'Gandia (Ref 1)',
+    'Gandia (Ref 2)',
+    'Limbaga',
+    'Cebu'
   ];
   
   final Map<String, List<int>> _lotNumbers = {
-    'BioTech': [1001, 1002, 1003, 1004],
+    'Anbio': [1001, 1002, 1003, 1004],
     'BrandX': [2001, 2002, 2003, 2004],
     'LabCorp': [3001, 3002, 3003, 3004],
     'MediSupply': [4001, 4002, 4003, 4004],
@@ -79,7 +99,23 @@ class _DataRecordingState extends State<DataRecording> {
   @override
   void initState() {
     super.initState();
-    _filteredItems = _allItems;
+    _itemSearchController = TextEditingController();
+
+    // sample data
+    _records.add(
+    RecordingData(
+      reference: 'DR-00123',
+      transactionDate: DateTime.now().subtract(const Duration(days: 1)),
+      brand: 'Mindray',
+      itemDescription: 'Blood Glucose Strips',
+      lotNumber: 1001,
+      expiryDate: DateTime.now().add(const Duration(days: 730)),
+      quantity: 50,
+      stockLocation: 'Gandia (Ref 1)',
+    ),
+  );
+
+    fetchTransactionEntries();
   }
 
   @override
@@ -90,119 +126,17 @@ class _DataRecordingState extends State<DataRecording> {
     super.dispose();
   }
 
-  List<RecordingData> get sampledata {
-    return [
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inchLaptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'asdawdasfwagasdwasdwasdwasdwasdwadswasdwasdwasdwasdwasdwad',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Wasdweagasfniawkamsohfgwiajsndohwabgis',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-      RecordingData(
-        reference: 'DR12345',
-        transactionDate: DateTime(2023, 10, 26),
-        brand: 'BrandX',
-        itemDescription: 'Laptop Pro 15-inch',
-        lotNumber: 1001,
-        expiryDate: DateTime(2025, 12, 31),
-        quantity: 5,
-        stockLocation: 'Warehouse A, Shelf 3',
-      ),
-    ];
+  Future<void> fetchTransactionEntries() async {
+    final response = await http.get(Uri.parse('http://localhost:8080/transaction/all'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        _records = data.map((e) => RecordingData.fromJson(e)).toList();
+      });
+    } else {
+      print("Failed to load data: ${response.statusCode}");
+    }
   }
 
   void _filterItems(String query) {
@@ -218,6 +152,66 @@ class _DataRecordingState extends State<DataRecording> {
       setState(() {
         _automaticExpiryDate = DateTime.now().add(const Duration(days: 730));
       });
+    }
+  }
+
+  Future<void> _submitData() async {
+    final newEntry = {
+      "drSIReferenceNum": _referenceController.text,
+      "transactionDate": _selectedTransactionDate!.toIso8601String(),
+      "brand": _selectedBrand,
+      "productDescription": _selectedItemDescription,
+      "lotSerialNumber": _selectedLotNumber,
+      "expiryDate": _automaticExpiryDate!.toIso8601String(),
+      "quantity": int.parse(_quantityController.text),
+      "stockLocation": _selectedStockLocation
+    };
+
+    print(jsonEncode(newEntry)); //just for testng
+
+    final response = await http.post(
+      Uri.parse('http://localhost:8080/transaction/createTransactionEntry'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(newEntry),
+    );
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      Navigator.of(context).pop(); // close dialog
+      await fetchTransactionEntries(); // ensure table is updated before UI changes
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Success'),
+          content: const Text('Transaction data has been successfully submitted!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      Navigator.of(context).pop();
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Failed to submit data. Server responded with ${response.statusCode}.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -318,55 +312,68 @@ class _DataRecordingState extends State<DataRecording> {
                       ),
                       const SizedBox(height: 16),
 
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextField(
-                            controller: _itemSearchController,
+                      Autocomplete<String>(
+                        optionsBuilder: (TextEditingValue textEditingValue) {
+                          this.setState(() {
+                            _selectedItemDescription = textEditingValue.text;
+                          });
+
+
+                          if (textEditingValue.text == '') {
+                            return const Iterable<String>.empty(); 
+                          }
+                          return _allItems.where((String option) {
+                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                          });
+                        },
+                        onSelected: (String selection) {
+                          setState(() {
+                            _selectedItemDescription = selection;
+                          });
+                          _calculateExpiryDate();
+                        },
+                        fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+                          _itemSearchController = fieldTextEditingController;
+                          return TextField(
+                            controller: fieldTextEditingController,
+                            focusNode: fieldFocusNode,
                             decoration: const InputDecoration(
                               labelText: 'Item Description',
-                              hintText: 'Search items by keywords',
+                              hintText: 'Type or select an item',
                               border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.search),
+                              prefixIcon: Icon(Icons.description),
                             ),
-                            onChanged: (value) {
-                              _filterItems(value);
-                              setState(() {});
+                            onChanged: (text) {
+                               setState(() {
+                                 _selectedItemDescription = text; 
+                               });
                             },
-                          ),
-                          if (_itemSearchController.text.isNotEmpty && _filteredItems.isNotEmpty)
-                            Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 150),
-                                child: ListView.builder(
-                                  shrinkWrap: true,
-                                  itemCount: _filteredItems.length,
-                                  itemBuilder: (context, index) {
-                                    return ListTile(
-                                      dense: true,
-                                      title: Text(_filteredItems[index]),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedItemDescription = _filteredItems[index];
-                                          _itemSearchController.text = _filteredItems[index];
-                                          _filteredItems = [];
-                                        });
-                                        this.setState(() {
-                                          _selectedItemDescription = _filteredItems[index];
-                                        });
-                                        _calculateExpiryDate();
-                                      },
-                                    );
-                                  },
-                                ),
+                          );
+                        },
+                        optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              elevation: 4.0,
+                              child: ListView.builder( 
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                itemCount: options.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  final String option = options.elementAt(index);
+                                  return GestureDetector(
+                                    onTap: () {
+                                      onSelected(option);
+                                    },
+                                    child: ListTile(
+                                      title: Text(option),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                        ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -399,7 +406,39 @@ class _DataRecordingState extends State<DataRecording> {
                       ),
                       const SizedBox(height: 16),
 
-                      InputDecorator(
+                      
+                      InkWell(
+                        onTap: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: _automaticExpiryDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _automaticExpiryDate = picked;
+                            });
+                            this.setState(() {
+                              _automaticExpiryDate = picked;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Expiration Date',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.edit),
+                            suffixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            _automaticExpiryDate != null
+                                ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!)
+                                : 'Select expiration date',
+                          ),
+                        ),
+                      ),
+                      /*InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'Expiry Date',
                           border: OutlineInputBorder(),
@@ -413,7 +452,7 @@ class _DataRecordingState extends State<DataRecording> {
                             color: _automaticExpiryDate != null ? Colors.green : Colors.grey,
                           ),
                         ),
-                      ),
+                      ),*/
                       const SizedBox(height: 16),
 
                       TextField(
@@ -605,28 +644,6 @@ class _DataRecordingState extends State<DataRecording> {
     );
   }
 
-  void _submitData() {
-    Navigator.of(context).pop();
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Success'),
-          content: const Text('Transaction data has been successfully submitted!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final DateFormat formatter = DateFormat('yyyy-MM-dd');
@@ -657,8 +674,7 @@ class _DataRecordingState extends State<DataRecording> {
                     ),
                     columnSpacing: 24.0,
                     horizontalMargin: 12.0,
-                    dataRowMinHeight: 48.0,
-                    dataRowMaxHeight: 100.0,
+                    dataRowMaxHeight: double.infinity,
                     headingRowHeight: 56.0,
                     columns: const <DataColumn>[
                       DataColumn(
@@ -710,17 +726,17 @@ class _DataRecordingState extends State<DataRecording> {
                         ),
                       ),
                     ],
-                    rows: sampledata.map<DataRow>((data) {
+                    rows: _records.map<DataRow>((data) {
                       return DataRow(
                         cells: [
-                          DataCell(SizedBox(width: 100, child: Text(data.reference, softWrap: true))),
-                          DataCell(SizedBox(width: 90, child: Text(formatter.format(data.transactionDate), softWrap: true))),
-                          DataCell(SizedBox(width: 85, child: Text(data.brand, softWrap: true))),
-                          DataCell(SizedBox(width: 200, child: Text(data.itemDescription, softWrap: true))),
-                          DataCell(SizedBox(width: 70, child: Text(data.lotNumber.toString(), softWrap: true))),
-                          DataCell(SizedBox(width: 90, child: Text(formatter.format(data.expiryDate), softWrap: true))),
-                          DataCell(SizedBox(width: 45, child: Text(data.quantity.toString(), softWrap: true))),
-                          DataCell(SizedBox(width: 190, child: Text(data.stockLocation, softWrap: true))),
+                          DataCell(SizedBox(width: 100, child: Text(data.reference, softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 90, child: Text(formatter.format(data.transactionDate), softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 85, child: Text(data.brand, softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 200, child: Text(data.itemDescription, softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 70, child: Text(data.lotNumber.toString(), softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 90, child: Text(formatter.format(data.expiryDate), softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 45, child: Text(data.quantity.toString(), softWrap: true, style: const TextStyle(height: 1.2,)))),
+                          DataCell(SizedBox(width: 190, child: Text(data.stockLocation, softWrap: true, style: const TextStyle(height: 1.2,)))),
                         ],
                       );
                     }).toList(),
