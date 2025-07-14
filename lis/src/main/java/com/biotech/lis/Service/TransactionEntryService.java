@@ -1,5 +1,7 @@
 package com.biotech.lis.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,10 @@ public class TransactionEntryService {
  
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
         return transactionEntryRepository.findById(id);
+    }
+
+    public List<TransactionEntry> getAllTransactionEntries() {
+        return transactionEntryRepository.findAll();
     }
 
     public TransactionEntry updateTransactionEntry(TransactionEntry transactionEntry) {

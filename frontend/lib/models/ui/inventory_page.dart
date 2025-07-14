@@ -31,7 +31,7 @@ class _InventoryPageState extends State<InventoryPage> {
     try {
       final data = await InventoryService().fetchStockAlerts(999999);
       setState(() {
-        headers = ['ID', 'Item Code', 'Qty', 'Last Updated'];
+        headers = ['ID', 'Item Code', 'Brand', 'Item', 'Qty', 'Last Updated'];
         rows = data.map((inv) => [
           inv.inventoryID.toString(),
           inv.itemCode,
