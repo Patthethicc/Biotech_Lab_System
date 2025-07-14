@@ -26,7 +26,8 @@ public class Inventory {
     private String itemCode;
     private Integer quantityOnHand;
     private Date lastUpdated;
-
+    private String addedBy;
+    private Date dateTimeAdded;
     //@ManyToOne
     //@JoinColumn(name = "itemCode")
     //private List<itemList> itemList = new ArrayList<>();

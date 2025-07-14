@@ -25,6 +25,8 @@ public class Product {
     private Date acquisition_date;
     private String category; //tsaka na gawing arraylist
     private String supplier_ref_num;
+    private String addedBy;
+    private Date dateTimeAdded;
 }
 
 //I think there should be two separate products, one for the individual itself and one for the product display sa dashboard

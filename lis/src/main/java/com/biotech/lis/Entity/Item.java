@@ -26,4 +26,6 @@ public class Item {
     private String purchaseOrderReferenceNumber;
     private String supplierPackingList;
     private String drsiReferenceNumber;
+    private String addedBy;
+    private Date dateTimeAdded;
 }

@@ -1,5 +1,6 @@
 package com.biotech.lis.Entity;
 
+import java.sql.Date;
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
@@ -41,4 +42,10 @@ public class TransactionEntry {
     
     @Column(name = "stockLocation")
     private String stockLocation;
+
+    @Column(name = "addedBy")
+    private String addedBy;
+
+    @Column(name = "dateTimeAdded")
+    private Date dateTimeAdded;
 }
