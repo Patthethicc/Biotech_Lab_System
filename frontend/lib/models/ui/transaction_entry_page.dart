@@ -72,6 +72,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   ];
 
   List<String> _filteredItems = [];
+
   @override
   void initState() {
     super.initState();
@@ -130,6 +131,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       _showErrorDialog(['One or more fields are missing or invalid.']);
       return;
     }
+
     final newEntry = {
       "drSIReferenceNum": _referenceController.text,
       "transactionDate": _selectedTransactionDate!.toIso8601String(),
