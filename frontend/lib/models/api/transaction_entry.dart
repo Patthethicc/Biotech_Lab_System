@@ -3,7 +3,7 @@ class TransactionEntry {
   final DateTime transactionDate;
   final String brand;
   final String itemDescription;
-  final int lotNumber;
+  final String lotNumber;
   final DateTime expiryDate;
   final int quantity;
   final String stockLocation;
@@ -21,24 +21,24 @@ class TransactionEntry {
 
   factory TransactionEntry.fromJson(Map<String, dynamic> json) {
     return TransactionEntry(
-      reference: json['reference'],
-      transactionDate: json['transactionDate'],
+      reference: json['drSIReferenceNum'],
+      transactionDate: DateTime.parse(json['transactionDate']),
       brand: json['brand'],
-      itemDescription: json['itemDescription'],
-      lotNumber: json['lotNumber'],
-      expiryDate: json['expiryDate'],
+      itemDescription: json['productDescription'],
+      lotNumber: json['lotSerialNumber'].toString(),
+      expiryDate: DateTime.parse(json['expiryDate']),
       quantity: json['quantity'],
       stockLocation: json['stockLocation']
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'reference' : reference,
-    'transactionDate' : transactionDate,
+    'drSIReferenceNum' : reference,
+    'transactionDate' : transactionDate.toIso8601String(),
     'brand' : brand,
-    'itemDescription' : itemDescription,
-    'lotNumber' : lotNumber,
-    'expiryDate' : expiryDate,
+    'productDescription' : itemDescription,
+    'lotSerialNumber' : lotNumber,
+    'expiryDate' : expiryDate.toIso8601String(),
     'quantity' : quantity,
     'stockLocation' : stockLocation
   };

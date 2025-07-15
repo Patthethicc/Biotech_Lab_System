@@ -30,4 +30,17 @@ class TransactionEntryService {
     );
     return response;
   }
+
+  Future<http.Response> updateTransactionEntry(String id, Map<String, dynamic> updatedEntry) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.put(
+      Uri.parse('$baseUrl/transaction/updateTransaction/$id'), 
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode(updatedEntry),
+    );
+    return response;
+  }
 }
