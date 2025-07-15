@@ -309,7 +309,7 @@ class _HomePageState extends State<HomePage>{
                 )),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/data_recording');
+                Navigator.pushNamed(context, '/transaction_entry');
               },
             ),
             ListTile(
