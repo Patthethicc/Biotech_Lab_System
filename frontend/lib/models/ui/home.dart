@@ -277,9 +277,7 @@ class _HomePageState extends State<HomePage>{
                 ],
               ),
             ),
-
-
-            /*ListTile(
+            ListTile(
               title: const Text('Dashboard',
                 style: TextStyle(
                   color: Color.fromARGB(179, 0, 0, 0),
@@ -289,7 +287,7 @@ class _HomePageState extends State<HomePage>{
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/dashboard');
               },
-            ), Removed this part since dashboard is supposed to be the main page*/
+            ),
             ListTile(
               title: const Text('View Profile',
                 style: TextStyle(
