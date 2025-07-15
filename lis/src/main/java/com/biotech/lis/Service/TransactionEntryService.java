@@ -1,12 +1,6 @@
 package com.biotech.lis.Service;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 import java.time.LocalDateTime;
-=======
->>>>>>> abbb51ff2a23ea86aec18e6558d923e197c2ff84
-=======
->>>>>>> 6cda2011096b7ebe0d7fa5be4154f602d5f5ae54
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
