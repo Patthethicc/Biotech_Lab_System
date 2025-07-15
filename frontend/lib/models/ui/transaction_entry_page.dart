@@ -8,9 +8,6 @@ import 'dart:convert';
 
 class TransactionEntryPage extends StatefulWidget {
   const TransactionEntryPage({super.key});
-
-  
-
   @override
   State<TransactionEntryPage> createState() => _TransactionEntryPageState();
 }
