@@ -1,8 +1,11 @@
 package com.biotech.lis.Entity;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,5 +30,9 @@ public class Item {
     private String supplierPackingList;
     private String drsiReferenceNumber;
     private String addedBy;
-    private Date dateTimeAdded;
+    private LocalDateTime dateTimeAdded;
+
+    @ManyToOne
+    @JoinColumn(name = "inventoryId")
+    private Inventory inventory;
 }

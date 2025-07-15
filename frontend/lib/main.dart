@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget{
         '/view_profile': (context) => ViewProfilePage(),
         '/edit_profile': (context) => EditProfilePage(),
         '/dashboard': (context) => Dashboard(),
-        '/transaction_entry': (context) => TransactionEntryPage(),
+        '/data_recording': (context) => TransactionEntryPage(),
         '/inventory': (context) => InventoryPage(),
         '/stock_alert': (context) => StockAlert()
 

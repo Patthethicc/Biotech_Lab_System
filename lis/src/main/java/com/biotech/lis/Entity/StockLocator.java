@@ -2,6 +2,7 @@
 package com.biotech.lis.Entity;
 
 import java.sql.Date;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,7 +54,7 @@ public class StockLocator {
     private String addedBy;
 
     @Column(name = "dateTimeAdded")
-    private Date dateTimeAdded;
+    private LocalDateTime dateTimeAdded;
 
     public StockLocator(String brand, String productDescription) {
         this.brand = brand;

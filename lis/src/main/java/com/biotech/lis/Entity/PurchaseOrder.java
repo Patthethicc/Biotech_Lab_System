@@ -2,6 +2,8 @@ package com.biotech.lis.Entity;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,5 +35,5 @@ public class PurchaseOrder {
 
     private String addedBy;
     
-    private Date dateTimeAdded;
+    private LocalDateTime dateTimeAdded;
 }
