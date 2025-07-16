@@ -63,7 +63,11 @@ public class TransactionEntryService {
     }
 
     public void deleteTransactionEntry(String id) {
-        transactionEntryRepository.deleteById(id);
+        if (transactionEntryRepository.existsById(id)) {
+            transactionEntryRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("Transaction entry not found with ID: " + id);
+        }
     }
 
     public boolean existsById(String id) {
