@@ -36,7 +36,8 @@ class MyApp extends StatelessWidget{
         '/purchase_order': (context) => const PurchaseOrderPage(),
         '/transaction_entry': (context) => TransactionEntryPage(),
         '/inventory': (context) => InventoryPage(),
-        '/stock_alert': (context) => StockAlert()
+        '/stock_alert': (context) => StockAlert(),
+        '/stock_locator': (context) => StockLocator()
       },
     );
   }
