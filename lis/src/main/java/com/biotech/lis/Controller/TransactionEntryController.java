@@ -2,6 +2,8 @@ package com.biotech.lis.Controller;
 
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Service.TransactionEntryService;
+import com.biotech.lis.DTO.DashboardStatsDTO;
+import com.biotech.lis.Service.DashboardService;
 
 import java.util.Optional;
 
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -23,6 +26,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransactionEntryController {
 
     private final TransactionEntryService transactionEntryService;
+    
+    @Autowired
+    private DashboardService dashboardService;
+    
     @Autowired
     public TransactionEntryController(TransactionEntryService transactionEntryService) {
         this.transactionEntryService = transactionEntryService;
@@ -77,4 +84,37 @@ public class TransactionEntryController {
         return ResponseEntity.ok(allEntries);
     }
 
+    // NEW DASHBOARD ENDPOINTS:
+    
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<DashboardStatsDTO> getDashboardStats(
+            @RequestParam String period,
+            @RequestParam(required = false) String date) {
+        try {
+            DashboardStatsDTO stats = dashboardService.getDashboardStats(period, date);
+            return ResponseEntity.ok(stats);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/dashboard/today")
+    public ResponseEntity<DashboardStatsDTO> getTodayStats() {
+        DashboardStatsDTO stats = dashboardService.getTodayStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/dashboard/current-month")
+    public ResponseEntity<DashboardStatsDTO> getCurrentMonthStats() {
+        DashboardStatsDTO stats = dashboardService.getCurrentMonthStats();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/dashboard/current-year")
+    public ResponseEntity<DashboardStatsDTO> getCurrentYearStats() {
+        DashboardStatsDTO stats = dashboardService.getCurrentYearStats();
+        return ResponseEntity.ok(stats);
+    }
 }
