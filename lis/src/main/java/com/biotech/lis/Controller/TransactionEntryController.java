@@ -58,10 +58,14 @@ public class TransactionEntryController {
         }
     }
 
-    @DeleteMapping("/deleteTransaction/{id}")
-    public ResponseEntity<TransactionEntry> deleteTransactionEntry(@PathVariable("id") String id) {
-        transactionEntryService.deleteTransactionEntry(id);
-        return ResponseEntity.ok().build(); 
+    @DeleteMapping("/deleteTransactionEntry/{id}")
+    public ResponseEntity<Void> deleteTransactionEntry(@PathVariable String id) {
+        try {
+            transactionEntryService.deleteTransactionEntry(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     // util method for updating transaction entry
