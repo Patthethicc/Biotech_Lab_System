@@ -1,13 +1,17 @@
 package com.biotech.lis.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.Entity.StockLocator;
 import com.biotech.lis.Entity.TransactionEntry;
+import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.StockLocatorRepository;
 
 @Service
@@ -15,6 +19,9 @@ public class StockLocatorService {
 
     @Autowired
     private StockLocatorRepository stockLocatorRepository;
+
+    @Autowired
+    UserService userService;
 
     public List<StockLocator> getAllStockLocations() {
         return stockLocatorRepository.findAll();
@@ -66,11 +73,20 @@ public class StockLocatorService {
             default:
                 throw new IllegalArgumentException("Invalid stock location: " + stockLocation);
         }
-
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userService.getUserById(Long.parseLong(auth.getName()));
+        LocalDateTime cDateTime = LocalDateTime.now();
+        stockLocator.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        stockLocator.setDateTimeAdded(cDateTime);
         stockLocatorRepository.save(stockLocator);
     }
 
     public StockLocator updateStockLocator(StockLocator stockLocator) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userService.getUserById(Long.parseLong(auth.getName()));
+        LocalDateTime cDateTime = LocalDateTime.now();
+        stockLocator.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        stockLocator.setDateTimeAdded(cDateTime);
         return stockLocatorRepository.save(stockLocator);
     }
 
