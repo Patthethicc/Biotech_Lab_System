@@ -32,7 +32,6 @@ class MyApp extends StatelessWidget{
         '/view_profile': (context) => ViewProfilePage(),
         '/edit_profile': (context) => EditProfilePage(),
         '/dashboard': (context) => Dashboard(),
-        '/data_recording': (context) => DataRecording(),
         '/stock_alert': (context) => StockAlert(),
         '/purchase_order': (context) => const PurchaseOrderPage(),
         '/transaction_entry': (context) => TransactionEntryPage(),
