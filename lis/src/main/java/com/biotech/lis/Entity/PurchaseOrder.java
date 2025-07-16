@@ -1,6 +1,9 @@
 package com.biotech.lis.Entity;
 
+import java.sql.Date;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "purchase_order")
+@Table(name = "purchaseOrder")
 public class PurchaseOrder {
 
     @Id
@@ -29,4 +32,8 @@ public class PurchaseOrder {
     private LocalDate expectedDeliveryDate;
 
     private double cost;
+
+    private String addedBy;
+    
+    private LocalDateTime dateTimeAdded;
 }

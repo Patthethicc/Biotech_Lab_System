@@ -29,6 +29,10 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User getUserById(Long id){
+        return userRepository.getReferenceById(id);
+    }
+
     public User getUserByEmail(String email) {
         return userRepository.findUserByEmail(email);
     }
@@ -50,7 +54,7 @@ public class UserService {
             if(BCrypt.checkpw(password, String.valueOf(stored_User.getPassword()))) {
                 request.setCheck(true);
                 request.setPassword("password");
-                request.setToken(jwtService.generateToken(email));
+                request.setToken(jwtService.generateToken(stored_User.getUser_id()));
             }
         }
         return request;

@@ -14,6 +14,7 @@ class LogInUserService {
     );
 
     if (response.statusCode == 200) {
+      print(response);
       return LogInUser.fromJson(json.decode(response.body));
     } else {
       throw Exception('Failed to post data');

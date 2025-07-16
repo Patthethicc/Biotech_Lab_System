@@ -3,6 +3,7 @@ import 'home.dart';
 import 'register.dart';
 import 'package:frontend/models/api/login_user.dart';
 import 'package:frontend/services/login_user_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +15,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailInput = TextEditingController();
   final TextEditingController passwordInput = TextEditingController();
+  final storage = FlutterSecureStorage();
 
   @override
   void dispose() {
@@ -26,12 +28,15 @@ class _LoginPageState extends State<LoginPage> {
     final logInUser = LogInUser(
       email: emailInput.text,
       password: passwordInput.text,
+      token: "temp",
       check: false
     );
 
     try {
       final response = await LogInUserService.logInUser(logInUser);
+
         if(response.check) {
+          await storage.write(key: 'jwt_token', value: response.token);
           setState(() {
             Navigator.push(
                         context,

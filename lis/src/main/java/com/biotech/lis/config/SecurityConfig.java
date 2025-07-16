@@ -20,14 +20,16 @@ public class SecurityConfig{
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth
+        http.
+                csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                
                 .requestMatchers("/user/v1/login", "/user/v1/addUser")
-                .permitAll()
-                .anyRequest()
+                .permitAll().anyRequest()
                 .authenticated())
                 .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .httpBasic(Customizer.withDefaults())
+                //.httpBasic(Customizer.withDefaults())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
