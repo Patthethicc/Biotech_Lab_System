@@ -43,4 +43,16 @@ class TransactionEntryService {
     );
     return response;
   }
+
+  Future<http.Response> deleteTransactionEntry(String id) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.delete(
+      Uri.parse('$baseUrl/transaction/deleteTransactionEntry/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+    );
+    return response;
+  }
 }
