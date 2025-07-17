@@ -2,26 +2,26 @@ class Inventory {
   int? inventoryID = 0;
   String itemCode = "";
   String brand = "";
-  String item ="";
   int quantityOnHand = 0;
-  String lastUpdated = "";
+  String addedBy = "";
+  String dateTimeAdded = "";
 
   Inventory({
     required this.inventoryID,
     required this.itemCode,
     required this.brand,
-    required this.item,
     required this.quantityOnHand,
-    required this.lastUpdated
+    required this.addedBy,
+    required this.dateTimeAdded
   });
 
   Inventory.fromJson(Map<String, dynamic> json) {
     inventoryID = json["inventoryId"];
     itemCode = json["itemCode"];
     brand = json["brand"];
-    item = json["item"];
     quantityOnHand = json["quantityOnHand"];
-    lastUpdated = json["lastUpdated"];
+    addedBy = json["addedBy"];
+    dateTimeAdded = json["dateTimeAdded"];
   }
 
   Map<String, dynamic> toJson() {
@@ -29,9 +29,9 @@ class Inventory {
       'inventoryId': inventoryID,
       'itemCode': itemCode,
       'brand' : brand,
-      'item' : item,
       'quantityOnHand': quantityOnHand,
-      'lastUpdated': lastUpdated
+      'addedBy': addedBy,
+      'dateTimeAdded': dateTimeAdded
     };
   }
 }

@@ -24,8 +24,8 @@ public class Item {
     private String productDescription;
     private String lotSerialNumber;
     private Date expiryDate;
-    private String StocksManila;
-    private String StocksCebu;
+    private Integer StocksManila;
+    private Integer StocksCebu;
     private String purchaseOrderReferenceNumber;
     private String supplierPackingList;
     private String drsiReferenceNumber;
