@@ -1,17 +1,13 @@
 package com.biotech.lis.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.Entity.StockLocator;
 import com.biotech.lis.Entity.TransactionEntry;
-import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.StockLocatorRepository;
 
 @Service
@@ -19,9 +15,6 @@ public class StockLocatorService {
 
     @Autowired
     private StockLocatorRepository stockLocatorRepository;
-
-    @Autowired
-    UserService userService;
 
     public List<StockLocator> getAllStockLocations() {
         return stockLocatorRepository.findAll();
@@ -43,6 +36,9 @@ public class StockLocatorService {
         if (existingStock.isPresent()) {
             stockLocator = existingStock.get();
         } else {
+            if (!isAddition){
+                throw new RuntimeException("Stock not found for Brand: " + brand + ", Product: " + productDescription + " to deduct from.");
+            }
             stockLocator = new StockLocator(brand, productDescription);
         }
 
@@ -50,43 +46,63 @@ public class StockLocatorService {
         
         switch (stockLocation.toLowerCase()) {
             case "lazcano ref 1":
-                stockLocator.setLazcanoRef1(Math.max(0, stockLocator.getLazcanoRef1() + quantityChange));
+                int newLazcanoRef1 = stockLocator.getLazcanoRef1() + quantityChange;
+                if (!isAddition && newLazcanoRef1 < 0) { 
+                    throw new RuntimeException("Insufficient stock at Lazcano Ref 1. Available: " + stockLocator.getLazcanoRef1() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setLazcanoRef1(newLazcanoRef1);
                 break;
             case "lazcano ref 2":
-                stockLocator.setLazcanoRef2(Math.max(0, stockLocator.getLazcanoRef2() + quantityChange));
+                int newLazcanoRef2 = stockLocator.getLazcanoRef2() + quantityChange;
+                if (!isAddition && newLazcanoRef2 < 0) {
+                    throw new RuntimeException("Insufficient stock at Lazcano Ref 2. Available: " + stockLocator.getLazcanoRef2() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setLazcanoRef2(newLazcanoRef2);
                 break;
             case "gandia cold storage":
-                stockLocator.setGandiaColdStorage(Math.max(0, stockLocator.getGandiaColdStorage() + quantityChange));
+                int newGandiaColdStorage = stockLocator.getGandiaColdStorage() + quantityChange;
+                if (!isAddition && newGandiaColdStorage < 0) {
+                    throw new RuntimeException("Insufficient stock at Gandia Cold Storage. Available: " + stockLocator.getGandiaColdStorage() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setGandiaColdStorage(newGandiaColdStorage);
                 break;
             case "gandia ref 1":
-                stockLocator.setGandiaRef1(Math.max(0, stockLocator.getGandiaRef1() + quantityChange));
+                int newGandiaRef1 = stockLocator.getGandiaRef1() + quantityChange;
+                if (!isAddition && newGandiaRef1 < 0) {
+                    throw new RuntimeException("Insufficient stock at Gandia Ref 1. Available: " + stockLocator.getGandiaRef1() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setGandiaRef1(newGandiaRef1);
                 break;
             case "gandia ref 2":
-                stockLocator.setGandiaRef2(Math.max(0, stockLocator.getGandiaRef2() + quantityChange));
+                int newGandiaRef2 = stockLocator.getGandiaRef2() + quantityChange;
+                if (!isAddition && newGandiaRef2 < 0) {
+                    throw new RuntimeException("Insufficient stock at Gandia Ref 2. Available: " + stockLocator.getGandiaRef2() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setGandiaRef2(newGandiaRef2);
                 break;
             case "limbaga":
-                stockLocator.setLimbaga(Math.max(0, stockLocator.getLimbaga() + quantityChange));
+                int newLimbaga = stockLocator.getLimbaga() + quantityChange;
+                if (!isAddition && newLimbaga < 0) {
+                    throw new RuntimeException("Insufficient stock at Limbaga. Available: " + stockLocator.getLimbaga() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setLimbaga(newLimbaga);
                 break;
             case "cebu":
-                stockLocator.setCebu(Math.max(0, stockLocator.getCebu() + quantityChange));
+                int newCebu = stockLocator.getCebu() + quantityChange;
+                if (!isAddition && newCebu < 0) {
+                    throw new RuntimeException("Insufficient stock at Cebu. Available: " + stockLocator.getCebu() + ", Requested Deduction: " + quantity + " for " + productDescription);
+                }
+                stockLocator.setCebu(newCebu);
                 break;
             default:
-                throw new IllegalArgumentException("Invalid stock location: " + stockLocation);
+                throw new IllegalArgumentException("Invalid stock location specified in transaction: " + stockLocation);
         }
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userService.getUserById(Long.parseLong(auth.getName()));
-        LocalDateTime cDateTime = LocalDateTime.now();
-        stockLocator.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
-        stockLocator.setDateTimeAdded(cDateTime);
+
         stockLocatorRepository.save(stockLocator);
+        System.out.println("Stock updated for Brand: " + brand + ", Product: " + productDescription + " at " + stockLocation + " by " + quantityChange);
     }
 
     public StockLocator updateStockLocator(StockLocator stockLocator) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userService.getUserById(Long.parseLong(auth.getName()));
-        LocalDateTime cDateTime = LocalDateTime.now();
-        stockLocator.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
-        stockLocator.setDateTimeAdded(cDateTime);
         return stockLocatorRepository.save(stockLocator);
     }
 
