@@ -1,25 +1,83 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class PurchaseOrder {
-  String code;
-  String item;
-  int quantityOrdered;
-  String orderDate;
-  String expectedDeliveryDate;
-  String? purchaseOrderFile;
+  String purchaseOrderCode;
+  String? purchaseOrderFile; 
   String? suppliersPackingList;
+  int quantityPurchased;
+  DateTime orderDate;
+  DateTime expectedDeliveryDate;
   double cost;
 
   PurchaseOrder({
-    required this.code,
-    required this.item,
-    required this.quantityOrdered,
-    required this.orderDate,
-    required this.expectedDeliveryDate,
+    required this.purchaseOrderCode,
     this.purchaseOrderFile,
     this.suppliersPackingList,
+    required this.quantityPurchased,
+    required this.orderDate,
+    required this.expectedDeliveryDate,
     required this.cost,
   });
+
+  factory PurchaseOrder.fromJson(Map<String, dynamic> json) => PurchaseOrder(
+    purchaseOrderCode: json['purchaseOrderCode'],
+    purchaseOrderFile: json['purchaseOrderFile'],
+    suppliersPackingList: json['suppliersPackingList'],
+    quantityPurchased: json['quantityPurchased'],
+    orderDate: DateTime.parse(json['orderDate']),
+    expectedDeliveryDate: DateTime.parse(json['expectedDeliveryDate']),
+    cost: (json['cost'] as num).toDouble(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'purchaseOrderCode': purchaseOrderCode,
+    'purchaseOrderFile': purchaseOrderFile,
+    'suppliersPackingList': suppliersPackingList,
+    'quantityPurchased': quantityPurchased,
+    'orderDate': orderDate.toIso8601String(),
+    'expectedDeliveryDate': expectedDeliveryDate.toIso8601String(),
+    'cost': cost,
+  };
+}
+
+class PurchaseOrderService {
+  static const String baseUrl = 'http://localhost:8080/po/v1';
+
+  Future<List<PurchaseOrder>> fetchPurchaseOrders() async {
+    final response = await http.get(Uri.parse('$baseUrl/getPOs'));
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((json) => PurchaseOrder.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load purchase orders');
+    }
+  }
+
+  Future<void> addPurchaseOrder(PurchaseOrder po) async {
+    await http.post(
+      Uri.parse('$baseUrl/addPO'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(po.toJson()),
+    );
+  }
+
+  Future<void> updatePurchaseOrder(PurchaseOrder po) async {
+    await http.put(
+      Uri.parse('$baseUrl/updatePO'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(po.toJson()),
+    );
+  }
+
+  Future<void> deletePurchaseOrder(String purchaseOrderCode) async {
+    await http.delete(
+      Uri.parse('$baseUrl/deletePO/$purchaseOrderCode'),
+      headers: {'Content-Type': 'application/json'},
+    );
+  }
 }
 
 class PurchaseOrderPage extends StatefulWidget {
@@ -30,296 +88,195 @@ class PurchaseOrderPage extends StatefulWidget {
 }
 
 class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
-  final List<PurchaseOrder> _orders = [
+  List<PurchaseOrder> orders = [
     PurchaseOrder(
-      code: 'PO-2024-201',
-      item: 'Disposable Gloves',
-      quantityOrdered: 150,
-      orderDate: '2024-06-01',
-      expectedDeliveryDate: '2024-06-10',
-      purchaseOrderFile: 'packing_list_acme.pdf',
-      cost: 45000.00,
-    ),
-    PurchaseOrder(
-      code: 'PO-2024-202',
-      item: 'Microscope Slides',
-      quantityOrdered: 75,
-      orderDate: '2024-06-05',
-      expectedDeliveryDate: '2024-06-15',
-      purchaseOrderFile: 'packing_list_labtech.pdf',
-      cost: 12000.00,
-    ),
-    PurchaseOrder(
-      code: 'PO-2024-203',
-      item: 'Chemical Reagents',
-      quantityOrdered: 40,
-      orderDate: '2024-06-10',
-      expectedDeliveryDate: '2024-06-20',
+      purchaseOrderCode: 'PO-2024-201',
       purchaseOrderFile: null,
-      cost: 80000.00,
+      suppliersPackingList: null,
+      quantityPurchased: 150,
+      orderDate: DateTime(2024, 6, 1),
+      expectedDeliveryDate: DateTime(2024, 6, 10),
+      cost: 45000,
+    ),
+    PurchaseOrder(
+      purchaseOrderCode: 'PO-2024-202',
+      purchaseOrderFile: null,
+      suppliersPackingList: null,
+      quantityPurchased: 75,
+      orderDate: DateTime(2024, 6, 5),
+      expectedDeliveryDate: DateTime(2024, 6, 15),
+      cost: 12000,
+    ),
+    PurchaseOrder(
+      purchaseOrderCode: 'PO-2024-203',
+      purchaseOrderFile: null,
+      suppliersPackingList: null,
+      quantityPurchased: 40,
+      orderDate: DateTime(2024, 6, 10),
+      expectedDeliveryDate: DateTime(2024, 6, 20),
+      cost: 80000,
     ),
   ];
+  bool isLoading = false;
+  bool hasError = false;
 
-  final TextEditingController _codeController = TextEditingController();
-  final TextEditingController _quantityOrderedController = TextEditingController();
-  final TextEditingController _orderDateController = TextEditingController();
-  final TextEditingController _expectedDeliveryDateController = TextEditingController();
-  final TextEditingController _itemController = TextEditingController();
-  final TextEditingController _costController = TextEditingController();
-  final TextEditingController _purchaseOrderFileController = TextEditingController();
-  final TextEditingController _suppliersPackingListController = TextEditingController();
-
-  final ScrollController _horizontalScrollController = ScrollController();
-
-  final List<String> _itemOptions = [
-    'Disposable Gloves',
-    'Microscope Slides',
-    'Chemical Reagents',
-    'PCR Tubes',
-    'Lab Disinfectant',
-  ];
-
-  void _deleteOrder(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Purchase Order'),
-        content: Text('Are you sure you want to delete ${_orders[index].code}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _orders.removeAt(index);
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _viewOrderFile(String? file) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(file != null ? 'Viewing $file' : 'No file available')),
-    );
-  }
-
-  void _showAddOrderDialog() {
-    _codeController.clear();
-    _quantityOrderedController.clear();
-    _orderDateController.clear();
-    _expectedDeliveryDateController.clear();
-    _itemController.clear();
-    _costController.clear();
-    _purchaseOrderFileController.clear();
-    _suppliersPackingListController.clear();
-
-    String? selectedItem;
-    DateTime? selectedOrderDate;
-    DateTime? selectedExpectedDeliveryDate;
+  void _showAddDialog() {
+    final _formKey = GlobalKey<FormState>();
+    final codeController = TextEditingController();
+    final fileUrlController = TextEditingController();
+    final supplierPackingListController = TextEditingController();
+    final quantityController = TextEditingController();
+    final costController = TextEditingController();
+    DateTime? orderDate;
+    DateTime? deliveryDate;
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           title: const Text('Add Purchase Order'),
           content: SizedBox(
             width: 500,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _codeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Purchase Order Code',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.confirmation_number),
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: codeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Purchase Order Code',
+                        prefixIcon: Icon(Icons.confirmation_number),
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _purchaseOrderFileController,
-                    decoration: const InputDecoration(
-                      labelText: 'Purchase Order File',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.attach_file),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: fileUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'Purchase Order File',
+                        prefixIcon: Icon(Icons.attach_file),
+                      ),
+                      validator: (value) => null, 
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _suppliersPackingListController,
-                    decoration: const InputDecoration(
-                      labelText: "Supplier's Packing List",
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.list_alt),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: supplierPackingListController,
+                      decoration: const InputDecoration(
+                        labelText: "Supplier's Packing List",
+                        prefixIcon: Icon(Icons.table_chart),
+                      ),
+                      validator: (value) => null, 
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _quantityOrderedController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Quantity Purchased',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.shopping_cart),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: quantityController,
+                      decoration: const InputDecoration(
+                        labelText: 'Quantity Purchased',
+                        prefixIcon: Icon(Icons.shopping_cart),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Required';
+                        if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                          return 'Enter a valid quantity';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedOrderDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        selectedOrderDate = picked;
-                        _orderDateController.text =
-                            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                      }
-                    },
-                    child: IgnorePointer(
-                      child: TextField(
-                        controller: _orderDateController,
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          orderDate = picked;
+                          (context as Element).markNeedsBuild();
+                        }
+                      },
+                      child: InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'Order Date',
-                          border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.calendar_today),
                         ),
+                        child: Text(orderDate != null
+                            ? DateFormat('yyyy-MM-dd').format(orderDate!)
+                            : ''),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedExpectedDeliveryDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        selectedExpectedDeliveryDate = picked;
-                        _expectedDeliveryDateController.text =
-                            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                      }
-                    },
-                    child: IgnorePointer(
-                      child: TextField(
-                        controller: _expectedDeliveryDateController,
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          deliveryDate = picked;
+                          (context as Element).markNeedsBuild();
+                        }
+                      },
+                      child: InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'Expected Delivery Date',
-                          border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.delivery_dining),
                         ),
+                        child: Text(deliveryDate != null
+                            ? DateFormat('yyyy-MM-dd').format(deliveryDate!)
+                            : ''),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedItem,
-                    items: _itemOptions.map((item) {
-                      return DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(item),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      selectedItem = value;
-                      _itemController.text = value ?? '';
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Items Purchased',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.inventory_2),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: costController,
+                      decoration: const InputDecoration(
+                        labelText: 'Cost',
+                        prefixIcon: Icon(Icons.attach_money),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Required';
+                        if (double.tryParse(value) == null || double.parse(value) < 0) {
+                          return 'Enter a valid cost';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _costController,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Cost',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.attach_money),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
-                List<String> errors = [];
-                if (_codeController.text.trim().isEmpty) {
-                  errors.add('Purchase Order Code is required.');
+                if (_formKey.currentState!.validate() &&
+                    orderDate != null &&
+                    deliveryDate != null) {
+                  setState(() {
+                    orders.add(PurchaseOrder(
+                      purchaseOrderCode: codeController.text,
+                      purchaseOrderFile: fileUrlController.text.isEmpty ? null : fileUrlController.text,
+                      suppliersPackingList: supplierPackingListController.text.isEmpty ? null : supplierPackingListController.text,
+                      quantityPurchased: int.parse(quantityController.text),
+                      orderDate: orderDate!,
+                      expectedDeliveryDate: deliveryDate!,
+                      cost: double.parse(costController.text),
+                    ));
+                  });
+                  Navigator.pop(context);
                 }
-                if (_quantityOrderedController.text.trim().isEmpty ||
-                    int.tryParse(_quantityOrderedController.text) == null ||
-                    int.parse(_quantityOrderedController.text) <= 0) {
-                  errors.add('Quantity Purchased must be a valid positive number.');
-                }
-                if (_orderDateController.text.trim().isEmpty) {
-                  errors.add('Order Date is required.');
-                }
-                if (_expectedDeliveryDateController.text.trim().isEmpty) {
-                  errors.add('Expected Delivery Date is required.');
-                }
-                if (_itemController.text.trim().isEmpty) {
-                  errors.add('Items Purchased is required.');
-                }
-                if (_costController.text.trim().isEmpty ||
-                    double.tryParse(_costController.text) == null ||
-                    double.parse(_costController.text) <= 0) {
-                  errors.add('Cost must be a valid positive number.');
-                }
-                if (errors.isNotEmpty) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Input Errors'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: errors.map((e) => Text('• $e', style: const TextStyle(color: Colors.red))).toList(),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                  return;
-                }
-                setState(() {
-                  _orders.add(PurchaseOrder(
-                    code: _codeController.text,
-                    purchaseOrderFile: _purchaseOrderFileController.text,
-                    suppliersPackingList: _suppliersPackingListController.text,
-                    quantityOrdered: int.parse(_quantityOrderedController.text),
-                    orderDate: _orderDateController.text,
-                    expectedDeliveryDate: _expectedDeliveryDateController.text,
-                    item: _itemController.text,
-                    cost: double.parse(_costController.text),
-                  ));
-                });
-                Navigator.of(context).pop();
               },
               child: const Text('Add'),
             ),
@@ -329,296 +286,214 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     );
   }
 
-  void _editCell(int rowIndex, String field) async {
-    final order = _orders[rowIndex];
-    TextEditingController controller = TextEditingController();
+  void _editCellDialog(PurchaseOrder order, String field) {
+    final controller = TextEditingController(
+      text: field == 'orderDate' || field == 'expectedDeliveryDate'
+          ? DateFormat('yyyy-MM-dd').format(
+              field == 'orderDate' ? order.orderDate : order.expectedDeliveryDate)
+          : order.toJson()[field]?.toString() ?? '',
+    );
 
-    Widget fieldWidget;
-
-    switch (field) {
-      case 'orderDate':
-        controller.text = order.orderDate;
-        fieldWidget = InkWell(
-          onTap: () async {
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.tryParse(order.orderDate) ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-            );
-            if (picked != null) {
-              controller.text =
-                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-            }
-          },
-          child: IgnorePointer(
-            child: TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: 'Order Date'),
-            ),
-          ),
-        );
-        break;
-      case 'expectedDeliveryDate':
-        controller.text = order.expectedDeliveryDate;
-        fieldWidget = InkWell(
-          onTap: () async {
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.tryParse(order.expectedDeliveryDate) ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-            );
-            if (picked != null) {
-              controller.text =
-                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-            }
-          },
-          child: IgnorePointer(
-            child: TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: 'Expected Delivery Date'),
-            ),
-          ),
-        );
-        break;
-      case 'item':
-        String? selectedItem = order.item;
-        fieldWidget = DropdownButtonFormField<String>(
-          value: selectedItem,
-          items: _itemOptions.map((item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: (value) {
-            selectedItem = value;
-            controller.text = value ?? '';
-          },
-          decoration: const InputDecoration(labelText: 'Items Purchased'),
-        );
-        break;
-      default:
-        switch (field) {
-          case 'code': controller.text = order.code; break;
-          case 'quantityOrdered': controller.text = order.quantityOrdered.toString(); break;
-          case 'cost': controller.text = order.cost.toString(); break;
-          case 'purchaseOrderFile':
-            controller.text = order.purchaseOrderFile ?? '';
-            fieldWidget = TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: 'Purchase Order File'),
-            );
-            break;
-          case 'suppliersPackingList':
-            controller.text = order.suppliersPackingList ?? '';
-            fieldWidget = TextField(
-              controller: controller,
-              decoration: const InputDecoration(labelText: "Supplier's Packing List"),
-            );
-            break;
-        }
-        fieldWidget = TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: 'New value'),
-        );
-        break;
-    }
-
-    await showDialog(
+    showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit ${_getFieldLabel(field)}'),
-        content: fieldWidget,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              List<String> errors = [];
-              String value = controller.text.trim();
-              switch (field) {
-                case 'code':
-                  if (value.isEmpty) errors.add('Purchase Order Code is required.');
-                  break;
-                case 'quantityOrdered':
-                  if (value.isEmpty ||
-                      int.tryParse(value) == null ||
-                      int.parse(value) <= 0) {
-                    errors.add('Quantity Purchased must be a valid positive number.');
-                  }
-                  break;
-                case 'orderDate':
-                  if (value.isEmpty) errors.add('Order Date is required.');
-                  break;
-                case 'expectedDeliveryDate':
-                  if (value.isEmpty) errors.add('Expected Delivery Date is required.');
-                  break;
-                case 'item':
-                  if (value.isEmpty) errors.add('Items Purchased is required.');
-                  break;
-                case 'cost':
-                  if (value.isEmpty ||
-                      double.tryParse(value) == null ||
-                      double.parse(value) <= 0) {
-                    errors.add('Cost must be a valid positive number.');
-                  }
-                  break;
-              }
-              if (errors.isNotEmpty) {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Input Errors'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: errors.map((e) => Text('• $e', style: const TextStyle(color: Colors.red))).toList(),
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit ${_getFieldLabel(field)}'),
+          content: field == 'orderDate' || field == 'expectedDeliveryDate'
+              ? InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: field == 'orderDate' ? order.orderDate : order.expectedDeliveryDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      controller.text = DateFormat('yyyy-MM-dd').format(picked);
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Pick Date',
+                      prefixIcon: Icon(Icons.calendar_today),
                     ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK'),
-                      ),
-                    ],
+                    child: Text(controller.text),
                   ),
-                );
-                return;
-              }
-              setState(() {
-                switch (field) {
-                  case 'item': order.item = controller.text; break;
-                  case 'code': order.code = controller.text; break;
-                  case 'quantityOrdered': order.quantityOrdered = int.parse(controller.text); break;
-                  case 'orderDate': order.orderDate = controller.text; break;
-                  case 'expectedDeliveryDate': order.expectedDeliveryDate = controller.text; break;
-                  case 'cost': order.cost = double.parse(controller.text); break;
-                  case 'purchaseOrderFile': order.purchaseOrderFile = controller.text.isNotEmpty ? controller.text : null; break;
-                  case 'suppliersPackingList': order.suppliersPackingList = controller.text.isNotEmpty ? controller.text : null; break;
-                }
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+                )
+              : TextFormField(
+                  controller: controller,
+                  keyboardType: field == 'quantityPurchased' || field == 'cost'
+                      ? TextInputType.number
+                      : TextInputType.text,
+                  decoration: InputDecoration(labelText: _getFieldLabel(field)),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  switch (field) {
+                    case 'code':
+                      order.purchaseOrderCode = controller.text;
+                      break;
+                    case 'fileUrl':
+                      order.purchaseOrderFile = controller.text;
+                      break;
+                    case 'supplierPackingList':
+                      order.suppliersPackingList = controller.text;
+                      break;
+                    case 'quantityPurchased':
+                      order.quantityPurchased = int.tryParse(controller.text) ?? order.quantityPurchased;
+                      break;
+                    case 'orderDate':
+                      order.orderDate = DateFormat('yyyy-MM-dd').parse(controller.text);
+                      break;
+                    case 'expectedDeliveryDate':
+                      order.expectedDeliveryDate = DateFormat('yyyy-MM-dd').parse(controller.text);
+                      break;
+                    case 'cost':
+                      order.cost = double.tryParse(controller.text) ?? order.cost;
+                      break;
+                  }
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   String _getFieldLabel(String field) {
     switch (field) {
       case 'code': return 'Purchase Order Code';
-      case 'quantityOrdered': return 'Quantity Purchased';
+      case 'fileUrl': return 'Purchase Order File';
+      case 'supplierPackingList': return "Supplier's Packing List";
+      case 'quantityPurchased': return 'Quantity Purchased';
       case 'orderDate': return 'Order Date';
       case 'expectedDeliveryDate': return 'Expected Delivery Date';
-      case 'item': return 'Items Purchased';
       case 'cost': return 'Cost';
       default: return field;
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Purchase Orders')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Purchase Order'),
-                  onPressed: _showAddOrderDialog,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Scrollbar(
-                    controller: _horizontalScrollController,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: _horizontalScrollController,
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        border: TableBorder.all(
-                          color: Colors.blueGrey,
-                          width: 1,
-                        ),
-                        columns: const [
-                          DataColumn(label: Text('Purchase Order Code')),
-                          DataColumn(label: Text('Purchase Order File')),
-                          DataColumn(label: Text("Supplier's Packing List")),
-                          DataColumn(label: Text('Quantity Purchased')),
-                          DataColumn(label: Text('Order Date')),
-                          DataColumn(label: Text('Expected Delivery Date')),
-                          DataColumn(label: Text('Items Purchased')),
-                          DataColumn(label: Text('Cost')),
-                          DataColumn(label: Text(' ')),
-                        ],
-                        rows: List.generate(_orders.length, (index) {
-                          final order = _orders[index];
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(order.code), onTap: () => _editCell(index, 'code')),
-                              DataCell(
-                                order.purchaseOrderFile != null && order.purchaseOrderFile!.isNotEmpty
-                                  ? ElevatedButton(
-                                      onPressed: () => _viewOrderFile(order.purchaseOrderFile),
-                                      child: const Text('View'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      ),
-                                    )
-                                  : const Text('N/A'),
-                                onTap: () => _editCell(index, 'purchaseOrderFile'),
-                              ),
-                              DataCell(Text(order.suppliersPackingList ?? 'N/A'), onTap: () => _editCell(index, 'suppliersPackingList')),
-                              DataCell(Text(order.quantityOrdered.toString()), onTap: () => _editCell(index, 'quantityOrdered')),
-                              DataCell(Text(order.orderDate), onTap: () => _editCell(index, 'orderDate')),
-                              DataCell(Text(order.expectedDeliveryDate), onTap: () => _editCell(index, 'expectedDeliveryDate')),
-                              DataCell(Text(order.item), onTap: () => _editCell(index, 'item')),
-                              DataCell(Text('₱${order.cost.toStringAsFixed(2)}'), onTap: () => _editCell(index, 'cost')),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red),
-                                      onPressed: () => _deleteOrder(index),
-                                      tooltip: 'Delete',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  void _deleteOrder(PurchaseOrder order) {
+    setState(() {
+      orders.remove(order);
+    });
   }
 
   @override
-  void dispose() {
-    _horizontalScrollController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (hasError) {
+      return const Center(child: Text('Failed to load purchase orders.'));
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Purchase Orders'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Add Purchase Order'),
+                onPressed: _showAddDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  border: TableBorder(
+                    horizontalInside: BorderSide(
+                      color: Colors.grey.shade400,
+                      width: 1.0,
+                    ),
+                  ),
+                  columns: const [
+                    DataColumn(label: Text('Purchase Order Code')),
+                    DataColumn(label: Text('Purchase Order File')),
+                    DataColumn(label: Text("Supplier's Packing List")),
+                    DataColumn(label: Text('Quantity Purchased')),
+                    DataColumn(label: Text('Order Date')),
+                    DataColumn(label: Text('Expected Delivery Date')),
+                    DataColumn(label: Text('Cost')),
+                    DataColumn(label: Text('')),
+                  ],
+                  rows: orders.map((order) {
+                    return DataRow(cells: [
+                      DataCell(
+                        Text(order.purchaseOrderCode),
+                        onTap: () => _editCellDialog(order, 'code'),
+                      ),
+                      DataCell(
+                        order.purchaseOrderFile != null
+                          ? GestureDetector(
+                              child: const Text('View'),
+                              onTap: () => _editCellDialog(order, 'fileUrl'),
+                            )
+                          : GestureDetector(
+                              child: const Text('N/A'),
+                              onTap: () => _editCellDialog(order, 'fileUrl'),
+                            ),
+                      ),
+                      DataCell(
+                        Text(order.suppliersPackingList ?? 'N/A'),
+                        onTap: () => _editCellDialog(order, 'supplierPackingList'),
+                      ),
+                      DataCell(
+                        Text(order.quantityPurchased.toString()),
+                        onTap: () => _editCellDialog(order, 'quantityPurchased'),
+                      ),
+                      DataCell(
+                        Text(DateFormat('yyyy-MM-dd').format(order.orderDate)),
+                        onTap: () => _editCellDialog(order, 'orderDate'),
+                      ),
+                      DataCell(
+                        Text(DateFormat('yyyy-MM-dd').format(order.expectedDeliveryDate)),
+                        onTap: () => _editCellDialog(order, 'expectedDeliveryDate'),
+                      ),
+                      DataCell(
+                        Text('₱${order.cost.toStringAsFixed(2)}'),
+                        onTap: () => _editCellDialog(order, 'cost'),
+                      ),
+                      DataCell(IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteOrder(order),
+                      )),
+                    ]);
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
