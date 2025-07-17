@@ -346,7 +346,7 @@ class _HomePageState extends State<HomePage>{
               },
             ),
             ListTile(
-              title: const Text('Stock Alerts',
+              title: const Text('Stock Locator',
                 style: TextStyle(
                   color: Color.fromARGB(179, 0, 0, 0),
                   fontSize: 14,
