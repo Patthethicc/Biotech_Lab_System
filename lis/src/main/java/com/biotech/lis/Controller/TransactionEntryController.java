@@ -58,19 +58,27 @@ public class TransactionEntryController {
         }
     }
 
-    @DeleteMapping("/deleteTransaction/{id}")
-    public ResponseEntity<TransactionEntry> deleteTransactionEntry(@PathVariable("id") String id) {
-        transactionEntryService.deleteTransactionEntry(id);
-        return ResponseEntity.ok().build(); 
+    @DeleteMapping("/deleteTransactionEntry/{id}")
+    public ResponseEntity<Void> deleteTransactionEntry(@PathVariable String id) {
+        try {
+            transactionEntryService.deleteTransactionEntry(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
-
-
 
     // util method for updating transaction entry
     @GetMapping("/exists/{id}")
     public ResponseEntity<Boolean> transactionExists(@PathVariable("id") String id) {
         boolean exists = transactionEntryService.existsById(id);
         return ResponseEntity.ok(exists);
+    }
+
+    @GetMapping("/all") // gets all the transactions
+    public ResponseEntity<Iterable<TransactionEntry>> getAllTransactions() {
+        Iterable<TransactionEntry> allEntries = transactionEntryService.getAllTransactionEntries();
+        return ResponseEntity.ok(allEntries);
     }
 
 }
