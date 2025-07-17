@@ -30,6 +30,12 @@ public class InventoryController {
         return ResponseEntity.ok(invById);
     }
 
+    @GetMapping("/getInv")
+    public ResponseEntity<List<Inventory>> getInv() {
+        final List<Inventory> inventories = inventoryService.getInventories();
+        return ResponseEntity.ok(inventories);
+    }
+
     @PutMapping("/updateInv")
     public ResponseEntity<Inventory> updateInventory(@RequestBody Inventory inventory) {
         Inventory updatedInv = inventoryService.updateInventory(inventory);

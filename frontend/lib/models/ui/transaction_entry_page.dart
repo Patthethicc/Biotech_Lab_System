@@ -8,9 +8,6 @@ import 'dart:convert';
 
 class TransactionEntryPage extends StatefulWidget {
   const TransactionEntryPage({super.key});
-
-  
-
   @override
   State<TransactionEntryPage> createState() => _TransactionEntryPageState();
 }
@@ -630,6 +627,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     );
   }
 
+  // edit button pop up
   void _showEditEntryDialog(TransactionEntry entry) {
     _referenceController.text = entry.reference;
     _selectedTransactionDate = entry.transactionDate;
@@ -737,7 +735,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                           _calculateExpiryDate();
                         },
                         fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
-                          _itemSearchController = fieldTextEditingController;
                           return TextField(
                             controller: fieldTextEditingController,
                             focusNode: fieldFocusNode,
@@ -1029,6 +1026,76 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     }
   }
 
+  //delete button popup
+  void _showDeleteConfirmationDialog(String referenceId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete the transaction entry with Reference: $referenceId? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); 
+                _deleteEntry(referenceId);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteEntry(String referenceId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          title: Text('Deleting...'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Please wait while the entry is being deleted.'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      final response = await _service.deleteTransactionEntry(referenceId);
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        await _fetchRecords(); 
+        setState(() {
+          _selectedEntryForEdit = null; 
+        });
+        if (!mounted) return;
+        _showDialog('Success', 'Transaction entry successfully deleted!');
+      } else {
+        if (!mounted) return;
+        _showDialog('Error', 'Failed to delete entry. Server responded with ${response.statusCode}: ${response.body}.');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); 
+      _showDialog('Error', 'An error occurred during deletion: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final DateFormat formatter = DateFormat('yyyy-MM-dd');
@@ -1046,6 +1113,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
+                  // add entry
                   ElevatedButton.icon(
                     onPressed: _showAddEntryDialog,
                     icon: const Icon(Icons.add),
@@ -1056,6 +1124,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
+
+                  // edit entry
                   ElevatedButton.icon(
                     onPressed: _selectedEntryForEdit == null 
                         ? null 
@@ -1065,6 +1135,24 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                     icon: const Icon(Icons.edit),
                     label: const Text('Edit Selected Entry'),
                     style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                      textStyle: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  //delete entry
+                  ElevatedButton.icon(
+                    onPressed: _selectedEntryForEdit == null
+                        ? null
+                        : () {
+                            _showDeleteConfirmationDialog(_selectedEntryForEdit!.reference);
+                          },
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete Selected Entry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 175, 54, 46),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       textStyle: const TextStyle(fontSize: 16),
                     ),

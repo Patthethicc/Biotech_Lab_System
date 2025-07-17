@@ -3,6 +3,8 @@ package com.biotech.lis.Controller;
 import com.biotech.lis.Entity.Item;
 import com.biotech.lis.Service.ItemService;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,12 @@ public class ItemController {
     public ResponseEntity<Item> getItem(@PathVariable("itemCode") String itemCode) {
         Item itemByName = itemService.getItem(itemCode);
         return ResponseEntity.ok(itemByName);
+    }
+
+    @GetMapping("/getItems")
+    public ResponseEntity<List<Item>> getItems() {
+        List<Item> items = itemService.getItems();
+        return ResponseEntity.ok(items);
     }
 
     @DeleteMapping("/deleteItem/{itemCode}")

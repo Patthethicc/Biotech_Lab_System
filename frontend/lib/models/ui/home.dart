@@ -9,6 +9,8 @@ class HomePage extends StatefulWidget{
   State<HomePage> createState() => _HomePageState();
 }
 
+
+
 class _HomePageState extends State<HomePage>{
   int totalProducts = 100;
   int orders = 200;
@@ -17,10 +19,21 @@ class _HomePageState extends State<HomePage>{
   int totalCustomers = 500;
   int totalSuppliers = 500;
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+   @override
+  void initState() {
+    super.initState();
+    
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scaffoldKey.currentState?.openDrawer();
+      });
+  }
 
   @override
   Widget build(BuildContext context){
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar( title: const Text('Biotech Home')),
       body: Column(
         spacing: 30,
@@ -277,9 +290,7 @@ class _HomePageState extends State<HomePage>{
                 ],
               ),
             ),
-
-
-            /*ListTile(
+            ListTile(
               title: const Text('Dashboard',
                 style: TextStyle(
                   color: Color.fromARGB(179, 0, 0, 0),
@@ -289,7 +300,7 @@ class _HomePageState extends State<HomePage>{
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/dashboard');
               },
-            ), Removed this part since dashboard is supposed to be the main page*/
+            ),
             ListTile(
               title: const Text('View Profile',
                 style: TextStyle(
@@ -332,6 +343,28 @@ class _HomePageState extends State<HomePage>{
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/stock_alert');
+              },
+            ),
+            ListTile(
+              title: const Text('Stock Locator',
+                style: TextStyle(
+                  color: Color.fromARGB(179, 0, 0, 0),
+                  fontSize: 14,
+                )),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/stock_locator');
+              },
+            ),
+            ListTile(
+              title: const Text('Purchase Order',
+                style: TextStyle(
+                  color: Color.fromARGB(179, 0, 0, 0),
+                  fontSize: 14,
+                )),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/purchase_order');
               },
             ),
             ListTile(

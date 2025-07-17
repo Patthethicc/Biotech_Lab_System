@@ -12,7 +12,5 @@ CSSWENG
 note: lis is backend
 
 <h2>Notes for this branch</h2>
-1. API url in new_user_service.dart is in localhost for testing, NOT yet connected to DB. <br>
-2. Added intl dependency in the pubscpec.yaml file (for date time) <br>
-3. Examples are hard coded for now, no CRUD operations with db yet <br>
-4. 'Add entry' button doesn't do anything for now <br>
+1. Fix item details, can't call it as a route in main.dart
+2. Create service for stock_locator

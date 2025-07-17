@@ -30,10 +30,10 @@ public class JwtService {
     }
 
     //generates user token
-    public String generateToken(String email) {
+    public String generateToken(Long userId) {
         getSignInKey();
         return Jwts.builder()
-                   .subject(email)
+                   .subject(userId.toString())
                    .issuedAt(new Date())
                    .expiration(new Date(System.currentTimeMillis() + expirationMs))
                    .signWith(codedKey)
@@ -53,12 +53,12 @@ public class JwtService {
         }
     }
 
-    public String extractUsername(String token) {
+    public String extractId(String token) {
         Claims claims = Jwts.parser()
                             .verifyWith(codedKey)
                             .build()
                             .parseSignedClaims(token)
                             .getPayload();
-        return claims.getSubject(); // Extracts the username
+        return claims.getSubject(); // Extracts the id
     }
 }

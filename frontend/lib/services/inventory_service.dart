@@ -9,7 +9,23 @@ class InventoryService {
   final storage = FlutterSecureStorage();
 
   Future<List<Inventory>> fetchStockAlerts(int amt) async {
-    final response = await http.get(Uri.parse('$baseUrl/inv/v1/stockAlert/$amt'));
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(Uri.parse('$baseUrl/inv/v1/stockAlert/$amt'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((json) => Inventory.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load inventory');
+    }
+  }
+
+  Future<List<Inventory>> getInventories() async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(Uri.parse('$baseUrl/inv/v1/getInv'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'});
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
       return data.map((json) => Inventory.fromJson(json)).toList();

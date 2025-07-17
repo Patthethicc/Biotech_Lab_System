@@ -16,15 +16,17 @@ class _StockAlertState extends State<StockAlert> {
 
   @override
 
-  void initState(){
-    StockAlertService.getStockAlerts().then((value) {
-      print("Fetched data: $value");
-      setState(() {
-        _stockAlerts.addAll(value); 
-      });
+  void initState() {
+  final stockAlertService = StockAlertService();
+
+  stockAlertService.getStockAlerts().then((value) {
+    print("Fetched data: $value");
+    setState(() {
+      _stockAlerts.addAll(value);
     });
-    super.initState();
-  }
+  });
+  super.initState();
+}
 
   @override
   Widget build(BuildContext context) {
