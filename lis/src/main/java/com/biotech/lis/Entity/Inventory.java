@@ -27,8 +27,8 @@ public class Inventory {
     @GeneratedValue
     private Integer inventoryId;
     private String itemCode;
+    private String brand;
     private Integer quantityOnHand;
-    private Date lastUpdated;
     private String addedBy;
     private LocalDateTime dateTimeAdded;
     @OneToMany(mappedBy = "inventory", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -3,16 +3,20 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:frontend/models/api/inventory.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class StockAlertService {
   static final String baseUrl = dotenv.env['API_URL']!;
+  final storage = FlutterSecureStorage();
 
-  static Future<List<Inventory>> getStockAlerts() async {
+  Future<List<Inventory>> getStockAlerts() async {
+    String? token = await storage.read(key: 'jwt_token');
     final response = await http.get(
-      Uri.parse('${baseUrl}/inv/v1/stockAlert/10'),
+      Uri.parse('$baseUrl/inv/v1/stockAlert/10'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Authorization': 'Bearer $token'
       },
     );
 
