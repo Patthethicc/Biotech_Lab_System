@@ -68,10 +68,10 @@ public class InventoryService {
         String itemCode = inventory.getItemCode();
         if (itemCode == null || itemCode.trim().isEmpty()) {
             System.out.println("hello there im a bug");
-            return -1;
+            return 0;
         }
 
         Optional<Inventory> found = inventoryRepository.findByItemCodeIgnoreCase(itemCode);
-        return found.map(inv -> inv.getInventoryId().intValue()).orElse(-1);
+        return found.map(inv -> inv.getInventoryId().intValue()).orElse(0);
     }
 }
