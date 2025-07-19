@@ -25,31 +25,34 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> logInUser() async {
-    final logInUser = LogInUser(
+    // Use the new factory method for request
+    final logInUser = LogInUser.forRequest(
       email: emailInput.text,
       password: passwordInput.text,
-      token: "temp",
-      check: false
     );
 
     try {
       final response = await LogInUserService.logInUser(logInUser);
 
-        if(response.check) {
-          await storage.write(key: 'jwt_token', value: response.token);
-          setState(() {
-            Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const HomePage()),
-                  );
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User Logged In successfully!')),
-        );
-      }
+      if(response.check == true) {
+        await storage.write(key: 'jwt_token', value: response.token);
+        setState(() {
+          Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomePage()),
+                );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User Logged In successfully!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: Invalid credentials')),
+      );
+    }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e, User log in unsuccessful')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
