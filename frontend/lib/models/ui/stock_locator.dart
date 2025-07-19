@@ -1,206 +1,132 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/models/api/stock_locator_model.dart';
+import 'package:frontend/services/stock_locator_service.dart';
 
-class StockLocator extends StatefulWidget {
-  const StockLocator({super.key});
+class StockLocatorPage extends StatefulWidget {
+  const StockLocatorPage({super.key});
 
   @override
-  State<StockLocator> createState() => _StockLocatorState();
+  State<StockLocatorPage> createState() => _StockLocatorPageState();
 }
 
-class _StockLocatorState extends State<StockLocator> {
-  final TextEditingController _searchController = TextEditingController();
-
-  List<List<String>> rows = [];
-  bool isLoading = false;
-  bool hasError = false;
-  int currentPage = 0;
-  final int rowsPerPage = 10;
-
-  final List<String> headers = ['Item Name', 'Stock Location', 'Quantity'];
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> findStock() async {
-    final searchTerm = _searchController.text.trim();
-
-    if (searchTerm.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter an item name.")),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-      hasError = false;
-    });
-
-    try {
-      // TODO: Replace this mock data with a call to your backend service
-      // e.g. StockLocatorService.getStockLocations(searchTerm)
-      await Future.delayed(Duration(seconds: 1)); // simulate loading
-
-      rows = List.generate(5, (index) => [
-        "$searchTerm ${index + 1}",
-        "Warehouse Bin ${index * 2}",
-        "${(index + 1) * 10}",
-      ]);
-    } catch (e) {
-      print(e);
-      hasError = true;
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  void _goToPage(int delta) {
-    setState(() {
-      currentPage += delta;
-      if (currentPage < 0) currentPage = 0;
-      if (currentPage > rows.length ~/ rowsPerPage) {
-        currentPage = rows.length ~/ rowsPerPage;
-      }
-    });
-  }
+class _StockLocatorPageState extends State<StockLocatorPage> {
+  bool _showTable = false;
+  final TextEditingController _brandController = TextEditingController();
+  final TextEditingController _productController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    final hasData = rows.isNotEmpty;
-
-    final start = currentPage * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, rows.length);
-    final currentRows = rows.sublist(start, end);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Stock Locator'),
+        title: const Text('Stock Locator'),
         centerTitle: true,
       ),
-      body: Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
               children: [
                 SizedBox(
-                  width: 300,
+                  width: 50,
+                  height: 50,
+                  child: ElevatedButton(
+                      onPressed: () async {
+                        String brand = _brandController.text.trim();
+                        String product = _productController.text.trim();
+
+                        if (brand.isEmpty || product.isEmpty) return;
+
+                        setState(() {
+                          _showTable = false;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                    ),
+                    child: const Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 275,
+                  height: 50,
                   child: TextField(
-                    controller: _searchController,
+                    controller: _brandController,
                     decoration: InputDecoration(
-                      hintText: "Enter item name",
+                      hintText: "Enter Brand",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
                       ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: findStock,
-                  child: Text("Find Stock"),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 275,
+                  height: 50,
+                  child: TextField(
+                    controller: _productController,
+                    decoration: InputDecoration(
+                      hintText: "Enter Product Description",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 30),
+          ),
 
-            if (isLoading)
-              Center(child: CircularProgressIndicator())
-            else if (hasError)
-              Text("Error loading data.", style: TextStyle(color: Colors.red))
-            else if (!hasData)
-              Text("No data found.")
-            else
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 240, 240, 240),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color.fromARGB(200, 255, 255, 255),
-                        offset: Offset(-6, 6),
-                        blurRadius: 12,
-                      ),
-                      BoxShadow(
-                        color: Color.fromARGB(50, 0, 0, 0),
-                        offset: Offset(6, -6),
-                        blurRadius: 12,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.white),
-                        border: TableBorder(
-                          horizontalInside: BorderSide(
-                            color: Color.fromARGB(128, 128, 128, 128),
-                            width: 2,
-                          ),
-                          verticalInside: BorderSide(
-                            color: Color.fromARGB(128, 128, 128, 128),
-                            width: 0.5,
-                          ),
-                        ),
-                        columns: headers
-                            .map((h) => DataColumn(
-                                  label: SizedBox(
-                                    width: 200,
-                                    child: Text(
-                                      h,
-                                      style: TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                        rows: currentRows
-                            .map((r) => DataRow(
-                                  cells: r
-                                      .map((cell) => DataCell(
-                                            SizedBox(
-                                              width: 200,
-                                              child: Text(cell),
-                                            ),
-                                          ))
-                                      .toList(),
-                                ))
-                            .toList(),
-                      ),
+          if (_showTable)
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: DataTable(
+                      columnSpacing: 30,
+                      columns: const [
+                        DataColumn(label: Text('Brand')),
+                        DataColumn(label: Text('Stock Location')),
+                        DataColumn(label: Text('Quantity')),
+                      ],
+                      rows: const [
+                        DataRow(cells: [
+                          DataCell(Text('Nike')),
+                          DataCell(Text('Manila')),
+                          DataCell(Text('Lazcanoref1')),
+                        ]),
+                        DataRow(cells: [
+                          DataCell(Text('Adidas')),
+                          DataCell(Text('Cebu')),
+                          DataCell(Text('Lazcanoref2')),
+                        ]),
+                        DataRow(cells: [
+                          DataCell(Text('Puma')),
+                          DataCell(Text('Metro Manila')),
+                          DataCell(Text('Lazcanoref3')),
+                        ]),
+                      ],
                     ),
                   ),
                 ),
               ),
-
-            if (hasData)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: currentPage > 0 ? () => _goToPage(-1) : null,
-                    child: Text("Prev"),
-                  ),
-                  SizedBox(width: 20),
-                  Text("Page ${currentPage + 1} of ${(rows.length / rowsPerPage).ceil()}"),
-                  SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: end < rows.length ? () => _goToPage(1) : null,
-                    child: Text("Next"),
-                  ),
-                ],
-              ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
