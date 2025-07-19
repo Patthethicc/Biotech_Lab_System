@@ -6,6 +6,7 @@ import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -30,6 +31,10 @@ public class PurchaseOrderService {
 
     public Optional<PurchaseOrder> getPurchaseOrderByCode(String code) {
         return Optional.ofNullable(purchaseOrderRepository.findByPurchaseOrderCode(code));
+    }
+
+    public List<PurchaseOrder> getAllPurchaseOrders() {
+        return purchaseOrderRepository.findAll();
     }
 
     public PurchaseOrder updatePurchaseOrder(PurchaseOrder purchaseOrder) {
