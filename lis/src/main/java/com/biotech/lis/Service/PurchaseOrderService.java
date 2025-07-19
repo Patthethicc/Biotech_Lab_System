@@ -6,10 +6,10 @@ import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.Optional;
 
 @Service
 public class PurchaseOrderService {
-
     @Autowired
     PurchaseOrderRepository purchaseOrderRepository;
 
@@ -28,8 +28,8 @@ public class PurchaseOrderService {
         return purchaseOrderRepository.save(purchaseOrder);
     }
 
-    public PurchaseOrder getPurchaseOrderByCode(String code) {
-        return purchaseOrderRepository.findByPurchaseOrderCode(code);
+    public Optional<PurchaseOrder> getPurchaseOrderByCode(String code) {
+        return Optional.ofNullable(purchaseOrderRepository.findByPurchaseOrderCode(code));
     }
 
     public PurchaseOrder updatePurchaseOrder(PurchaseOrder purchaseOrder) {
@@ -45,6 +45,4 @@ public class PurchaseOrderService {
     public void deletePurchaseOrder(String code) {
         purchaseOrderRepository.deleteById(code);
     }
-
-
 }
