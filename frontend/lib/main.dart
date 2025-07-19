@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget{
         '/inventory': (context) => InventoryPage(),
       //  '/item_details': (context) => ItemDetails(item: item, headers: headers)
         '/stock_locator': (context) => StockLocator()
+        //item details 
       },
     );
   }
