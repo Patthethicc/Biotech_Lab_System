@@ -1,19 +1,17 @@
 package com.biotech.lis.Controller;
 
-import java.util.List;
-
+import com.biotech.lis.Entity.PurchaseOrder;
+import com.biotech.lis.Service.PurchaseOrderService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.biotech.lis.Entity.PurchaseOrder;
-import com.biotech.lis.Service.PurchaseOrderService;
-
 @RestController
-@RequestMapping("/po/v1")
+@RequestMapping("/PO/v1")
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
-
+    @Autowired
     public PurchaseOrderController(PurchaseOrderService purchaseOrderService) {
         this.purchaseOrderService = purchaseOrderService;
     }
@@ -24,21 +22,21 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(savedPurchaseOrder);
     }
 
-    @GetMapping("/getPO/{purchaseOrderCode}")
-    public ResponseEntity<PurchaseOrder> getPurchaseOrderById(@PathVariable String purchaseOrderCode) {
-        PurchaseOrder purchaseOrder = purchaseOrderService.getPurchaseOrderById(purchaseOrderCode);
-        return ResponseEntity.ok(purchaseOrder);
+    @GetMapping("/getPO/{code}")
+    public ResponseEntity<PurchaseOrder> getPurchaseOrderByCode(@PathVariable("code") String code) {
+        final PurchaseOrder PurchaseOrderByCode = purchaseOrderService.getPurchaseOrderByCode(code);
+        return ResponseEntity.ok(PurchaseOrderByCode);
     }
 
     @PutMapping("/updatePO")
     public ResponseEntity<PurchaseOrder> updatePurchaseOrder(@RequestBody PurchaseOrder purchaseOrder) {
-        PurchaseOrder updatedPurchaseOrder = purchaseOrderService.updatePurchaseOrder(purchaseOrder);
-        return ResponseEntity.ok(updatedPurchaseOrder);
+        PurchaseOrder savedPurchaseOrder = purchaseOrderService.updatePurchaseOrder(purchaseOrder);
+        return ResponseEntity.ok(savedPurchaseOrder);
     }
 
-    @DeleteMapping("/deletePO/{purchaseOrderCode}")
-    public ResponseEntity<Void> deletePurchaseOrder(@PathVariable String purchaseOrderCode) {
-        purchaseOrderService.deleteByPurchaseOrderCode(purchaseOrderCode);
-        return ResponseEntity.noContent().build();
+    @DeleteMapping("/deletePO/{code}")
+    public ResponseEntity<PurchaseOrder> deletePurchaseOrder(@PathVariable("code") String code) {
+        purchaseOrderService.deletePurchaseOrder(code);
+        return ResponseEntity.ok().build();
     }
 }
