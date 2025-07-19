@@ -42,8 +42,7 @@ public class ItemService {
 
         inventoryPlcHldr.setItemCode(item.getItemCode());
         inventoryPlcHldr.setBrand(item.getBrand());
-        
-        totalQuantity = inventoryPlcHldr.getQuantityOnHand() + item.getStocksCebu() + item.getStocksManila();
+        totalQuantity = item.getStocksCebu() + item.getStocksManila();
         inventoryPlcHldr.setQuantityOnHand(totalQuantity);
         inventoryPlcHldr.setDateTimeAdded(item.getDateTimeAdded());
         inventoryPlcHldr.setAddedBy(item.getAddedBy());
@@ -53,6 +52,8 @@ public class ItemService {
             inventoryService.addInventory(inventoryPlcHldr);
         } else {
             inventoryPlcHldr.setInventoryId(id);
+            totalQuantity += inventoryPlcHldr.getQuantityOnHand();
+            inventoryPlcHldr.setQuantityOnHand(totalQuantity);
             inventoryService.updateInventory(inventoryPlcHldr);
         }
 
