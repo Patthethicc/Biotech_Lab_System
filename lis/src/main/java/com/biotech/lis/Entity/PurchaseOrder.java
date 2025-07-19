@@ -3,6 +3,7 @@ package com.biotech.lis.Entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "`purchaseOrder`")
 public class PurchaseOrder {
     @Id
     private String purchaseOrderCode;
@@ -25,6 +27,6 @@ public class PurchaseOrder {
     private LocalDate orderDate;
     private LocalDate expectedDeliveryDate;
     private double cost;
-    private String addedBy;
+    private int addedBy;
     private LocalDateTime dateTimeAdded;
 }
