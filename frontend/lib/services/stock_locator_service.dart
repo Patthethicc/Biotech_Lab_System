@@ -1,0 +1,46 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:frontend/models/api/stock_locator_model.dart';
+
+class StockLocatorService {
+  static final String baseUrl = dotenv.env['API_URL']!;
+  final storage = const FlutterSecureStorage();
+
+  Future<StockLocator?> searchStockLocator(String brand, String productDescription) async {
+    final String? token = await storage.read(key: 'jwt_token');
+    if (token == null) {
+      print('Error: JWT token not found in secure storage');
+      return null;
+    }
+
+    final uri = Uri.parse(baseUrl).replace(
+      path: '/stock-locator/search',
+      queryParameters: {
+        'brand': brand,
+        'productDescription': productDescription,
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonBody = json.decode(response.body);
+      return StockLocator.fromJson(jsonBody);
+    } else if (response.statusCode == 404) {
+      print('Stock not found for: $brand / $productDescription');
+      return null;
+    } else {
+      print('Error ${response.statusCode}: ${response.body}');
+      return null;
+    }
+  }
+}

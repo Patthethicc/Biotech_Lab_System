@@ -32,8 +32,13 @@ public class StockLocatorController {
 
     @GetMapping("/all")
     public ResponseEntity<List<StockLocator>> getAllStockLocations() {
-        List<StockLocator> stockLocations = stockLocatorService.getAllStockLocations();
-        return ResponseEntity.ok(stockLocations);
+        try {
+            List<StockLocator> stockLocations = stockLocatorService.getAllStockLocations();
+            return ResponseEntity.ok(stockLocations);
+        } catch (Exception e) {
+            System.err.println("Error fetching all stock locations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/search")
