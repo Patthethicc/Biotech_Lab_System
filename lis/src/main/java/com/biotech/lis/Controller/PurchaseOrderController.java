@@ -6,6 +6,7 @@ import com.biotech.lis.Service.PurchaseOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
@@ -32,6 +33,18 @@ public class PurchaseOrderController {
         }
     }
 
+    //get all purchase orders
+    @GetMapping("/getPOs")
+    public ResponseEntity<List<PurchaseOrder>> getAllPurchaseOrders() {
+        try {
+            List<PurchaseOrder> purchaseOrders = purchaseOrderService.getAllPurchaseOrders();
+            return ResponseEntity.ok(purchaseOrders);
+        } catch (Exception e) {
+            System.err.println("Error fetching all purchase orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
     @GetMapping("/getPO/{code}")
     public ResponseEntity<PurchaseOrder> getPurchaseOrderByCode(@PathVariable("code") String code) {
         if (code == null || code.trim().isEmpty()){
