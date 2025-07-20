@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:frontend/services/stock_alert_service.dart';
 
 class DataTemplate extends StatefulWidget {
   const DataTemplate({super.key});
@@ -11,126 +10,156 @@ class DataTemplate extends StatefulWidget {
 }
 
 class _DataTemplateState extends State<DataTemplate> {
+  List<Inventory> _allInventories = [];
+  List<Inventory> _displayInventories = [];
+  bool _isLoading = true;
 
-  List<Inventory> _Inventories = [];
   int _startIndex = 0;
-  int _endIndex = 5;
-  int _maxLength = 0;
+  final int _rowsPerPage = 5;
 
+  final TextEditingController _searchController = TextEditingController();
 
   @override
-
   void initState() {
-    final inventoryService = InventoryService();
+    super.initState();
+    _fetchData();
+    _searchController.addListener(_filterInventories);
+  }
 
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterInventories);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _fetchData() {
+    final inventoryService = InventoryService();
     inventoryService.getInventories().then((value) {
-      print("Fetched data: $value");
       setState(() {
-        _Inventories.addAll(value);
+        _allInventories = value;
+        _displayInventories = List.from(_allInventories);
+        _isLoading = false;
       });
     });
+  }
 
-    super.initState();
+  void _filterInventories() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isNotEmpty) {
+        _displayInventories = _allInventories.where((inventory) {
+          final itemCodeMatch =
+              inventory.itemCode.toLowerCase().contains(query);
+          final brandMatch = inventory.brand.toLowerCase().contains(query);
+          return itemCodeMatch || brandMatch;
+        }).toList();
+      } else {
+        _displayInventories = List.from(_allInventories);
+      }
+      _startIndex = 0; // Reset to first page after search
+    });
+  }
+
+  void _resetToFullList() {
+    setState(() {
+      _searchController.clear();
+      _displayInventories = List.from(_allInventories);
+      _startIndex = 0;
+    });
   }
 
   void nextPage() {
-    print('$_startIndex $_endIndex $_maxLength');
-    if((_endIndex + 5) < _maxLength){
-      setState(() {
-        _startIndex = _startIndex + 5;
-        _endIndex = _endIndex + 5;
-      });
-    } else {
-      setState(() {
-        _startIndex = _startIndex + (_maxLength - _endIndex);
-        _endIndex = _endIndex + (_maxLength - _endIndex);
-      });
-    }
+    setState(() {
+      if (_startIndex + _rowsPerPage < _displayInventories.length) {
+        _startIndex += _rowsPerPage;
+      }
+    });
   }
 
   void prevPage() {
-    if((_startIndex - 5) >= 0){
-      setState(() {
-        _startIndex = _startIndex - 5;
-        _endIndex = _endIndex - 5;
-      });
-    } else {
-      setState(() {
-        _startIndex = 0;
-        _endIndex = 5;
-      });
-    }
+    setState(() {
+      if (_startIndex - _rowsPerPage >= 0) {
+        _startIndex -= _rowsPerPage;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final endIndex = (_startIndex + _rowsPerPage > _displayInventories.length)
+        ? _displayInventories.length
+        : _startIndex + _rowsPerPage;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Table Example')),
+      appBar: AppBar(
+        title: const Text('Inventory Data'),
+        backgroundColor: Colors.deepPurple,
+        actions: [
+          IconButton(
+            onPressed: _resetToFullList,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reset List',
+          ),
+        ],
+      ),
       body: Center(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Card(
-                elevation: 4,
-                child: Container(
-                  padding: EdgeInsets.all(10),
-                  width: 1200,
-                  child: _Inventories.length < 5 ?
-                    SizedBox(height: 300, child:  CircularProgressIndicator())
-                    :DataTable(
-                    columns: [
-                      DataColumn(label: Text("data 1")),
-                      DataColumn(label: Text("data 2")),
-                      DataColumn(label: Text("data 3")),
-                      DataColumn(label: Text("data 4")),
-                      DataColumn(label: Text("data 5")),
-                      DataColumn(label: Text("data 6")),
-                    ],
-                   rows: _populateRows().sublist(_startIndex , _endIndex))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Search by Item Code or Brand',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                  ),
                 ),
               ),
               Card(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple, // background color
-                        foregroundColor: Colors.white, // text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                clipBehavior: Clip.antiAlias,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _isLoading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(50.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : DataTable(
+                          columns: const [
+                            DataColumn(label: Text("ID")),
+                            DataColumn(label: Text("Item Code")),
+                            DataColumn(label: Text("Brand")),
+                            DataColumn(label: Text("On Hand")),
+                            DataColumn(label: Text("Added By")),
+                            DataColumn(label: Text("Date Added")),
+                          ],
+                          rows: _populateRows().isEmpty
+                              ? []
+                              : _populateRows().sublist(_startIndex, endIndex),
                         ),
-                      ),
-                      onPressed: prevPage,
-                      child: Text('<'),
-                    ),
-
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple, // background color
-                        foregroundColor: Colors.white, // text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      onPressed: () {},
-                      child: Text('${_startIndex + 1} - $_endIndex'),
-                    ),
-
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple, // background color
-                        foregroundColor: Colors.white, // text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      onPressed: nextPage,
-                      child: Text('>'),
-                    ),
-                  ],
                 ),
-              )
+              ),
+              const SizedBox(height: 16),
+              if (!_isLoading) _buildPaginationControls(endIndex),
             ],
           ),
         ),
@@ -138,20 +167,57 @@ class _DataTemplateState extends State<DataTemplate> {
     );
   }
 
-
   List<DataRow> _populateRows() {
-    _maxLength = _Inventories.length;
-    return _Inventories.map((e) {
-      return DataRow(
-        cells: [
-          DataCell(Text(e.inventoryID.toString())),
-          DataCell(Text(e.itemCode.toString())),
-          DataCell(Text(e.brand.toString())),
-          DataCell(Text(e.quantityOnHand.toString())),
-          DataCell(Text(e.addedBy.toString())),
-          DataCell(Text(e.dateTimeAdded.toString())),
-        ]
-      );
+    if (_displayInventories.isEmpty) {
+      return [
+        const DataRow(cells: [
+          DataCell(Text('')),
+          DataCell(Text('')),
+          DataCell(Text('No results found')),
+          DataCell(Text('')),
+          DataCell(Text('')),
+          DataCell(Text('')),
+        ])
+      ];
+    }
+    return _displayInventories.map((e) {
+      return DataRow(cells: [
+        DataCell(Text(e.inventoryID.toString())),
+        DataCell(Text(e.itemCode)),
+        DataCell(Text(e.brand)),
+        DataCell(Text(e.quantityOnHand.toString())),
+        DataCell(Text(e.addedBy)),
+        DataCell(Text(e.dateTimeAdded.toString().split(' ')[0])),
+      ]);
     }).toList();
+  }
+
+  Widget _buildPaginationControls(int endIndex) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: _startIndex == 0 ? null : prevPage,
+              tooltip: 'Previous Page',
+            ),
+            Text(
+                '${_displayInventories.isEmpty ? 0 : _startIndex + 1} - $endIndex of ${_displayInventories.length}'),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed:
+                  endIndex == _displayInventories.length ? null : nextPage,
+              tooltip: 'Next Page',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
