@@ -14,6 +14,9 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _productController = TextEditingController();
 
+  StockLocator? _result;
+  final StockLocatorService _service = StockLocatorService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,8 +41,16 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
 
                         if (brand.isEmpty || product.isEmpty) return;
 
+                        final result = await _service.searchStockLocator(brand, product);
+                        if (result != null) {
+                          print('Stock found');
+                          print('Product Name: ${result.itemCode}');
+                        } else {
+                          print('Error');
+                        }
                         setState(() {
                           _showTable = false;
+                          _result = result;
                         });
                       },
                       style: ElevatedButton.styleFrom(
@@ -98,30 +109,41 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width,
                     child: DataTable(
-                      columnSpacing: 30,
                       columns: const [
-                        DataColumn(label: Text('Brand')),
-                        DataColumn(label: Text('Stock Location')),
+                        DataColumn(label: Text('Location')),
                         DataColumn(label: Text('Quantity')),
                       ],
-                      rows: const [
+                      rows: [
                         DataRow(cells: [
-                          DataCell(Text('Nike')),
-                          DataCell(Text('Manila')),
-                          DataCell(Text('Lazcanoref1')),
+                          const DataCell(Text('Lazcano Ref 1')),
+                          DataCell(Text('${_result!.lazcanoRef1}')),
                         ]),
                         DataRow(cells: [
-                          DataCell(Text('Adidas')),
-                          DataCell(Text('Cebu')),
-                          DataCell(Text('Lazcanoref2')),
+                          const DataCell(Text('Lazcano Ref 2')),
+                          DataCell(Text('${_result!.lazcanoRef2}')),
                         ]),
                         DataRow(cells: [
-                          DataCell(Text('Puma')),
-                          DataCell(Text('Metro Manila')),
-                          DataCell(Text('Lazcanoref3')),
+                          const DataCell(Text('Gandia Cold Storage')),
+                          DataCell(Text('${_result!.gandiaColdStorage}')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('Gandia Ref 1')),
+                          DataCell(Text('${_result!.gandiaRef1}')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('Gandia Ref 2')),
+                          DataCell(Text('${_result!.gandiaRef2}')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('Limbaga')),
+                          DataCell(Text('${_result!.limbaga}')),
+                        ]),
+                        DataRow(cells: [
+                          const DataCell(Text('Cebu')),
+                          DataCell(Text('${_result!.cebu}')),
                         ]),
                       ],
-                    ),
+                    )
                   ),
                 ),
               ),
@@ -131,3 +153,4 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
     );
   }
 }
+
