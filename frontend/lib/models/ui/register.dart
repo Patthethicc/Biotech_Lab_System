@@ -52,8 +52,14 @@ class _RegisterPageState extends State<RegisterPage>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar( title: const Text('Biotech Register')),
-      body: Center(
+      body: Container( 
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/bg.png'),
+            fit: BoxFit.cover,
+          )
+        ),
+        child:Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -62,12 +68,24 @@ class _RegisterPageState extends State<RegisterPage>{
             children: [
               const SizedBox(height: 40),
 
+              Image.asset('Assets/Images/logo.png',
+                          height: 150,
+                          fit: BoxFit.scaleDown ),
+              Text('Laboratory Inventory System',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 23)
+              ),
+
+              const SizedBox(height: 20),
               //firstname textfied
               SizedBox(
                 width: 400,
                 child: TextField(
                   controller: firstNameInput,
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'First Name',
                     hintText: 'Enter your First Name...',
                     border: OutlineInputBorder(),
@@ -83,6 +101,8 @@ class _RegisterPageState extends State<RegisterPage>{
                 child: TextField(
                   controller: lastNameInput,
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'Last Name',
                     hintText: 'Enter your Last Name...',
                     border: OutlineInputBorder(),
@@ -98,6 +118,8 @@ class _RegisterPageState extends State<RegisterPage>{
                 child: TextField(
                   controller: emailInput,
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'Email Address',
                     hintText: 'Enter your email address...',
                     border: OutlineInputBorder(),
@@ -114,6 +136,8 @@ class _RegisterPageState extends State<RegisterPage>{
                 child: TextField(
                   controller: passwordInput,
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'Password',
                     hintText: 'Enter your password...',
                     border: OutlineInputBorder(),
@@ -129,11 +153,6 @@ class _RegisterPageState extends State<RegisterPage>{
                 width: 400,
                 child: ElevatedButton(
                   onPressed: () {
-                    //for debugging
-                    print('First Name: ${firstNameInput.text}');
-                    print('Last Name: ${lastNameInput.text}');
-                    print('Email: ${emailInput.text}');
-                    print('Password: ${passwordInput.text}');
                     // backend / auth logic here
                     registerUser();
                   },
@@ -147,7 +166,7 @@ class _RegisterPageState extends State<RegisterPage>{
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 2),
 
               //go to back to login page
               TextButton(
@@ -164,26 +183,10 @@ class _RegisterPageState extends State<RegisterPage>{
               ),
 
               const SizedBox(height: 20),
-
-              //temporary go to home
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
-                  );
-                },
-                style: TextButton.styleFrom(
-                  //edit this
-                ),
-                child: const Text(
-                  'Go to home (temp)',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
             ],
           ),
         ),
+       ),
       ),
     );
   }

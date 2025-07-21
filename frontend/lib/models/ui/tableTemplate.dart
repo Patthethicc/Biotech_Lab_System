@@ -110,7 +110,7 @@ class _DataTemplateState extends State<DataTemplate> {
       body: Container( 
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('Assets/Images/withlogo.png'),
+            image: AssetImage('Assets/Images/bg.png'),
             fit: BoxFit.cover,
           )
         ),

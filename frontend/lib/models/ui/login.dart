@@ -57,22 +57,41 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar( title: const Text('Biotech Login')),
-      body: Center(
+      body: Container( 
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/bg.png'),
+            fit: BoxFit.cover,
+          )
+        ),
+        child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
 
+              Image.asset('Assets/Images/logo.png',
+                          height: 150,
+                          fit: BoxFit.scaleDown ),
+              Text('Laboratory Inventory System',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 23)
+              ),
+
+              const SizedBox(height: 20),
               //email textfield
               SizedBox(
                 width: 400,
                 child: TextField(
                   controller: emailInput,
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'Email Address',
                     hintText: 'Enter your email address',
                     border: OutlineInputBorder(),
@@ -89,6 +108,8 @@ class _LoginPageState extends State<LoginPage> {
                 child: TextField(
                   controller: passwordInput,
                   decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'Password',
                     hintText: 'Enter your password',
                     border: OutlineInputBorder(),
@@ -104,8 +125,6 @@ class _LoginPageState extends State<LoginPage> {
                 width: 400,
                 child: ElevatedButton(
                   onPressed: () {
-                    print('Email: ${emailInput.text}');
-                    print('Password: ${passwordInput.text}');
                     // backend / auth logic here
                     logInUser();
                   },
@@ -119,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 2),
 
               //go to register page
               TextButton(
@@ -139,27 +158,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
 
               const SizedBox(height: 20),
-
-              //temporary go to home
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomePage()),
-                  );
-                },
-                style: TextButton.styleFrom(
-                  //edit this
-                ),
-                child: const Text(
-                  'Go to home (temp)',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
             ],
           ),
         ),
       ),
+     )
     );
   }
 }
