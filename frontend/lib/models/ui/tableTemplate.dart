@@ -93,8 +93,12 @@ class _DataTemplateState extends State<DataTemplate> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inventory Data'),
-        backgroundColor: Colors.deepPurple,
+        title: const Text('Inventory Data',
+          style: TextStyle(
+          fontWeight: FontWeight.bold, // This makes the text bold
+          ),
+        ),
+        backgroundColor: Color.fromRGBO(128, 198, 255, 1),
         actions: [
           IconButton(
             onPressed: _resetToFullList,
@@ -103,16 +107,25 @@ class _DataTemplateState extends State<DataTemplate> {
           ),
         ],
       ),
-      body: Center(
+      body: Container( 
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/withlogo.png'),
+            fit: BoxFit.cover,
+          )
+        ),
+        child:Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: 16.0, left: 500, right: 500),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Color.fromRGBO(250, 249, 246, 1),
                     labelText: 'Search by Item Code or Brand',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
@@ -143,7 +156,7 @@ class _DataTemplateState extends State<DataTemplate> {
                             child: CircularProgressIndicator(),
                           ),
                         )
-                      : DataTable(
+                      : DataTable(                         
                           columns: const [
                             DataColumn(label: Text("ID")),
                             DataColumn(label: Text("Item Code")),
@@ -164,6 +177,7 @@ class _DataTemplateState extends State<DataTemplate> {
           ),
         ),
       ),
+      )
     );
   }
 
@@ -180,6 +194,9 @@ class _DataTemplateState extends State<DataTemplate> {
         ])
       ];
     }
+
+     int counter = 0;
+
     return _displayInventories.map((e) {
       return DataRow(cells: [
         DataCell(Text(e.inventoryID.toString())),
@@ -188,7 +205,12 @@ class _DataTemplateState extends State<DataTemplate> {
         DataCell(Text(e.quantityOnHand.toString())),
         DataCell(Text(e.addedBy)),
         DataCell(Text(e.dateTimeAdded.toString().split(' ')[0])),
-      ]);
+      ],
+      color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+        final color = counter.isEven ? Color.fromRGBO(200, 230, 255, 1)! : Color.fromRGBO(173, 217, 253, 1);
+        counter++;
+        return color; 
+      }));
     }).toList();
   }
 
