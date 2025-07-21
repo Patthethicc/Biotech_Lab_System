@@ -1,390 +1,283 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:frontend/services/dashboard_service.dart';
+import 'package:frontend/services/transaction_entry_service.dart';
 import 'login.dart';
 
-class HomePage extends StatefulWidget{
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-
-
-class _HomePageState extends State<HomePage>{
-  int totalProducts = 100;
-  int orders = 200;
-  int totalStocks = 300;
-  int outOfStock = 400;
-  int totalCustomers = 500;
-  int totalSuppliers = 500;
-
+class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-   @override
-  void initState() {
-    super.initState();
-    
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scaffoldKey.currentState?.openDrawer();
-      });
-  }
+  
+  int outOfStock = 0;
+  String selectedPeriod = 'daily';
+  int dynamicCount = 0;
+  int totalQuantity = 0;
+  bool loading = true;
+  bool isLoadingDynamicCount = true;
 
   @override
-  Widget build(BuildContext context){
+  void initState() {
+    super.initState();
+    _loadAllStats();
+  }
+
+  Future<void> _loadAllStats() async {
+    final svc = DashboardStatsService();
+    setState(() => isLoadingDynamicCount = true);
+    try {
+      final count = await svc.fetchTransactionCount(selectedPeriod);
+      final entries = await TransactionEntryService().fetchTransactionEntries();
+
+      setState(() {
+        dynamicCount = count;
+        totalQuantity = entries.fold(0, (sum, e) => sum + e.quantity);
+      });
+    } catch (e) {
+      debugPrint('Error loading stats: $e');
+    } finally {
+      setState(() => isLoadingDynamicCount = false);
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar( title: const Text('Biotech Home')),
-      body: Column(
-        spacing: 30,
-        children: [Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            SizedBox(
-              width: 250,
-              height: 70,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                child: ListTile(
-                  leading: Text("img"),
-                  title: Text(totalProducts.toString()),
-                  subtitle: Text("Total Products"),
-                ),
-              ),
-            ),
-
-            SizedBox(
-              width: 250,
-              height: 70,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                child: ListTile(
-                  leading: Text("img"),
-                  title: Text(orders.toString()),
-                  subtitle: Text("Orders"),
-                ),
-              ),
-            ),
-
-            SizedBox(
-              width: 250,
-              height: 70,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                child: ListTile(
-                  leading: Text("img"),
-                  title: Text(totalStocks.toString()),
-                  subtitle: Text("Total Stocks"),
-                ),
-              ),
-            ),
-
-            SizedBox(
-              width: 250,
-              height: 70,
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                child: ListTile(
-                  leading: Text("img"),
-                  title: Text(outOfStock.toString()),
-                  subtitle: Text("Out of Stock"),
-                ),
-              ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          spacing: 30,
-          children: [
-            Column(
-              spacing: 30,
-              children: [
-                Row(
-                  spacing: 30,
-                  children: [
-                    SizedBox(
-                      width: 300,
-                      height: 250,
-                      child: Card(
-                        elevation: 4,
-                        child: Column(
-                          children: [
-                            Text("No. of users"),
-                            ListTile(
-                              leading: Text("img"),
-                              title: Text(totalCustomers.toString()),
-                              subtitle: Text("Total Customers"),
-                            ),
-                            ListTile(
-                              leading: Text("img"),
-                              title: Text(totalSuppliers.toString()),
-                              subtitle: Text("Total Suppliers"),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-            
-                    SizedBox(
-                      width: 400,
-                      height: 250,
-                      child: Card( 
-                        elevation: 4,
-                        child: PieChart(
-                            PieChartData(
-                              centerSpaceRadius: 0,
-                              sections: [
-                                PieChartSectionData(
-                                  value: 60,
-                                  color: Colors.blueGrey,
-                                  radius: 70
-                                  ),
-                                PieChartSectionData(
-                                  value: 40, 
-                                  color: Colors.grey,
-                                  radius: 70
-                                  )
-                              ]
-                            )
-                           )
-                      ),
-                    )
-                ],),
-                Row(
-                  spacing: 30,
-                  children: [
-                    SizedBox(
-                      width: 725,
-                      height: 250,
-                      child: Card(
-                        elevation: 4,
-                        child: LineChart(
-                          LineChartData(
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: [
-                                  FlSpot(0, 0),
-                                  FlSpot(3, 2),
-                                  FlSpot(6, 10)
-                                ]
-                              )
-                            ]
-                          )
-                        ),
-                      ),
-                    )
-                  ],
-                )
-            
-              ],
-              ),
-
-              Column(
-                children: [
-                  SizedBox(
-                      width: 725,
-                      height: 530,
-                      child: Card(
-                        elevation: 4,
-                        child: BarChart(
-                          BarChartData(
-                            rotationQuarterTurns: 45,
-                            barGroups: [
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 10)
-                                ]
-                              ),
-
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 9)
-                                ]
-                              ),
-
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 8)
-                                ]
-                              ),
-
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 7)
-                                ]
-                              ),
-
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 6)
-                                ]
-                              ),
-
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 5)
-                                ]
-                              ),
-
-                              BarChartGroupData(
-                                x: 0,
-                                barRods: [
-                                  BarChartRodData(toY: 4)
-                                ]
-                              ),
-                            ]
-                          )
-                        ),
-                      ),
-                    )
-                ],
-              )
-          ],
-        ),
+      appBar: AppBar(
+        title: const Text('Biotech Home'),
+        actions: [
+            DropdownButton<String>(
+            value: selectedPeriod,
+            onChanged: (v) {
+              if (v != null) {
+                selectedPeriod = v;
+                _loadAllStats();
+              }
+            },
+            items: ['daily', 'monthly', 'yearly']
+              .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+              .toList(),
+          )
         ],
       ),
-      drawer: Drawer(
-        backgroundColor: Color.fromARGB(255, 255, 255, 255),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
+      drawer: buildDrawer(context),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          buildSummaryCards(),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildLeftColumn(),
+              const SizedBox(width: 20),
+              buildRightColumn(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-            //top of the drawer
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color.fromARGB(255, 0, 71, 129),
-              ),
-              child: Column(
+  Widget buildSummaryCards() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        summaryCard("Total Transactions", totalQuantity),
+        summaryCard(_cardLabel(), dynamicCount, isLoading: isLoadingDynamicCount),
+        summaryCard("Total Quantity", totalQuantity),
+        summaryCard("Out of Stock", outOfStock),
+      ],
+    );
+  }
+
+  String _cardLabel() {
+    switch (selectedPeriod) {
+      case 'daily': return "Today's Transactions";
+      case 'monthly': return "This Month's Transactions";
+      case 'yearly': return "This Year's Transactions";
+      default: return "Transactions";
+    }
+  }
+
+  Widget summaryCard(String title, int value, {bool isLoading = false}) {
+    return SizedBox(
+      width: 250,
+      height: 65,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.analytics, size: 24),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    'Biotech App', 
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  SizedBox(
+                    height: 20,
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            value.toString(),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
                   ),
-
-                  SizedBox(height: 5),
-
+                  const SizedBox(height: 2),
                   Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    title,
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+
+  Widget buildLeftColumn() {
+    return Column(
+      children: [
+        SizedBox(
+          width: 300,
+          height: 250,
+          child: Card(
+            elevation: 4,
+            child: Column(
+              children: [
+                const Text("No. of users"),
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text("sample total"),
+                  subtitle: const Text("Total Customers"),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.factory),
+                  title: Text("sample total"),
+                  subtitle: const Text("Total Suppliers"),
+                ),
+              ],
             ),
-            ListTile(
-              title: const Text('Dashboard',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/dashboard');
-              },
+          ),
+        ),
+        const SizedBox(height: 30),
+        SizedBox(
+          width: 725,
+          height: 250,
+          child: Card(
+            elevation: 4,
+            child: LineChart(
+              LineChartData(
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: [
+                      FlSpot(0, 0),
+                      FlSpot(3, 2),
+                      FlSpot(6, 10)
+                    ]
+                  )
+                ]
+              )
             ),
-            ListTile(
-              title: const Text('View Profile',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/view_profile');
-              },
-            ),
-            ListTile(
-              title: const Text('Data Recording',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/transaction_entry');
-              },
-            ),
-            ListTile(
-              title: const Text('Inventory',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/inventory');
-              },
-            ),
-            ListTile(
-              title: const Text('Stock Alerts',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/stock_alert');
-              },
-            ),
-            ListTile(
-              title: const Text('Stock Locator',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/stock_locator');
-              },
-            ),
-            ListTile(
-              title: const Text('Purchase Order',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/purchase_order');
-              },
-            ),
-            ListTile(
-              title: const Text('Log out',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: (){
-                Navigator.pop(context);
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()), 
-                  (route) => false, // goes back to login, and removes this route from the route stack
-                );
-              },
-            )
-          ],
+          ),
         )
-      )
+      ],
+    );
+  }
+
+  Widget buildRightColumn() {
+    return SizedBox(
+      width: 725,
+      height: 530,
+      child: Card(
+        elevation: 4,
+        child: BarChart(
+          BarChartData(
+            barGroups: List.generate(7, (i) {
+              return BarChartGroupData(
+                x: i,
+                barRods: [BarChartRodData(toY: 10 - i.toDouble())],
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Drawer buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          const DrawerHeader(
+            decoration: BoxDecoration(color: Color.fromARGB(255, 0, 71, 129)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  'Biotech App',
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Menu',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          buildDrawerItem(context, 'Dashboard', '/dashboard'),
+          buildDrawerItem(context, 'View Profile', '/view_profile'),
+          buildDrawerItem(context, 'Data Recording', '/transaction_entry'),
+          buildDrawerItem(context, 'Inventory', '/inventory'),
+          buildDrawerItem(context, 'Stock Alerts', '/stock_alert'),
+          buildDrawerItem(context, 'Stock Locator', '/stock_locator'),
+          buildDrawerItem(context, 'Purchase Order', '/purchase_order'),
+          ListTile(
+            title: const Text('Log out', style: TextStyle(fontSize: 14)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildDrawerItem(BuildContext context, String title, String route) {
+    return ListTile(
+      title: Text(title, style: const TextStyle(fontSize: 14)),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.pushNamed(context, route);
+      },
     );
   }
 }
