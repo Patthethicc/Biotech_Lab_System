@@ -30,7 +30,7 @@ class InventoryService {
       final List data = json.decode(response.body);
       return data.map((json) => Inventory.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load inventory');
+      throw Exception('Failed to load inventory ${response.statusCode}');
     }
   }
 

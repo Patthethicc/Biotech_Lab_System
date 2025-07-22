@@ -32,8 +32,8 @@ class Item {
       expiryDate: json['expiryDate'] != null
           ? DateTime.parse(json['expiryDate'])
           : null,
-      stocksManila: json['stocksManila'] as String,
-      stocksCebu: json['stocksCebu'] as String,
+      stocksManila: json['stocksManila'].toString() as String,
+      stocksCebu: json['stocksCebu'].toString() as String,
       purchaseOrderReferenceNumber:
           json['purchaseOrderReferenceNumber'] as String,
       supplierPackingList: json['supplierPackingList'] as String,

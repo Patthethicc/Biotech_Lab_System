@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/api/inventory.dart';
+import 'package:frontend/models/api/item_model.dart';
 import 'package:frontend/services/inventory_service.dart';
+import 'package:frontend/services/item_details_service.dart';
 
 class DataTemplate extends StatefulWidget {
   const DataTemplate({super.key});
@@ -10,6 +12,9 @@ class DataTemplate extends StatefulWidget {
 }
 
 class _DataTemplateState extends State<DataTemplate> {
+  final inventoryService = InventoryService();
+  final itemDetailsService = ItemDetailsService();
+
   List<Inventory> _allInventories = [];
   List<Inventory> _displayInventories = [];
   bool _isLoading = true;
@@ -34,7 +39,6 @@ class _DataTemplateState extends State<DataTemplate> {
   }
 
   void _fetchData() {
-    final inventoryService = InventoryService();
     inventoryService.getInventories().then((value) {
       setState(() {
         _allInventories = value;
@@ -85,6 +89,268 @@ class _DataTemplateState extends State<DataTemplate> {
     });
   }
 
+  bool checkIdDuplicate(int id) {
+    for (var i in _allInventories) {
+      if (id == i.inventoryID) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+    bool checkItemCodeDuplicate(String code) {
+    for (var i in _allInventories) {
+      if (code == i.itemCode) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // leave invID 0 if ur in write mode
+  void showAddDialogue(String mode, int invID) {
+    final formKey = GlobalKey<FormState>();
+
+    final itemCodeController = TextEditingController();
+    final brandController = TextEditingController();
+    final productDescController = TextEditingController();
+    final lotSerialNumController = TextEditingController();
+    final expiryDateController = TextEditingController();
+    final stocksManilaController = TextEditingController();
+    final stocksCebuController = TextEditingController();
+    final purchaseOrderRefController = TextEditingController();
+    final supplierPackingListController = TextEditingController();
+    final drsiReferenceNumberController = TextEditingController();
+    final addedByController = TextEditingController();
+
+    bool isWriteMode = false;
+    if(mode == "Write"){
+      isWriteMode = true;
+    }
+
+    showDialog(context: context, 
+    builder: (context) {
+      return AlertDialog(
+        title: Text(isWriteMode ? 'Add Inventory Data' : 'Edit Inventory Data'),
+        content: SizedBox(
+          width: 500,
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+
+                  TextFormField(
+                    controller: itemCodeController,
+                    decoration: InputDecoration(
+                      labelText: "Item Code"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty || checkItemCodeDuplicate(value)) {
+                        return 'Enter a valid item code';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: brandController,
+                    decoration: const InputDecoration(
+                      labelText: "Brand"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid brand';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: productDescController,
+                    decoration: const InputDecoration(
+                      labelText: "Product Description"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid Product Description';
+                      } else {
+                        return null;
+                      }
+                    },
+                    enabled: isWriteMode,
+                  ),
+
+                  TextFormField(
+                    controller: lotSerialNumController,
+                    decoration: const InputDecoration(
+                      labelText: "Lot/Serial num"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid brand';
+                      } else {
+                        return null;
+                      }
+                    },
+                    enabled: isWriteMode,
+                  ),
+
+                  TextFormField(
+                    controller: expiryDateController,
+                    decoration: InputDecoration(
+                      labelText: isWriteMode ? "Expiry Date" : "Date & Time added"
+                    ),
+                    validator: (value) {
+                      if (DateTime.tryParse(value.toString()) == null) {
+                        return isWriteMode ? 'Enter a valid expiry date' : 'Enter a valid date';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: stocksManilaController,
+                    decoration: InputDecoration(
+                      labelText: isWriteMode ? "Stocks Manila" : "Quantity on hand"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty || int.parse(value) < 0) {
+                        return isWriteMode ? 'Enter a valid stock number' : 'Enter a valid quantity';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: stocksCebuController,
+                    decoration: const InputDecoration(
+                      labelText: "Stocks Cebu"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty || int.parse(value) < 0) {
+                        return 'Enter a valid stock number';
+                      } else {
+                        return null;
+                      }
+                    },
+                    enabled: isWriteMode,
+                  ),
+
+                  TextFormField(
+                    controller: purchaseOrderRefController,
+                    decoration: const InputDecoration(
+                      labelText: "Purchase Order Reference"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid Reference';
+                      } else {
+                        return null;
+                      }
+                    },
+                    enabled: isWriteMode,
+                  ),
+
+                  TextFormField(
+                    controller: supplierPackingListController,
+                    decoration: const InputDecoration(
+                      labelText: "Supplier Packing List"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid Packing List';
+                      } else {
+                        return null;
+                      }
+                    },
+                    enabled: isWriteMode,
+                  ),
+
+                  isWriteMode ? SizedBox(): TextFormField(
+                    controller: addedByController,
+                    decoration: const InputDecoration(
+                      labelText: "Added by"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid String';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+
+                  TextFormField(
+                    controller: drsiReferenceNumberController,
+                    decoration: const InputDecoration(
+                      labelText: "drsi Reference Number"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid Packing List';
+                      } else {
+                        return null;
+                      }
+                    },
+                    enabled: isWriteMode,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Item newItem = Item(
+                itemCode: itemCodeController.text,
+                brand: brandController.text,
+                productDescription: productDescController.text,
+                lotSerialNumber: lotSerialNumController.text,
+                expiryDate: DateTime.parse(expiryDateController.text),
+                stocksManila: stocksManilaController.text,
+                stocksCebu: stocksCebuController.text,
+                purchaseOrderReferenceNumber: purchaseOrderRefController.text,
+                supplierPackingList: supplierPackingListController.text,
+                drsiReferenceNumber: drsiReferenceNumberController.text
+              );
+
+              Inventory updatedInventory = Inventory(
+                inventoryID: invID,
+                itemCode: itemCodeController.text,
+                brand: brandController.text,
+                quantityOnHand: int.parse(stocksManilaController.text),
+                addedBy: addedByController.text,
+                dateTimeAdded: expiryDateController.text
+              );
+
+              if(mode == "Write") {
+                await itemDetailsService.createInventory(newItem);
+              } else if(mode == "Edit") {
+                await inventoryService.updateInventory(updatedInventory);
+              }
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                builder: (BuildContext context) => super.widget));
+              },
+            child: const Text("Add")
+          )
+        ],
+      );
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     final endIndex = (_startIndex + _rowsPerPage > _displayInventories.length)
@@ -158,6 +424,7 @@ class _DataTemplateState extends State<DataTemplate> {
                         )
                       : DataTable(                         
                           columns: const [
+                            DataColumn(label: Text("")),
                             DataColumn(label: Text("ID")),
                             DataColumn(label: Text("Item Code")),
                             DataColumn(label: Text("Brand")),
@@ -173,6 +440,7 @@ class _DataTemplateState extends State<DataTemplate> {
               ),
               const SizedBox(height: 16),
               if (!_isLoading) _buildPaginationControls(endIndex),
+              ElevatedButton(onPressed: () {showAddDialogue("Write", 0);}, child: const Text("add data"))
             ],
           ),
         ),
@@ -199,6 +467,26 @@ class _DataTemplateState extends State<DataTemplate> {
 
     return _displayInventories.map((e) {
       return DataRow(cells: [
+        DataCell(Row(
+          children: [IconButton(
+            icon: Icon(Icons.delete_forever),
+            onPressed: () async {
+              await inventoryService.deleteInventory(e.inventoryID!.toInt());
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                  builder: (BuildContext context) => super.widget));
+            },
+            ),
+
+            IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () {
+                showAddDialogue("Edit", e.inventoryID!.toInt());
+              },
+            )
+            ]
+        )),
         DataCell(Text(e.inventoryID.toString())),
         DataCell(Text(e.itemCode)),
         DataCell(Text(e.brand)),
