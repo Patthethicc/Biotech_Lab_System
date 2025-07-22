@@ -200,20 +200,28 @@ class _DataTemplateState extends State<DataTemplate> {
                   ),
 
                   TextFormField(
-                    controller: expiryDateController,
+                    readOnly: true,  // Prevent manual text entry
                     decoration: InputDecoration(
-                      labelText: isWriteMode ? "Expiry Date" : "Date & Time added"
+                      labelText: 'Expiry Date',
+                      suffixIcon: Icon(Icons.calendar_today),
+                      hintText: 'Tap to select date',
                     ),
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        expiryDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+                      }
+                    },
                     validator: (value) {
-                       if (value == null || value.isEmpty) return null;
-                        // Try multiple date formats
-                        final date = DateTime.tryParse(value) ?? 
-                                    DateFormat('MM/dd/yyyy').parse(value);
-                        
-                        if (date == null) {
-                          return 'Enter valid date (YYYY-MM-DD or MM/DD/YYYY)';
-                        }
-                        return null;
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a date';
+                      }
+                      return null;
                     },
                   ),
 
@@ -369,7 +377,7 @@ class _DataTemplateState extends State<DataTemplate> {
           fontWeight: FontWeight.bold, // This makes the text bold
           ),
         ),
-        backgroundColor: Color.fromRGBO(128, 198, 255, 1),
+        backgroundColor: Color.fromRGBO(123, 123, 123, 1),
         actions: [
           IconButton(
             onPressed: _resetToFullList,
@@ -392,26 +400,42 @@ class _DataTemplateState extends State<DataTemplate> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0, left: 500, right: 500),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Color.fromRGBO(250, 249, 246, 1),
-                    labelText: 'Search by Item Code or Brand',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Adjust as needed
+                  children: [
+                    // Search field (with reduced horizontal padding)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 16.0), // Space between search and button
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Color.fromRGBO(250, 249, 246, 1),
+                            labelText: 'Search by Item Code or Brand',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                    },
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
                     ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                  ),
-                ),
+                    // Add Data button
+                    ElevatedButton(
+                      onPressed: () => showAddDialogue("Write", 0),
+                      child: const Text("Add Data"),
+                    ),
+                  ],
+                )
               ),
               Card(
                 elevation: 4,
@@ -429,6 +453,7 @@ class _DataTemplateState extends State<DataTemplate> {
                         )
                       : DataTable(                         
                           columns: const [
+                            //here
                             DataColumn(label: Text("")),
                             DataColumn(label: Text("ID")),
                             DataColumn(label: Text("Item Code")),
@@ -445,7 +470,6 @@ class _DataTemplateState extends State<DataTemplate> {
               ),
               const SizedBox(height: 16),
               if (!_isLoading) _buildPaginationControls(endIndex),
-              ElevatedButton(onPressed: () {showAddDialogue("Write", 0);}, child: const Text("add data"))
             ],
           ),
         ),
@@ -500,7 +524,7 @@ class _DataTemplateState extends State<DataTemplate> {
         DataCell(Text(e.dateTimeAdded.toString().split(' ')[0])),
       ],
       color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-        final color = counter.isEven ? Color.fromRGBO(200, 230, 255, 1)! : Color.fromRGBO(173, 217, 253, 1);
+        final color = counter.isEven ? Color.fromRGBO(199, 199, 199, 1)! : Color.fromRGBO(188, 188, 188, 1);
         counter++;
         return color; 
       }));
