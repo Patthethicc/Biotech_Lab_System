@@ -150,18 +150,24 @@ public class UserService {
     public LogInReq logInPass(String email, String password) {
         try {
             if (email == null || email.trim().isEmpty()) {
-                throw new InvalidCredentialsException("Email cannot be null or empty");
+                throw new InvalidCredentialsException("Email address is required");
             }
             
             if (password == null || password.trim().isEmpty()) {
-                throw new InvalidCredentialsException("Password cannot be null or empty");
+                throw new InvalidCredentialsException("Password is required");
+            }
+            
+            // Validate email format
+            if (!isValidEmail(email)) {
+                throw new InvalidCredentialsException("Please enter a valid email address");
             }
             
             User stored_User;
             try {
                 stored_User = getUserByEmail(email);
             } catch (UserNotFoundException e) {
-                throw new InvalidCredentialsException("Invalid email or password");
+                // Don't reveal that the user doesn't exist for security
+                throw new InvalidCredentialsException("Invalid email address or password");
             }
             
             LogInReq request = new LogInReq();
@@ -180,7 +186,8 @@ public class UserService {
                 
                 logger.info("User logged in successfully: " + email);
             } else {
-                throw new InvalidCredentialsException("Invalid email or password");
+                // Specific error for wrong password 
+                throw new InvalidCredentialsException("Invalid email address or password");
             }
             
             return request;

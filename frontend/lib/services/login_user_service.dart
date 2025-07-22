@@ -28,16 +28,28 @@ class LogInUserService {
         }
       } else if (response.statusCode == 401) {
         final errorData = json.decode(response.body);
-        throw Exception('Login failed: ${errorData['message'] ?? 'Invalid credentials'}');
+        String message = errorData['message'] ?? 'Invalid email address or password';
+        throw Exception(message);
       } else if (response.statusCode == 400) {
         final errorData = json.decode(response.body);
-        throw Exception('Invalid input: ${errorData['message'] ?? 'Bad request'}');
+        String message = errorData['message'] ?? 'Invalid input data';
+        throw Exception(message);
+      } else if (response.statusCode == 500) {
+        throw Exception('Server error: The server is currently experiencing issues');
       } else {
         throw Exception('Server error: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('Connection error: $e');
+      throw Exception('Cannot connect to server. Please check if the backend is running.');
+    } on FormatException catch (e) {
+      print('Format error: $e');
+      throw Exception('Invalid server response format');
     } catch (e) {
       print('Login error: $e');
-      if (e.toString().contains('Failed to host lookup') || e.toString().contains('Connection refused')) {
+      if (e.toString().contains('Failed to host lookup') || 
+          e.toString().contains('Connection refused') ||
+          e.toString().contains('SocketException')) {
         throw Exception('Cannot connect to server. Please check if the backend is running.');
       }
       rethrow;
