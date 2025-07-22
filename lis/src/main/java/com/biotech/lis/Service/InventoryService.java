@@ -52,7 +52,7 @@ public class InventoryService {
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
 
-        existingInventory.setQuantityOnHand(inventory.getQuantityOnHand());
+        existingInventory.setQuantityOnHand(inventory.getQuantityOnHand() + existingInventory.getQuantityOnHand());
         return inventoryRepository.save(existingInventory);
     }
 

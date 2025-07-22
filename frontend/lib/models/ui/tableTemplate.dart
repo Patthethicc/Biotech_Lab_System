@@ -3,6 +3,7 @@ import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/item_model.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/item_details_service.dart';
+import 'package:intl/intl.dart'; 
 
 class DataTemplate extends StatefulWidget {
   const DataTemplate({super.key});
@@ -204,11 +205,15 @@ class _DataTemplateState extends State<DataTemplate> {
                       labelText: isWriteMode ? "Expiry Date" : "Date & Time added"
                     ),
                     validator: (value) {
-                      if (DateTime.tryParse(value.toString()) == null) {
-                        return isWriteMode ? 'Enter a valid expiry date' : 'Enter a valid date';
-                      } else {
+                       if (value == null || value.isEmpty) return null;
+                        // Try multiple date formats
+                        final date = DateTime.tryParse(value) ?? 
+                                    DateFormat('MM/dd/yyyy').parse(value);
+                        
+                        if (date == null) {
+                          return 'Enter valid date (YYYY-MM-DD or MM/DD/YYYY)';
+                        }
                         return null;
-                      }
                     },
                   ),
 
