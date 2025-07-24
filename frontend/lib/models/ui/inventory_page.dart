@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:frontend/models/ui/item_details.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:frontend/models/api/inventory.dart'; // Ensure this import is correct and the model has all relevant fields
-import 'package:frontend/models/api/item_model.dart'; // Ensure this import is correct
+import 'package:frontend/models/api/inventory.dart';
+import 'package:frontend/models/api/item_model.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -14,7 +14,7 @@ class InventoryPage extends StatefulWidget {
 
 class _InventoryPageState extends State<InventoryPage> {
   List<String> headers = [];
-  List<Inventory> rows = []; // Correct type: List of Inventory objects
+  List<Inventory> rows = [];
   bool isLoading = true;
   bool hasError = false;
   int currentPage = 0;
@@ -74,7 +74,7 @@ class _InventoryPageState extends State<InventoryPage> {
       appBar: AppBar(
         title: const Text('Inventory'),
         actions: [
-          Image.asset('Assets/Icons/bellicon.png', height: 60.0, width: 60.0),
+          // Image.asset('Assets/Icons/bellicon.png', height: 60.0, width: 60.0),
         ],
       ),
       floatingActionButton: FloatingActionButton(
