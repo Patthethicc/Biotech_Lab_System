@@ -42,15 +42,27 @@ public class InventoryController {
         return ResponseEntity.ok(updatedInv);
     }
 
-    @DeleteMapping("deleteInv/{id}")
+    @DeleteMapping("/deleteInv/{id}")
     public ResponseEntity<Inventory> deleteInv(@PathVariable("id") Integer id) {
         inventoryService.deleteByInventoryId(id);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("stockAlert/{amt}")
+    @GetMapping("/stockAlert/{amt}")
     public ResponseEntity<List<Inventory>> getStockAlerts(@PathVariable("amt") Integer amount) {
         final List<Inventory> stockAlerts = inventoryService.getStockAlerts(amount);
         return ResponseEntity.ok(stockAlerts);
+    }
+
+    @GetMapping("/getTopStock")
+    public ResponseEntity<List<Inventory>> getTopStock() {
+        List<Inventory> topInv = inventoryService.getHighestStock();
+        return ResponseEntity.ok(topInv);
+    }
+
+    @GetMapping("/getLowStock")
+    public ResponseEntity<List<Inventory>> getBottomStock() {
+        List<Inventory> lowInv = inventoryService.getLowestStock();
+        return ResponseEntity.ok(lowInv);
     }
 }
