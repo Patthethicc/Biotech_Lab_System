@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/services/dashboard_service.dart';
 import 'package:frontend/services/transaction_entry_service.dart';
 import 'login.dart';
@@ -107,49 +108,74 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget summaryCard(String title, int value, {bool isLoading = false}) {
-    return SizedBox(
-      width: 250,
-      height: 65,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              const Icon(Icons.analytics, size: 24),
-              const SizedBox(width: 12),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 20,
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            value.toString(),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    title,
-                    style: const TextStyle(fontSize: 11, color: Colors.black54),
-                  ),
-                ],
-              ),
-            ],
+Widget summaryCard(String title, int value, {bool isLoading = false}) {
+  return SizedBox(
+    width: 250,
+    height: 70,
+    child: Neumorphic(
+      style: NeumorphicStyle(
+        depth: -3,
+        color: const Color(0xFFE0E5EC),
+        intensity: 5.0,
+        shadowLightColorEmboss: const Color.fromARGB(255, 238, 243, 247),
+        shadowDarkColorEmboss: const Color.fromARGB(255, 213, 224, 235),
+        boxShape: NeumorphicBoxShape.roundRect(
+          BorderRadius.circular(100),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Neumorphic(
+          style: NeumorphicStyle(
+            depth: 3,
+            color: Colors.white,
+            intensity: 5.0,
+            shadowLightColor: const Color.fromARGB(255, 240, 246, 250),
+            shadowDarkColor: const Color.fromARGB(255, 199, 212, 224),
+            boxShape: NeumorphicBoxShape.roundRect(
+              BorderRadius.circular(100),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.analytics, size: 24, color: Color(0xFF01579B)),
+                const SizedBox(width: 12),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 20,
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              value.toString(),
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 11, color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
 
 
