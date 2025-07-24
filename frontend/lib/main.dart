@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:frontend/models/ui/dashboard.dart';
-import 'package:frontend/models/ui/stock_alert.dart';
+import 'models/ui/dashboard.dart';
+import 'models/ui/stock_alert.dart';
+import 'models/ui/tableTemplate.dart';
 import 'models/ui/login.dart';
 import 'models/ui/register.dart';
 import 'models/ui/home.dart';
@@ -36,7 +37,8 @@ class MyApp extends StatelessWidget{
         '/purchase_order': (context) => const PurchaseOrderPage(),
         '/transaction_entry': (context) => TransactionEntryPage(),
         '/inventory': (context) => InventoryPage(),
-        '/stock_locator': (context) => StockLocator()
+        '/stock_locator': (context) => StockLocatorPage(),
+        '/data_template': (context) => DataTemplate()
         //item details 
       },
     );

@@ -37,17 +37,26 @@ public class TransactionEntryController {
 
     @PostMapping("/createTransactionEntry")
     public ResponseEntity<TransactionEntry> createTransactionEntry(@RequestBody TransactionEntry transactionEntry) {
-        TransactionEntry newTransactionEntry = transactionEntryService.createTransactionEntry(transactionEntry);
-        return ResponseEntity.ok(newTransactionEntry);
+        try {
+            TransactionEntry newTransactionEntry = transactionEntryService.createTransactionEntry(transactionEntry);
+            return ResponseEntity.ok(newTransactionEntry);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // invalid input
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
+        }
     }
 
     @GetMapping("/getTransactionByID/{id}")
     public ResponseEntity<TransactionEntry> getTransactionEntryById(@PathVariable("id") String id) {
-        Optional<TransactionEntry> transactionEntry = transactionEntryService.getTransactionEntryById(id);        
-        if (transactionEntry.isPresent()) {
-            return ResponseEntity.ok(transactionEntry.get());
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        try {
+            Optional<TransactionEntry> transactionEntry = transactionEntryService.getTransactionEntryById(id);        
+            return transactionEntry.map(ResponseEntity::ok) // transaction found
+                                  .orElse(ResponseEntity.notFound().build()); // transaction not found
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // invalid input
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
         }
     }
 
@@ -55,13 +64,12 @@ public class TransactionEntryController {
     public ResponseEntity<TransactionEntry> updateTransactionEntry(@PathVariable("id") String id,  @RequestBody TransactionEntry transactionEntry) {
         try {
             transactionEntry.setDrSIReferenceNum(id);
-            
             TransactionEntry updatedTransactionEntry = transactionEntryService.updateTransactionEntry(transactionEntry);
-            return ResponseEntity.ok(updatedTransactionEntry);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.ok(updatedTransactionEntry); // transaction updated successfully
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // invalid input
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
         }
     }
 
@@ -69,23 +77,33 @@ public class TransactionEntryController {
     public ResponseEntity<Void> deleteTransactionEntry(@PathVariable String id) {
         try {
             transactionEntryService.deleteTransactionEntry(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.noContent().build(); // successful deletion
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // invalid input
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
         }
     }
 
     // util method for updating transaction entry
     @GetMapping("/exists/{id}")
     public ResponseEntity<Boolean> transactionExists(@PathVariable("id") String id) {
-        boolean exists = transactionEntryService.existsById(id);
-        return ResponseEntity.ok(exists);
+        try {
+            boolean exists = transactionEntryService.existsById(id);
+            return ResponseEntity.ok(exists); // returns true/false
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
+        }
     }
 
     @GetMapping("/all") // gets all the transactions
     public ResponseEntity<Iterable<TransactionEntry>> getAllTransactions() {
-        Iterable<TransactionEntry> allEntries = transactionEntryService.getAllTransactionEntries();
-        return ResponseEntity.ok(allEntries);
+        try {
+            Iterable<TransactionEntry> allEntries = transactionEntryService.getAllTransactionEntries();
+            return ResponseEntity.ok(allEntries); // returns all transaction entries
+        } catch (Exception e) { 
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
+        }
     }
 
     // NEW DASHBOARD ENDPOINTS:

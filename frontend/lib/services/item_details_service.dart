@@ -30,7 +30,16 @@ class ItemDetailsService {
     }
   }
 
-  
+  Future<Item> createInventory(Item item) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final res = await http.post(
+      Uri.parse('$baseUrl/item/v1/addItem'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'},
+      body: json.encode(item.toJson()),
+    );
+    return Item.fromJson(json.decode(res.body));
+  }
 
   Future<(bool success, String message)> deleteItem(String itemCode) async {
     try {
