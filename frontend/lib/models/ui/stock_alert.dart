@@ -20,7 +20,6 @@ class _StockAlertState extends State<StockAlert> {
   final stockAlertService = StockAlertService();
 
   stockAlertService.getStockAlerts().then((value) {
-    print("Fetched data: $value");
     setState(() {
       _stockAlerts.addAll(value);
     });
@@ -30,9 +29,6 @@ class _StockAlertState extends State<StockAlert> {
 
   @override
   Widget build(BuildContext context) {
-
-    print(_stockAlerts);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Stock Alerts"),

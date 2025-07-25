@@ -128,7 +128,7 @@ class _DataTemplateState extends State<DataTemplate> {
       } else {
         _displayInventories = List.from(_allInventories);
       }
-      _startIndex = 0; // Reset to first page after search
+      _startIndex = 0; 
     });
   }
 
