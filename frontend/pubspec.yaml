@@ -41,6 +41,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   flutter_inset_box_shadow: ^1.0.7
   flutter_neumorphic_plus: ^3.5.0
+  jwt_decoder: ^2.0.1
 
 dev_dependencies:
   flutter_test:

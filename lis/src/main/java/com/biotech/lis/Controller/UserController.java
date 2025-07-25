@@ -56,6 +56,38 @@ public class UserController {
         }
     }
 
+    @GetMapping("/getUser/id/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable("id") Long id) {
+        try {
+            User userById = userService.getUserById(id);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("user", userById);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (UserNotFoundException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            
+        } catch (InvalidUserDataException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            
+        } catch (Exception e) {
+            logger.severe("Unexpected error in getUserByEmail: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "Internal server error occurred");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
     @GetMapping("/getUser/{email}")
     public ResponseEntity<?> getUserByEmail(@PathVariable("email") String email) {
         try {

@@ -1,13 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/existing_user.dart';
+import 'package:frontend/services/existing_user_service.dart';
 
-class ViewProfilePage extends StatelessWidget {
+class ViewProfilePage extends StatefulWidget {
   const ViewProfilePage({super.key});
 
   @override
+  State<ViewProfilePage> createState() => _ViewProfilePageState();
+}
+
+class _ViewProfilePageState extends State<ViewProfilePage> {
+  ExistingUser? user;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _getUser();
+  }
+
+  Future<void> _getUser() async {
+    ExistingUserService existingUserService = ExistingUserService();
+    final response = await existingUserService.getUser();
+    setState(() {
+      user = response;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    
+    final firstName = user!.firstName;
+    final lastName = user!.lastName;
+    final email = user!.email;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('View Profile')),
-      body: Center(
+      appBar: AppBar(title: const Text('View Profile',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black, // Set text color explicitly if background is transparent
+          ),
+        ),
+      ),
+      body: Container( 
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/bg.png'),
+            fit: BoxFit.cover,
+          )
+        ),
+        child: Center(
         child: SizedBox(
           width: 650, 
           child: Card(
@@ -38,27 +81,7 @@ class ViewProfilePage extends StatelessWidget {
                       1: FlexColumnWidth(),
                     },
                     defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                    children: const [
-                      TableRow(children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24), // Reduced vertical padding
-                          child: Text('Username:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('johndoe', style: TextStyle(fontSize: 18)),
-                        ),
-                      ]),
-                      TableRow(children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('Role:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('Lab Technician', style: TextStyle(fontSize: 18)),
-                        ),
-                      ]),
+                    children:[
                       TableRow(children: [
                         Padding(
                           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
@@ -66,7 +89,7 @@ class ViewProfilePage extends StatelessWidget {
                         ),
                         Padding(
                           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('John Doe', style: TextStyle(fontSize: 18)),
+                          child: Text('$firstName $lastName', style: TextStyle(fontSize: 18)),
                         ),
                       ]),
                       TableRow(children: [
@@ -76,38 +99,42 @@ class ViewProfilePage extends StatelessWidget {
                         ),
                         Padding(
                           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('johndoe@biotech.com', style: TextStyle(fontSize: 18)),
-                        ),
-                      ]),
-                      TableRow(children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('Department:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('Genetics', style: TextStyle(fontSize: 18)),
-                        ),
-                      ]),
-                      TableRow(children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('Employee ID:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-                          child: Text('BT12345', style: TextStyle(fontSize: 18)),
+                          child: Text('$email', style: TextStyle(fontSize: 18)),
                         ),
                       ]),
                     ],
                   ),
                   const SizedBox(height: 32),
                   Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/edit_profile');
-                      },
-                      child: const Text('Edit Profile'),
+                    child: MouseRegion(
+                      onEnter: (_) => setState(() => _isHovered = true),
+                      onExit: (_) => setState(() => _isHovered = false),
+                      child: NeumorphicButton(
+                        onPressed: () {
+                            Navigator.pushNamed(context, '/edit_profile');
+                          },
+                        style: NeumorphicStyle(
+                          depth: _isHovered ? -4 : 4,
+                          intensity: 0.8,
+                          surfaceIntensity: 0.2,
+                          color: Colors.blue[50],
+                          shadowDarkColorEmboss: const Color.fromARGB(255, 167, 208, 245),
+                          shadowLightColorEmboss: const Color.fromARGB(255, 229, 236, 242),
+                          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(40)),
+                          lightSource: LightSource.topLeft,
+                        ),
+                        // padding: const EdgeInsets.symmetric(vertical: 10), // Shorter height
+                        child: const Center(
+                          child: Text(
+                            'Edit Profile',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Color(0xFF01579B), // Dark blue text
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -116,6 +143,7 @@ class ViewProfilePage extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
