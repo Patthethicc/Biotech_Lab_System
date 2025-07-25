@@ -1,10 +1,70 @@
-// File: lib/pages/transaction_entry_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
 import 'package:frontend/services/transaction_entry_service.dart';
-import 'package:http/http.dart' as http; 
 import 'dart:convert'; 
+
+class _NeumorphicNavButton extends StatefulWidget {
+  const _NeumorphicNavButton({
+    Key? key,
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+    required this.tooltip,
+  }) : super(key: key);
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  @override
+  State<_NeumorphicNavButton> createState() => _NeumorphicNavButtonState();
+}
+
+class _NeumorphicNavButtonState extends State<_NeumorphicNavButton> {
+  bool _isHovered = false;
+
+  @override
+  void didUpdateWidget(covariant _NeumorphicNavButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled != widget.enabled) {
+      _isHovered = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = widget.enabled;
+
+    return MouseRegion(
+      onEnter: (_) {
+        if (isEnabled) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (isEnabled) setState(() => _isHovered = false);
+      },
+      child: NeumorphicButton(
+        onPressed: isEnabled ? widget.onPressed : null,
+        style: NeumorphicStyle(
+          depth: _isHovered && isEnabled ? -3 : 3,
+          intensity: 0.8,
+          surfaceIntensity: 0.5,
+          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(50)),
+          lightSource: LightSource.topLeft,
+          color: Colors.transparent,
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          widget.icon,
+          color: isEnabled ? Colors.lightBlue[400] : Colors.grey[700],
+          size: 24,
+        ),
+      ),
+    );
+  }
+} 
 
 class TransactionEntryPage extends StatefulWidget {
   const TransactionEntryPage({super.key});
@@ -17,7 +77,17 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   final TextEditingController _referenceController = TextEditingController();
   late final TextEditingController _itemSearchController;
   final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   List<TransactionEntry> _records = [];
+  List<TransactionEntry> _allRecords = [];
+  List<TransactionEntry> _displayRecords = [];
+  bool _isLoading = true;
+  bool _isHovered = false;
+
+  int _startIndex = 0;
+  int _rowsPerPage = 10;
+  final List<int> _rowsPerPageOptions = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+  final int _showAllValue = -1;
 
   DateTime? _selectedTransactionDate;
   DateTime? _automaticExpiryDate;
@@ -27,6 +97,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   String? _selectedStockLocation;
   bool _dontAskAgain = false;
   TransactionEntry? _selectedEntryForEdit;
+  Set<TransactionEntry> _selectedEntries = {};
+  bool _selectAll = false;
 
   final List<String> _brands = ['Anbio', 'Biorex', 'Bioelab', 'Bioway', 'Biobase', 'Dymind', 'DH', 'Ediagnosis', 'Genrui',
     'Lifotronic', 'Mindray', 'Olympus', 'Render', 'Rayto', 'Uniper'];
@@ -58,7 +130,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     'Uniper': [15001, 15002, 15003, 15004],
   };
 
-  final List<String> _allItems = [
+  List<String> _allItems = [
     'Laptop Pro 15-inch',
     'Cholesterol 120ml',
     'ALT Test Kit',
@@ -71,13 +143,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     'Chemical Reagents'
   ];
 
-  List<String> _filteredItems = [];
-
   @override
   void initState() {
     super.initState();
     _itemSearchController = TextEditingController();
     _fetchRecords();
+    _searchController.addListener(_filterRecords);
   }
 
   @override
@@ -85,17 +156,36 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _referenceController.dispose();
     _itemSearchController.dispose();
     _quantityController.dispose();
+    _searchController.removeListener(_filterRecords);
+    _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchRecords() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
     try {
       final entries = await _service.fetchTransactionEntries();
       setState(() {
-        _records = entries // sorting
+        _records.clear();
+        _allRecords.clear();
+        _displayRecords.clear();
+        _selectedEntries.clear();
+        _selectedEntryForEdit = null;
+        _selectAll = false;
+        
+        _records = entries
             ..sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
+        _allRecords = List.from(_records);
+        _displayRecords = List.from(_allRecords);
+        _isLoading = false;
       });
     } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
       debugPrint('Error fetching data: $e');
       if (mounted) {
         _showDialog('Error', 'Failed to load transaction data: $e');
@@ -103,11 +193,128 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     }
   }
 
-  void _filterItems(String query) {
+  void _filterRecords() {
+    final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredItems = _allItems
-          .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      if (query.isNotEmpty) {
+        _displayRecords = _allRecords.where((record) {
+          final referenceMatch = record.reference.toLowerCase().contains(query);
+          final brandMatch = record.brand.toLowerCase().contains(query);
+          final itemMatch = record.itemDescription.toLowerCase().contains(query);
+          return referenceMatch || brandMatch || itemMatch;
+        }).toList();
+      } else {
+        _displayRecords = List.from(_allRecords);
+      }
+      _startIndex = 0; 
+      
+      _selectedEntries.removeWhere((entry) => !_displayRecords.contains(entry));
+      _selectedEntryForEdit = _selectedEntries.isNotEmpty ? _selectedEntries.first : null;
+      _selectAll = _selectedEntries.length == _displayRecords.length && _displayRecords.isNotEmpty;
+    });
+  }
+
+  void _resetToFullList() {
+    setState(() {
+      _searchController.clear();
+      _displayRecords = List.from(_allRecords);
+      _startIndex = 0;
+      _selectedEntries.clear();
+      _selectedEntryForEdit = null;
+      _selectAll = false;
+    });
+  }
+
+  void nextPage() {
+    if (_rowsPerPage == _showAllValue) return; 
+    setState(() {
+      if (_startIndex + _rowsPerPage < _displayRecords.length) {
+        _startIndex += _rowsPerPage;
+      }
+    });
+  }
+
+  void prevPage() {
+    if (_rowsPerPage == _showAllValue) return; 
+    setState(() {
+      if (_startIndex - _rowsPerPage >= 0) {
+        _startIndex -= _rowsPerPage;
+      }
+    });
+  }
+
+  void _toggleSelectAll() {
+    setState(() {
+      if (_selectAll) {
+        _selectedEntries.clear();
+        _selectAll = false;
+        _selectedEntryForEdit = null;
+      } else {
+        _selectedEntries = Set.from(_displayRecords);
+        _selectAll = true;
+        _selectedEntryForEdit = _selectedEntries.isNotEmpty ? _selectedEntries.first : null;
+      }
+    });
+  }
+
+  void _toggleEntrySelection(TransactionEntry entry) {
+    setState(() {
+      if (_selectedEntries.contains(entry)) {
+        _selectedEntries.remove(entry);
+        if (_selectedEntryForEdit == entry) {
+          _selectedEntryForEdit = _selectedEntries.isNotEmpty ? _selectedEntries.first : null;
+        }
+      } else {
+        _selectedEntries.add(entry);
+        _selectedEntryForEdit = entry;
+      }
+      
+      _selectAll = _selectedEntries.length == _displayRecords.length && _displayRecords.isNotEmpty;
+    });
+  }
+
+  void _changeRowsPerPage(int newRowsPerPage) {
+    if (newRowsPerPage > 1000 || newRowsPerPage == _showAllValue) {
+      final int totalEntries = newRowsPerPage == _showAllValue ? _displayRecords.length : newRowsPerPage;
+      if (totalEntries > 1000) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Performance Warning'),
+              content: Text(
+                'You are about to display ${newRowsPerPage == _showAllValue ? "all ${_displayRecords.length}" : totalEntries} entries at once. '
+                'This may impact performance and make the page slower to load. '
+                'Are you sure you want to continue?'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _rowsPerPage = newRowsPerPage;
+                      _startIndex = 0; 
+                      _selectAll = _selectedEntries.length == _displayRecords.length && _displayRecords.isNotEmpty;
+                    });
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+    }
+    
+    setState(() {
+      _rowsPerPage = newRowsPerPage;
+      _startIndex = 0; 
+      _selectAll = _selectedEntries.length == _displayRecords.length && _displayRecords.isNotEmpty;
     });
   }
 
@@ -219,8 +426,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _selectedBrand = null;
     _selectedItemDescription = null;
     _selectedLotNumber = null;
-    _selectedStockLocation = null;
-    _filteredItems = _allItems; 
+    _selectedStockLocation = null; 
 
     showDialog(
       context: context,
@@ -627,7 +833,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     );
   }
 
-  // edit button pop up
   void _showEditEntryDialog(TransactionEntry entry) {
     _referenceController.text = entry.reference;
     _selectedTransactionDate = entry.transactionDate;
@@ -637,8 +842,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _selectedLotNumber = int.tryParse(entry.lotNumber); 
     _automaticExpiryDate = entry.expiryDate;
     _quantityController.text = entry.quantity.toString();
-    _selectedStockLocation = entry.stockLocation;
-    _filteredItems = _allItems; 
+    _selectedStockLocation = entry.stockLocation; 
 
     showDialog(
       context: context,
@@ -896,13 +1100,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     );
   }
 
-  void _selectEntryForEdit(TransactionEntry entry) {
-    setState(() {
-      _selectedEntryForEdit = entry;
-    });
-    _showEditEntryDialog(entry);
-  }
-
   void _validateAndSubmitEdit(String entryId) {
     List<String> errors = [];
 
@@ -1001,7 +1198,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           ),
         );
         setState(() {
+          _selectedEntries.clear();
           _selectedEntryForEdit = null; 
+          _selectAll = false;
         });
       } else {
         if (!mounted) return;
@@ -1026,14 +1225,18 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     }
   }
 
-  //delete button popup
   void _showDeleteConfirmationDialog(String referenceId) {
+    final selectedCount = _selectedEntries.length;
+    final message = selectedCount > 1 
+        ? 'Are you sure you want to delete $selectedCount selected transaction entries? This action cannot be undone.'
+        : 'Are you sure you want to delete the transaction entry with Reference: $referenceId? This action cannot be undone.';
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete the transaction entry with Reference: $referenceId? This action cannot be undone.'),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -1042,7 +1245,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); 
-                _deleteEntry(referenceId);
+                if (selectedCount > 1) {
+                  _deleteMultipleEntries();
+                } else {
+                  _deleteEntry(referenceId);
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('Delete', style: TextStyle(color: Colors.white)),
@@ -1051,6 +1258,71 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         );
       },
     );
+  }
+
+  Future<void> _deleteMultipleEntries() async {
+    final entriesToDelete = List.from(_selectedEntries);
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          title: Text('Deleting...'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Please wait while the entries are being deleted.'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      int successCount = 0;
+      List<String> errors = [];
+
+      for (TransactionEntry entry in entriesToDelete) {
+        try {
+          final response = await _service.deleteTransactionEntry(entry.reference);
+          if (response.statusCode == 200 || response.statusCode == 204) {
+            successCount++;
+          } else {
+            errors.add('Failed to delete ${entry.reference}: ${response.statusCode}');
+          }
+        } catch (e) {
+          errors.add('Error deleting ${entry.reference}: $e');
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+
+      await _fetchRecords();
+      setState(() {
+        _selectedEntries.clear();
+        _selectedEntryForEdit = null;
+        _selectAll = false;
+      });
+
+      if (!mounted) return;
+
+      String message;
+      if (errors.isEmpty) {
+        message = 'Successfully deleted $successCount entries!';
+      } else {
+        message = 'Deleted $successCount entries successfully.\n\nErrors:\n${errors.join('\n')}';
+      }
+
+      _showDialog(errors.isEmpty ? 'Success' : 'Partial Success', message);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _showDialog('Error', 'An error occurred during deletion: $e');
+    }
   }
 
   Future<void> _deleteEntry(String referenceId) async {
@@ -1081,7 +1353,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       if (response.statusCode == 200 || response.statusCode == 204) {
         await _fetchRecords(); 
         setState(() {
+          _selectedEntries.clear();
           _selectedEntryForEdit = null; 
+          _selectAll = false;
         });
         if (!mounted) return;
         _showDialog('Success', 'Transaction entry successfully deleted!');
@@ -1099,122 +1373,501 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   @override
   Widget build(BuildContext context) {
     final DateFormat formatter = DateFormat('yyyy-MM-dd');
+    final bool showAll = _rowsPerPage == _showAllValue;
+    final int effectiveRowsPerPage = showAll ? _displayRecords.length : _rowsPerPage;
+    final endIndex = showAll 
+        ? _displayRecords.length
+        : (_startIndex + effectiveRowsPerPage > _displayRecords.length)
+            ? _displayRecords.length
+            : _startIndex + effectiveRowsPerPage;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Data Recording'),
+        title: const Text(
+          'Data Recording',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            onPressed: _resetToFullList,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reset List',
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  // add entry
-                  ElevatedButton.icon(
-                    onPressed: _showAddEntryDialog,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Entry'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      textStyle: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0, left: 100, right: 100),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 10.0),
+                          child: SizedBox(
+                            height: 40,
+                            child: Neumorphic(
+                              style: NeumorphicStyle(
+                                depth: -4,
+                                color: Colors.white,
+                                boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.search, color: Color(0xFF01579B)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Search by Reference, Brand, or Item',
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                      ),
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                  if (_searchController.text.isNotEmpty)
+                                    GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                      },
+                                      child: const Icon(Icons.clear, color: Colors.grey),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
 
-                  // edit entry
-                  ElevatedButton.icon(
-                    onPressed: _selectedEntryForEdit == null 
-                        ? null 
-                        : () {
-                            _showEditEntryDialog(_selectedEntryForEdit!);
-                          },
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit Selected Entry'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      textStyle: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+                      MouseRegion(
+                        onEnter: (_) => setState(() => _isHovered = true),
+                        onExit: (_) => setState(() => _isHovered = false),
+                        child: NeumorphicButton(
+                          onPressed: _showAddEntryDialog,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          style: NeumorphicStyle(
+                            depth: _isHovered ? -4 : 4,
+                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                            lightSource: LightSource.topLeft,
+                            color: Colors.white,
+                          ),
+                          child: const Text(
+                            'Add Entry',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF01579B),
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
 
-                  //delete entry
-                  ElevatedButton.icon(
-                    onPressed: _selectedEntryForEdit == null
-                        ? null
-                        : () {
-                            _showDeleteConfirmationDialog(_selectedEntryForEdit!.reference);
-                          },
-                    icon: const Icon(Icons.delete),
-                    label: const Text('Delete Selected Entry'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 175, 54, 46),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                      textStyle: const TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Center(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: DataTable(
-                    border: TableBorder.all(color: Colors.blueGrey, width: 1),
-                    columnSpacing: 24.0,
-                    horizontalMargin: 12.0,
-                    dataRowMaxHeight: double.infinity,
-                    headingRowHeight: 56.0,
-                    columns: const <DataColumn>[
-                      DataColumn(label: Text('DR/SI Reference', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Transaction Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Brand', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Item Description', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Lot Number', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Expiry', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold))),
-                      DataColumn(label: Text('Stock Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                      MouseRegion(
+                        child: NeumorphicButton(
+                          onPressed: _toggleSelectAll,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          style: NeumorphicStyle(
+                            depth: _selectAll ? -4 : 4,
+                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                            lightSource: LightSource.topLeft,
+                            color: _selectAll ? Colors.blue[100] : Colors.white,
+                          ),
+                          child: Text(
+                            _selectAll ? 'Deselect All' : 'Select All',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _selectAll ? const Color(0xFF01579B) : const Color(0xFF01579B),
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      MouseRegion(
+                        child: NeumorphicButton(
+                          onPressed: _selectedEntryForEdit == null 
+                              ? null 
+                              : () {
+                                  _showEditEntryDialog(_selectedEntryForEdit!);
+                                },
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          style: NeumorphicStyle(
+                            depth: _selectedEntryForEdit != null ? 4 : 1,
+                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                            lightSource: LightSource.topLeft,
+                            color: _selectedEntryForEdit != null ? Colors.white : Colors.grey[300],
+                          ),
+                          child: Text(
+                            _selectedEntries.length > 1 ? 'Edit First Selected' : 'Edit Selected',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _selectedEntryForEdit != null ? const Color(0xFF01579B) : Colors.grey[600],
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      MouseRegion(
+                        child: NeumorphicButton(
+                          onPressed: _selectedEntries.isEmpty
+                              ? null
+                              : () {
+                                  _showDeleteConfirmationDialog(_selectedEntries.first.reference);
+                                },
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                          style: NeumorphicStyle(
+                            depth: _selectedEntries.isNotEmpty ? 4 : 1,
+                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                            lightSource: LightSource.topLeft,
+                            color: _selectedEntries.isNotEmpty ? const Color.fromARGB(255, 175, 54, 46) : Colors.grey[300],
+                          ),
+                          child: Text(
+                            _selectedEntries.length > 1 ? 'Delete Selected (${_selectedEntries.length})' : 'Delete Selected',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _selectedEntries.isNotEmpty ? Colors.white : Colors.grey[600],
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
-                    rows: _records.isEmpty
-                        ? <DataRow>[]
-                        : _records.map<DataRow>((data) {
-                            final isSelected = _selectedEntryForEdit == data; 
-                            return DataRow(
-                              selected: isSelected,
-                              onSelectChanged: (bool? selected) {
-                                setState(() {
-                                  if (selected != null && selected) {
-                                    _selectedEntryForEdit = data;
-                                  } else {
-                                    _selectedEntryForEdit = null;
-                                  }
-                                });
-                              },
-                              cells: [
-                                DataCell(SizedBox(width: 100, child: Text(data.reference, softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 90, child: Text(formatter.format(data.transactionDate), softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 85, child: Text(data.brand, softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 120, child: Text(data.itemDescription, softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 80, child: Text(data.lotNumber, softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 90, child: Text(formatter.format(data.expiryDate), softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 60, child: Text(data.quantity.toString(), softWrap: true, style: const TextStyle(height: 1.2,)))),
-                                DataCell(SizedBox(width: 100, child: Text(data.stockLocation, softWrap: true, style: const TextStyle(height: 1.2,)))),
-                              ],
-                            );
-                          }).toList(),
                   ),
                 ),
-              ),
+
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Neumorphic(
+                    style: NeumorphicStyle(
+                      depth: -5,
+                      intensity: 0.7,
+                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
+                      lightSource: LightSource.topLeft,
+                      shadowDarkColorEmboss: const Color.fromARGB(197, 93, 126, 153),
+                      color: Colors.blue[400],
+                    ),
+                    child: _isLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(50.0),
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columnSpacing: 24.0,
+                              horizontalMargin: 12.0,
+                              dataRowMaxHeight: double.infinity,
+                              headingRowHeight: 56.0,
+                              columns: <DataColumn>[
+                                const DataColumn(
+                                  label: Text(
+                                    'DR/SI Reference',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Transaction Date',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Brand',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Item Description',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Lot Number',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Expiry',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Quantity',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                DataColumn(
+                                  label: Text(
+                                    'Stock Location',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              rows: _displayRecords.isEmpty
+                                  ? [
+                                      const DataRow(cells: [
+                                        DataCell(Text('')),
+                                        DataCell(Text('')),
+                                        DataCell(Text('')),
+                                        DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
+                                        DataCell(Text('')),
+                                        DataCell(Text('')),
+                                        DataCell(Text('')),
+                                        DataCell(Text('')),
+                                      ])
+                                    ]
+                                  : _buildDataRows(formatter, endIndex),
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (!_isLoading) 
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Entries per page:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        height: 35,
+                        child: NeumorphicButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          style: NeumorphicStyle(
+                            depth: 2,
+                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
+                            color: Colors.white,
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: _rowsPerPage,
+                              items: [
+                                ..._rowsPerPageOptions.map((int value) {
+                                  return DropdownMenuItem<int>(
+                                    value: value,
+                                    child: Text(value.toString()),
+                                  );
+                                }),
+                                DropdownMenuItem<int>(
+                                  value: _showAllValue,
+                                  child: Text('Show All'),
+                                ),
+                              ],
+                              onChanged: (int? newValue) {
+                                if (newValue != null) {
+                                  _changeRowsPerPage(newValue);
+                                }
+                              },
+                              style: const TextStyle(
+                                color: Color(0xFF01579B),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                              dropdownColor: Colors.white,
+                              iconEnabledColor: const Color(0xFF01579B),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      _buildPaginationControls(endIndex),
+                    ],
+                  ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  List<DataRow> _buildDataRows(DateFormat formatter, int endIndex) {
+    int counter = 0;
+    final bool showAll = _rowsPerPage == _showAllValue;
+    final recordsToShow = showAll 
+        ? _displayRecords 
+        : _displayRecords.sublist(_startIndex, endIndex);
+
+    return recordsToShow.map<DataRow>((data) {
+      final isSelected = _selectedEntries.contains(data);
+      final subtleBlueTint1 = const Color.fromRGBO(241, 245, 255, 1);
+      final subtleBlueTint2 = const Color.fromRGBO(230, 240, 255, 1);
+      final rowColor = counter.isEven ? subtleBlueTint1 : subtleBlueTint2;
+      counter++;
+
+      return DataRow(
+        selected: isSelected,
+        onSelectChanged: (bool? selected) {
+          _toggleEntrySelection(data);
+        },
+        color: WidgetStateProperty.all(rowColor),
+        cells: [
+          DataCell(SizedBox(
+            width: 100,
+            child: Text(
+              data.reference,
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 90,
+            child: Text(
+              formatter.format(data.transactionDate),
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 85,
+            child: Text(
+              data.brand,
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 120,
+            child: Text(
+              data.itemDescription,
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 80,
+            child: Text(
+              data.lotNumber,
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 90,
+            child: Text(
+              formatter.format(data.expiryDate),
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 60,
+            child: Text(
+              data.quantity.toString(),
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+          DataCell(SizedBox(
+            width: 100,
+            child: Text(
+              data.stockLocation,
+              softWrap: true,
+              style: const TextStyle(height: 1.2),
+            ),
+          )),
+        ],
+      );
+    }).toList();
+  }
+
+  Widget _buildPaginationControls(int endIndex) {
+    final bool showAll = _rowsPerPage == _showAllValue;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _NeumorphicNavButton(
+          icon: Icons.chevron_left,
+          enabled: !showAll && _startIndex > 0,
+          onPressed: prevPage,
+          tooltip: 'Previous Page',
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            showAll 
+                ? 'Showing all ${_displayRecords.length} entries'
+                : '${_displayRecords.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayRecords.length}',
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        _NeumorphicNavButton(
+          icon: Icons.chevron_right,
+          enabled: !showAll && endIndex < _displayRecords.length,
+          onPressed: nextPage,
+          tooltip: 'Next Page',
+        ),
+      ],
     );
   }
 }
