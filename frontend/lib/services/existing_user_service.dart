@@ -30,7 +30,6 @@ class ExistingUserService {
       }
 
       final responseData = json.decode(response.body)['user'];
-      print('API Response: $responseData');
       return ExistingUser.fromJson(responseData);
       
     } on FormatException catch (e) {
