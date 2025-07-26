@@ -5,7 +5,9 @@ import com.biotech.lis.Entity.Item;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.ItemRepository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Date; 
@@ -28,6 +30,17 @@ public class ItemService {
 
     @Autowired
     InventoryService inventoryService;
+    
+    public List<Item> getAllItemsExpiringItems(int daysTillExpiry) {
+            // Use LocalDate for date arithmetic
+        LocalDate todayLocal = LocalDate.now();
+        LocalDate expiryLocal = todayLocal.plusDays(daysTillExpiry);
+
+        // Convert to java.util.Date
+        Date today = Date.from(todayLocal.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date expiDate = Date.from(expiryLocal.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        return itemRepository.findAllWithinDateRange(today, expiDate);
+    }
 
     public Item addItem(Item item) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

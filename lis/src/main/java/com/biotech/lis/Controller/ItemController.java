@@ -48,4 +48,10 @@ public class ItemController {
         Item savedItem = itemService.updateItem(item);
         return ResponseEntity.ok(savedItem);
     }
+
+    @GetMapping("/getExpiringItems/{days}")
+    public ResponseEntity<List<Item>> getExpiringItems(@PathVariable("days") int days) {
+        List<Item> expiringItems = itemService.getAllItemsExpiringItems(days);
+        return ResponseEntity.ok(expiringItems);
+    }
 }
