@@ -7,6 +7,7 @@ import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/transaction_entry_service.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'login.dart';
+import 'inventory_bar_chart.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -118,11 +119,12 @@ class _HomePageState extends State<HomePage> {
           buildSummaryCards(),
           const SizedBox(height: 20),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              buildChart('📊 Top Stock Items', top, loadingTop),
+              InventoryBarChart(title: 'Highest Stocks', data: top, isLoading: loadingTop),
               const SizedBox(width: 20),
-              buildChart('🔻 Low Stock Items', bottom, loadingBottom),
+              InventoryBarChart(title: 'Lowest Stocks', data: bottom, isLoading: loadingBottom),
               // buildRightColumn(),
             ],
           ),
@@ -237,82 +239,115 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  BarChartData chartData(List<Inventory> list) {
-    List<Inventory> top10List = list.take(10).toList();
+  // BarChartData chartData(List<Inventory> list) {
+  //   final top10 = list.take(10).toList();
+  //   final maxQty = top10.isNotEmpty
+  //       ? top10.map((i) => i.quantityOnHand).reduce((a, b) => a > b ? a : b).toDouble()
+  //       : 0.0;
+  //   final yMax = maxQty + 5;
 
-    final maxQuantity = top10List.isNotEmpty
-        ? top10List.map((i) => i.quantityOnHand).reduce(max).toDouble()
-        : 0.0;
-    final maxY = (maxQuantity > 0) ? maxQuantity + 5 : 10.0;
+  //   return BarChartData(
+  //     alignment: BarChartAlignment.spaceBetween,
+  //     maxY: yMax,
+  //     minY: 0,
+  //     barGroups: top10.asMap().entries.map((e) {
+  //       final idx = e.key;
+  //       final inv = e.value;
+  //       return BarChartGroupData(
+  //         x: idx,
+  //         barRods: [
+  //           BarChartRodData(
+  //             toY: inv.quantityOnHand.toDouble(),
+  //             width: 20,
+  //             color: Colors.lightBlue,
+  //             borderRadius: BorderRadius.circular(4),
+  //           )
+  //         ],
+  //         showingTooltipIndicators: [0],
+  //       );
+  //     }).toList(),
+  //     titlesData: FlTitlesData(
+  //       bottomTitles: AxisTitles(
+  //         sideTitles: SideTitles(
+  //           showTitles: true,
+  //           reservedSize: 100,
+  //           interval: 1,
+  //           getTitlesWidget: (value, meta) {
+  //             final idx = value.toInt();
+  //             final labels = top10.map((i) => i.brand).toList();
+  //             if (idx >= 0 && idx < labels.length) {
+  //               return SideTitleWidget(
+  //                 meta: meta,
+  //                 child: Text(labels[idx], style: const TextStyle(fontSize: 10)),
+  //               );
+  //             }
+  //             return SideTitleWidget(meta: meta, child: const SizedBox.shrink());
+  //           },
+  //         ),
+  //       ),
+  //       leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  //       topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  //       rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+  //     ),
+  //     gridData: FlGridData(show: true),
+  //     borderData: FlBorderData(show: false),
+  //     barTouchData: BarTouchData(enabled: true),
+  //   );
+  // }
 
-    return BarChartData(
-      alignment: BarChartAlignment.spaceAround,
-      maxY: maxY,
-      minY: 0,
-      barTouchData: BarTouchData(enabled: true),
-      titlesData: FlTitlesData(
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (val, meta) => _bottomTitles(val, meta, top10List),
-            interval: 1,
-          ),
-        ),
-        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      ),
-      gridData: FlGridData(show: true),
-      barGroups: List.generate(top10List.length, (i) {
-        final inv = top10List[i];
-        final y = (inv.quantityOnHand ?? 0).clamp(0, maxY).toDouble();
-        return BarChartGroupData(
-          x: i,
-          barRods: [BarChartRodData(toY: y, color: Colors.lightBlue)],
-        );
-      }),
-    );
-  }
+  // Widget buildChart(String title, List<Inventory> data, bool isLoading) {
+  //   final top10 = data.take(10).toList();
+  //   return SizedBox(
+  //     height: 300,
+  //     child: Card(
+  //       margin: const EdgeInsets.symmetric(vertical: 12),
+  //       elevation: 3,
+  //       child: Padding(
+  //         padding: const EdgeInsets.all(8),
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text(title, style: headerStyle),
+  //             const SizedBox(height: 8),
+  //             Expanded(
+  //               child: isLoading
+  //                   ? const Center(child: CircularProgressIndicator())
+  //                   : top10.isEmpty
+  //                       ? const Center(child: Text('No data'))
+  //                       : SingleChildScrollView(
+  //                           scrollDirection: Axis.vertical,
+  //                           child: RotatedBox(
+  //                             quarterTurns: 3, // rotate 270 degrees (horizontal)
+  //                             child: SizedBox(
+  //                               height: top10.length * 60.0,
+  //                               width: 300, // control bar length
+  //                               child: BarChart(chartData(data)),
+  //                             ),
+  //                           ),
+  //                         ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
-  Widget buildChart(String title, List<Inventory> data, bool isLoading) {
-    return SizedBox(
-      height: 500, // fixed stack height
-      child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 12),
-        elevation: 3,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: headerStyle),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 300,
-                height: 400, // or whatever height fits your UI
-                child: isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : data.isEmpty
-                    ? const Center(child: Text('No data'))
-                    : BarChart(chartData(data)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _bottomTitles(double value, TitleMeta meta, List<Inventory> list) {
-    const style = TextStyle(color: Colors.black, fontSize: 10);
-    final idx = value.toInt();
-    final label = (idx >= 0 && idx < list.length) ? list[idx].brand : '';
+
+  Widget _leftTitles(double value, TitleMeta meta, List<String> labels) {
+    String label = '';
+    int idx = value.toInt();
+    if (idx >= 0 && idx < labels.length) {
+      label = labels[idx];
+    }
     return SideTitleWidget(
       meta: meta,
       space: 4,
-      child: Text(label, style: style),
+      child: Text(label, style: const TextStyle(fontSize: 10)),
     );
   }
+
 
   Widget buildRightColumn() {
     return SizedBox(
