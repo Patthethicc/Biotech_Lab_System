@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Biotech Home'),
+        title: const Text('Biotech Home', style: TextStyle(fontWeight: FontWeight.bold),),
         actions: [
           DropdownButton<String>(
             value: selectedPeriod,
@@ -113,22 +113,30 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       drawer: buildDrawer(context),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          buildSummaryCards(),
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              InventoryBarChart(title: 'Highest Stocks', data: top, isLoading: loadingTop),
-              const SizedBox(width: 20),
-              InventoryBarChart(title: 'Lowest Stocks', data: bottom, isLoading: loadingBottom),
-              // buildRightColumn(),
-            ],
-          ),
-        ],
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/bg.png'),
+            fit: BoxFit.cover,
+          )
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            buildSummaryCards(),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                InventoryBarChart(title: 'Highest Stocks', data: top, isLoading: loadingTop),
+                const SizedBox(width: 20),
+                InventoryBarChart(title: 'Lowest Stocks', data: bottom, isLoading: loadingBottom),
+                // buildRightColumn(),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

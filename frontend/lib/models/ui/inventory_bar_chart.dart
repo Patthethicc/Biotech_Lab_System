@@ -26,7 +26,7 @@ class InventoryBarChart extends StatelessWidget {
         child: Neumorphic(
           style: NeumorphicStyle(
             depth: -4,
-            color: const Color.fromARGB(255, 233, 241, 250), 
+            color: const Color.fromARGB(255, 234, 239, 245), 
             shadowDarkColor: const Color(0xFFB0CDEB),
             shadowLightColor: Colors.white,
             boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(16)),
@@ -151,15 +151,15 @@ class InventoryBarChart extends StatelessWidget {
                             ),
                             gradient: const LinearGradient(
                               colors: [
-                                Color.fromARGB(255, 208, 227, 252),
-                                Color.fromARGB(255, 179, 209, 238),
-                                Color.fromARGB(255, 134, 173, 236),
+                                Color.fromARGB(255, 148, 183, 240),
+                                Color.fromARGB(255, 125, 164, 228),
+                                Color.fromARGB(255, 101, 148, 224),
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderWidth: 1.5,
-                            borderColor: Color.fromARGB(98, 222, 236, 253),
+                            borderColor: Color.fromARGB(97, 124, 171, 228),
                             dataLabelSettings: const DataLabelSettings(
                               isVisible: true,
                               labelAlignment: ChartDataLabelAlignment.top,
