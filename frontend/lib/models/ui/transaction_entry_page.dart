@@ -100,6 +100,10 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   Set<TransactionEntry> _selectedEntries = {};
   bool _selectAll = false;
 
+  bool _isValidatingReference = false;
+  bool _referenceExists = false;
+  String? _referenceError;
+
   final List<String> _brands = ['Anbio', 'Biorex', 'Bioelab', 'Bioway', 'Biobase', 'Dymind', 'DH', 'Ediagnosis', 'Genrui',
     'Lifotronic', 'Mindray', 'Olympus', 'Render', 'Rayto', 'Uniper'];
   final List<String> _stockLocations = [
@@ -190,6 +194,34 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       if (mounted) {
         _showDialog('Error', 'Failed to load transaction data: $e');
       }
+    }
+  }
+
+  Future<void> _validateReference(String reference) async {
+    if (reference.trim().isEmpty) {
+      setState(() {
+        _isValidatingReference = false;
+        _referenceExists = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isValidatingReference = true;
+    });
+
+    try {
+      final exists = await _service.transactionExists(reference.trim());
+      setState(() {
+        _isValidatingReference = false;
+        _referenceExists = exists;
+      });
+    } catch (e) {
+      setState(() {
+        _isValidatingReference = false;
+        _referenceExists = false;
+      });
+      debugPrint('Error validating reference: $e');
     }
   }
 
@@ -426,6 +458,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _selectedBrand = null;
     _selectedItemDescription = null;
     _selectedLotNumber = null;
+    _referenceError = null;
+    _referenceExists = false;
+    _isValidatingReference = false;
     _selectedStockLocation = null; 
 
     showDialog(
@@ -444,11 +479,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                     children: [
                       TextField(
                         controller: _referenceController,
-                        decoration: const InputDecoration(
+                        onChanged: (value) => _validateReference(value),
+                        decoration: InputDecoration(
                           labelText: 'DR/SI Reference',
                           hintText: 'Enter reference number',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.edit),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.edit),
+                          suffixIcon: _buildReferenceValidationIcon(),
+                          errorText: _referenceError,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1408,351 +1446,534 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0, left: 100, right: 100),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 10.0),
-                          child: SizedBox(
-                            height: 40,
-                            child: Neumorphic(
-                              style: NeumorphicStyle(
-                                depth: -4,
-                                color: Colors.white,
-                                boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.search, color: Color(0xFF01579B)),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _searchController,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Search by Reference, Brand, or Item',
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                      ),
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                  if (_searchController.text.isNotEmpty)
-                                    GestureDetector(
-                                      onTap: () {
-                                        _searchController.clear();
-                                      },
-                                      child: const Icon(Icons.clear, color: Colors.grey),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      MouseRegion(
-                        onEnter: (_) => setState(() => _isHovered = true),
-                        onExit: (_) => setState(() => _isHovered = false),
-                        child: NeumorphicButton(
-                          onPressed: _showAddEntryDialog,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                          style: NeumorphicStyle(
-                            depth: _isHovered ? -4 : 4,
-                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                            lightSource: LightSource.topLeft,
-                            color: Colors.white,
-                          ),
-                          child: const Text(
-                            'Add Entry',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF01579B),
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      MouseRegion(
-                        child: NeumorphicButton(
-                          onPressed: _toggleSelectAll,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                          style: NeumorphicStyle(
-                            depth: _selectAll ? -4 : 4,
-                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                            lightSource: LightSource.topLeft,
-                            color: _selectAll ? Colors.blue[100] : Colors.white,
-                          ),
-                          child: Text(
-                            _selectAll ? 'Deselect All' : 'Select All',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _selectAll ? const Color(0xFF01579B) : const Color(0xFF01579B),
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      MouseRegion(
-                        child: NeumorphicButton(
-                          onPressed: _selectedEntryForEdit == null 
-                              ? null 
-                              : () {
-                                  _showEditEntryDialog(_selectedEntryForEdit!);
-                                },
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                          style: NeumorphicStyle(
-                            depth: _selectedEntryForEdit != null ? 4 : 1,
-                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                            lightSource: LightSource.topLeft,
-                            color: _selectedEntryForEdit != null ? Colors.white : Colors.grey[300],
-                          ),
-                          child: Text(
-                            _selectedEntries.length > 1 ? 'Edit First Selected' : 'Edit Selected',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _selectedEntryForEdit != null ? const Color(0xFF01579B) : Colors.grey[600],
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      MouseRegion(
-                        child: NeumorphicButton(
-                          onPressed: _selectedEntries.isEmpty
-                              ? null
-                              : () {
-                                  _showDeleteConfirmationDialog(_selectedEntries.first.reference);
-                                },
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                          style: NeumorphicStyle(
-                            depth: _selectedEntries.isNotEmpty ? 4 : 1,
-                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                            lightSource: LightSource.topLeft,
-                            color: _selectedEntries.isNotEmpty ? const Color.fromARGB(255, 175, 54, 46) : Colors.grey[300],
-                          ),
-                          child: Text(
-                            _selectedEntries.length > 1 ? 'Delete Selected (${_selectedEntries.length})' : 'Delete Selected',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _selectedEntries.isNotEmpty ? Colors.white : Colors.grey[600],
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            double horizontalPadding = 16.0;
+            
+            if (screenWidth > 1400) {
+              horizontalPadding = 32.0;
+            } else if (screenWidth > 1000) {
+              horizontalPadding = 24.0;
+            } else if (screenWidth < 600) {
+              horizontalPadding = 8.0;
+            }
+            
+            return Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 16.0,
                 ),
+                child: Column(
+                  children: [
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isSmallScreen = constraints.maxWidth < 800;
+                    final isMediumScreen = constraints.maxWidth < 1200;
+                    
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: 16.0, 
+                        left: isSmallScreen ? 16 : (isMediumScreen ? 50 : 100),
+                        right: isSmallScreen ? 16 : (isMediumScreen ? 50 : 100),
+                      ),
+                      child: isSmallScreen
+                          ? Column(
+                              children: [
+                                SizedBox(
+                                  height: 40,
+                                  child: Neumorphic(
+                                    style: NeumorphicStyle(
+                                      depth: -4,
+                                      color: Colors.white,
+                                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.search, color: Color(0xFF01579B)),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _searchController,
+                                            decoration: const InputDecoration(
+                                              hintText: 'Search...',
+                                              border: InputBorder.none,
+                                              isDense: true,
+                                            ),
+                                            style: const TextStyle(fontSize: 12),
+                                          ),
+                                        ),
+                                        if (_searchController.text.isNotEmpty)
+                                          GestureDetector(
+                                            onTap: () {
+                                              _searchController.clear();
+                                            },
+                                            child: const Icon(Icons.clear, color: Colors.grey),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: [
+                                    _buildResponsiveButton(
+                                      'Add',
+                                      Icons.add,
+                                      _showAddEntryDialog,
+                                      isHovered: _isHovered,
+                                      isSmall: true,
+                                    ),
+                                    _buildResponsiveButton(
+                                      _selectAll ? 'Deselect' : 'Select All',
+                                      _selectAll ? Icons.deselect : Icons.select_all,
+                                      _toggleSelectAll,
+                                      isPressed: _selectAll,
+                                      isSmall: true,
+                                    ),
+                                    _buildResponsiveButton(
+                                      'Edit',
+                                      Icons.edit,
+                                      _selectedEntryForEdit == null 
+                                          ? null 
+                                          : () => _showEditEntryDialog(_selectedEntryForEdit!),
+                                      isEnabled: _selectedEntryForEdit != null,
+                                      isSmall: true,
+                                    ),
+                                    _buildResponsiveButton(
+                                      'Delete',
+                                      Icons.delete,
+                                      _selectedEntries.isEmpty
+                                          ? null
+                                          : () => _showDeleteConfirmationDialog(_selectedEntries.first.reference),
+                                      isEnabled: _selectedEntries.isNotEmpty,
+                                      isDelete: true,
+                                      isSmall: true,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 10.0),
+                                    child: SizedBox(
+                                      height: 40,
+                                      child: Neumorphic(
+                                        style: NeumorphicStyle(
+                                          depth: -4,
+                                          color: Colors.white,
+                                          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.search, color: Color(0xFF01579B)),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: TextField(
+                                                controller: _searchController,
+                                                decoration: InputDecoration(
+                                                  hintText: isMediumScreen 
+                                                      ? 'Search...' 
+                                                      : 'Search by Reference, Brand, or Item',
+                                                  border: InputBorder.none,
+                                                  isDense: true,
+                                                ),
+                                                style: const TextStyle(fontSize: 12),
+                                              ),
+                                            ),
+                                            if (_searchController.text.isNotEmpty)
+                                              GestureDetector(
+                                                onTap: () {
+                                                  _searchController.clear();
+                                                },
+                                                child: const Icon(Icons.clear, color: Colors.grey),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
 
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Neumorphic(
-                    style: NeumorphicStyle(
-                      depth: -5,
-                      intensity: 0.7,
-                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
-                      lightSource: LightSource.topLeft,
-                      shadowDarkColorEmboss: const Color.fromARGB(197, 93, 126, 153),
-                      color: Colors.blue[400],
-                    ),
-                    child: _isLoading
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(50.0),
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                          )
-                        : SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              columnSpacing: 24.0,
-                              horizontalMargin: 12.0,
-                              dataRowMaxHeight: double.infinity,
-                              headingRowHeight: 56.0,
-                              columns: <DataColumn>[
-                                const DataColumn(
-                                  label: Text(
-                                    'DR/SI Reference',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                MouseRegion(
+                                  onEnter: (_) => setState(() => _isHovered = true),
+                                  onExit: (_) => setState(() => _isHovered = false),
+                                  child: NeumorphicButton(
+                                    onPressed: _showAddEntryDialog,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isMediumScreen ? 16 : 24, 
+                                      vertical: 10,
+                                    ),
+                                    style: NeumorphicStyle(
+                                      depth: _isHovered ? -4 : 4,
+                                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                      lightSource: LightSource.topLeft,
                                       color: Colors.white,
+                                    ),
+                                    child: Text(
+                                      isMediumScreen ? 'Add' : 'Add Entry',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF01579B),
+                                        fontSize: isMediumScreen ? 13 : 15,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                DataColumn(
-                                  label: Text(
-                                    'Transaction Date',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                const SizedBox(width: 10),
+
+                                MouseRegion(
+                                  child: NeumorphicButton(
+                                    onPressed: _toggleSelectAll,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isMediumScreen ? 16 : 24, 
+                                      vertical: 10,
+                                    ),
+                                    style: NeumorphicStyle(
+                                      depth: _selectAll ? -4 : 4,
+                                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                      lightSource: LightSource.topLeft,
+                                      color: _selectAll ? Colors.blue[100] : Colors.white,
+                                    ),
+                                    child: Text(
+                                      _selectAll 
+                                          ? (isMediumScreen ? 'Deselect' : 'Deselect All')
+                                          : (isMediumScreen ? 'Select' : 'Select All'),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _selectAll ? const Color(0xFF01579B) : const Color(0xFF01579B),
+                                        fontSize: isMediumScreen ? 13 : 15,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                DataColumn(
-                                  label: Text(
-                                    'Brand',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                const SizedBox(width: 10),
+
+                                MouseRegion(
+                                  child: NeumorphicButton(
+                                    onPressed: _selectedEntryForEdit == null 
+                                        ? null 
+                                        : () {
+                                            _showEditEntryDialog(_selectedEntryForEdit!);
+                                          },
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isMediumScreen ? 16 : 24, 
+                                      vertical: 10,
+                                    ),
+                                    style: NeumorphicStyle(
+                                      depth: _selectedEntryForEdit != null ? 4 : 1,
+                                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                      lightSource: LightSource.topLeft,
+                                      color: _selectedEntryForEdit != null ? Colors.white : Colors.grey[300],
+                                    ),
+                                    child: Text(
+                                      isMediumScreen 
+                                          ? 'Edit'
+                                          : (_selectedEntries.length > 1 ? 'Edit First Selected' : 'Edit Selected'),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _selectedEntryForEdit != null ? const Color(0xFF01579B) : Colors.grey[600],
+                                        fontSize: isMediumScreen ? 13 : 15,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                DataColumn(
-                                  label: Text(
-                                    'Item Description',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                const SizedBox(width: 10),
+
+                                MouseRegion(
+                                  child: NeumorphicButton(
+                                    onPressed: _selectedEntries.isEmpty
+                                        ? null
+                                        : () {
+                                            _showDeleteConfirmationDialog(_selectedEntries.first.reference);
+                                          },
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isMediumScreen ? 16 : 24, 
+                                      vertical: 10,
                                     ),
-                                  ),
-                                ),
-                                DataColumn(
-                                  label: Text(
-                                    'Lot Number',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                    style: NeumorphicStyle(
+                                      depth: _selectedEntries.isNotEmpty ? 4 : 1,
+                                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                      lightSource: LightSource.topLeft,
+                                      color: _selectedEntries.isNotEmpty ? const Color.fromARGB(255, 175, 54, 46) : Colors.grey[300],
                                     ),
-                                  ),
-                                ),
-                                DataColumn(
-                                  label: Text(
-                                    'Expiry',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                DataColumn(
-                                  label: Text(
-                                    'Quantity',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                DataColumn(
-                                  label: Text(
-                                    'Stock Location',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                    child: Text(
+                                      isMediumScreen 
+                                          ? 'Delete'
+                                          : (_selectedEntries.length > 1 ? 'Delete Selected (${_selectedEntries.length})' : 'Delete Selected'),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _selectedEntries.isNotEmpty ? Colors.white : Colors.grey[600],
+                                        fontSize: isMediumScreen ? 13 : 15,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ],
-                              rows: _displayRecords.isEmpty
-                                  ? [
-                                      const DataRow(cells: [
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                        DataCell(Text('')),
-                                      ])
-                                    ]
-                                  : _buildDataRows(formatter, endIndex),
                             ),
-                          ),
-                  ),
+                    );
+                  },
+                ),
+
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Neumorphic(
+                        style: NeumorphicStyle(
+                          depth: -5,
+                          intensity: 0.7,
+                          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
+                          lightSource: LightSource.topLeft,
+                          shadowDarkColorEmboss: const Color.fromARGB(197, 93, 126, 153),
+                          color: Colors.blue[400],
+                        ),
+                        child: _isLoading
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(50.0),
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minWidth: constraints.maxWidth,
+                                  ),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dataTableTheme: DataTableThemeData(
+                                        checkboxHorizontalMargin: 0.0,
+                                        columnSpacing: constraints.maxWidth > 1200 ? 12.0 : 6.0,
+                                        horizontalMargin: constraints.maxWidth > 800 ? 4.0 : 2.0,
+                                      ),
+                                      checkboxTheme: CheckboxThemeData(
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    child: DataTable(
+                                      columnSpacing: constraints.maxWidth > 1200 ? 12.0 : 6.0,
+                                      horizontalMargin: constraints.maxWidth > 800 ? 4.0 : 2.0,
+                                      checkboxHorizontalMargin: 0.0,
+                                      dataRowMaxHeight: 48.0,
+                                      dataRowMinHeight: 40.0,
+                                      headingRowHeight: constraints.maxWidth > 600 ? 52.0 : 44.0,
+                                    columns: <DataColumn>[
+                                      const DataColumn(
+                                        label: Text(
+                                          'DR/SI Reference',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          constraints.maxWidth > 800 ? 'Transaction Date' : 'Trans. Date',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Brand',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          constraints.maxWidth > 800 ? 'Item Description' : 'Item Desc.',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          constraints.maxWidth > 800 ? 'Lot Number' : 'Lot No.',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Expiry',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          'Quantity',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
+                                          constraints.maxWidth > 800 ? 'Stock Location' : 'Location',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                    rows: _displayRecords.isEmpty
+                                        ? [
+                                            const DataRow(cells: [
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                              DataCell(Text('')),
+                                            ])
+                                          ]
+                                        : _buildDataRows(formatter, endIndex, constraints.maxWidth),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 if (!_isLoading) 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Entries per page:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        height: 35,
-                        child: NeumorphicButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          style: NeumorphicStyle(
-                            depth: 2,
-                            boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
-                            color: Colors.white,
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<int>(
-                              value: _rowsPerPage,
-                              items: [
-                                ..._rowsPerPageOptions.map((int value) {
-                                  return DropdownMenuItem<int>(
-                                    value: value,
-                                    child: Text(value.toString()),
-                                  );
-                                }),
-                                DropdownMenuItem<int>(
-                                  value: _showAllValue,
-                                  child: Text('Show All'),
-                                ),
-                              ],
-                              onChanged: (int? newValue) {
-                                if (newValue != null) {
-                                  _changeRowsPerPage(newValue);
-                                }
-                              },
-                              style: const TextStyle(
-                                color: Color(0xFF01579B),
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                              ),
-                              dropdownColor: Colors.white,
-                              iconEnabledColor: const Color(0xFF01579B),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isSmallScreen = constraints.maxWidth < 600;
+                      
+                      return Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: isSmallScreen ? 8 : 16,
+                        runSpacing: 8,
+                        children: [
+                          Text(
+                            isSmallScreen ? 'Per page:' : 'Entries per page:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                              fontSize: isSmallScreen ? 12 : 14,
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      _buildPaginationControls(endIndex),
-                    ],
+                          Container(
+                            height: isSmallScreen ? 30 : 35,
+                            child: NeumorphicButton(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isSmallScreen ? 8 : 12, 
+                                vertical: isSmallScreen ? 4 : 6,
+                              ),
+                              style: NeumorphicStyle(
+                                depth: 2,
+                                boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
+                                color: Colors.white,
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: _rowsPerPage,
+                                  items: [
+                                    ..._rowsPerPageOptions.map((int value) {
+                                      return DropdownMenuItem<int>(
+                                        value: value,
+                                        child: Text(value.toString()),
+                                      );
+                                    }),
+                                    DropdownMenuItem<int>(
+                                      value: _showAllValue,
+                                      child: Text(isSmallScreen ? 'All' : 'Show All'),
+                                    ),
+                                  ],
+                                  onChanged: (int? newValue) {
+                                    if (newValue != null) {
+                                      _changeRowsPerPage(newValue);
+                                    }
+                                  },
+                                  style: TextStyle(
+                                    color: Color(0xFF01579B),
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: isSmallScreen ? 12 : 14,
+                                  ),
+                                  dropdownColor: Colors.white,
+                                  iconEnabledColor: const Color(0xFF01579B),
+                                ),
+                              ),
+                            ),
+                          ),
+                          _buildPaginationControls(endIndex),
+                        ],
+                      );
+                    },
                   ),
-              ],
-            ),
-          ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  List<DataRow> _buildDataRows(DateFormat formatter, int endIndex) {
+  List<DataRow> _buildDataRows(DateFormat formatter, int endIndex, double screenWidth) {
     int counter = 0;
     final bool showAll = _rowsPerPage == _showAllValue;
     final recordsToShow = showAll 
         ? _displayRecords 
         : _displayRecords.sublist(_startIndex, endIndex);
+
+    double getColumnWidth(double baseWidth, double factor) {
+      if (screenWidth > 1400) return baseWidth * 1.2;
+      if (screenWidth > 1200) return baseWidth;
+      if (screenWidth > 800) return baseWidth * 0.8;
+      if (screenWidth > 600) return baseWidth * 0.7;
+      return baseWidth * 0.6;
+    }
+
+    final referenceWidth = getColumnWidth(100, 1.0);
+    final dateWidth = getColumnWidth(90, 1.0);
+    final brandWidth = getColumnWidth(85, 1.0);
+    final itemWidth = getColumnWidth(120, 1.5);
+    final lotWidth = getColumnWidth(80, 1.0);
+    final expiryWidth = getColumnWidth(90, 1.0);
+    final quantityWidth = getColumnWidth(60, 0.8);
+    final locationWidth = getColumnWidth(100, 1.2);
 
     return recordsToShow.map<DataRow>((data) {
       final isSelected = _selectedEntries.contains(data);
@@ -1769,67 +1990,102 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         color: WidgetStateProperty.all(rowColor),
         cells: [
           DataCell(SizedBox(
-            width: 100,
+            width: referenceWidth,
             child: Text(
               data.reference,
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: screenWidth > 800 ? 2 : 1,
             ),
           )),
           DataCell(SizedBox(
-            width: 90,
+            width: dateWidth,
             child: Text(
               formatter.format(data.transactionDate),
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           )),
           DataCell(SizedBox(
-            width: 85,
+            width: brandWidth,
             child: Text(
               data.brand,
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           )),
           DataCell(SizedBox(
-            width: 120,
+            width: itemWidth,
             child: Text(
               data.itemDescription,
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: screenWidth > 1000 ? 3 : (screenWidth > 600 ? 2 : 1),
             ),
           )),
           DataCell(SizedBox(
-            width: 80,
+            width: lotWidth,
             child: Text(
               data.lotNumber,
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           )),
           DataCell(SizedBox(
-            width: 90,
+            width: expiryWidth,
             child: Text(
               formatter.format(data.expiryDate),
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           )),
           DataCell(SizedBox(
-            width: 60,
+            width: quantityWidth,
             child: Text(
               data.quantity.toString(),
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           )),
           DataCell(SizedBox(
-            width: 100,
+            width: locationWidth,
             child: Text(
               data.stockLocation,
               softWrap: true,
-              style: const TextStyle(height: 1.2),
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: screenWidth > 800 ? 2 : 1,
             ),
           )),
         ],
@@ -1869,5 +2125,89 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildResponsiveButton(
+    String label,
+    IconData icon,
+    VoidCallback? onPressed, {
+    bool isEnabled = true,
+    bool isPressed = false,
+    bool isHovered = false,
+    bool isDelete = false,
+    bool isSmall = false,
+  }) {
+    return MouseRegion(
+      child: NeumorphicButton(
+        onPressed: isEnabled ? onPressed : null,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmall ? 12 : 16,
+          vertical: isSmall ? 6 : 8,
+        ),
+        style: NeumorphicStyle(
+          depth: isEnabled ? (isPressed ? -2 : 2) : 1,
+          boxShape: NeumorphicBoxShape.roundRect(
+            BorderRadius.circular(isSmall ? 20 : 25),
+          ),
+          lightSource: LightSource.topLeft,
+          color: isDelete && isEnabled
+              ? const Color.fromARGB(255, 175, 54, 46)
+              : isPressed && isEnabled
+                  ? Colors.blue[100]
+                  : isEnabled
+                      ? Colors.white
+                      : Colors.grey[300],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: isSmall ? 16 : 18,
+              color: isDelete && isEnabled
+                  ? Colors.white
+                  : isEnabled
+                      ? const Color(0xFF01579B)
+                      : Colors.grey[600],
+            ),
+            if (label.isNotEmpty) ...[
+              SizedBox(width: isSmall ? 4 : 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isDelete && isEnabled
+                      ? Colors.white
+                      : isEnabled
+                          ? const Color(0xFF01579B)
+                          : Colors.grey[600],
+                  fontSize: isSmall ? 12 : 13,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReferenceValidationIcon() {
+    if (_isValidatingReference) {
+      return const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+
+    if (_referenceExists) {
+      return Icon(
+        Icons.warning,
+        color: Colors.orange[600],
+        size: 20,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
