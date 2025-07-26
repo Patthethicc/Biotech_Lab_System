@@ -245,7 +245,7 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
         DataCell(Text(e.stocksManila)),
         DataCell(Text(e.stocksCebu)),
         DataCell(Text(e.expiryDate.toString())),
-        DataCell(Text(e.expiryDate!.difference(DateTime.now()).inDays.toString())),
+        DataCell(Text(e.expiryDate!.difference(DateTime.now()).inDays.toString(), style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),)),
       ],
       color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
         final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue
