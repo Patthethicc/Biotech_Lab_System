@@ -500,4 +500,280 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       if (selectedDate != null) updatedPo.orderDate = selectedDate!;
                       break;
                     case 'expectedDeliveryDate':
-                      if (selectedDate != null) updatedPo.expectedDeliveryDate = selec
+                      if (selectedDate != null) updatedPo.expectedDeliveryDate = selectedDate!;
+                      break;
+                    case 'cost':
+                      updatedPo.cost = double.tryParse(controller.text) ?? updatedPo.cost;
+                      break;
+                  }
+
+                  await _poService.updatePurchaseOrder(updatedPo);
+                  _showSnackBar('Purchase Order updated successfully!');
+                  Navigator.pop(context);
+                  _fetchPurchaseOrders(); // Refresh the list
+                } catch (e) {
+                  _showSnackBar('Failed to update purchase order: $e', isError: true);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _getFieldLabel(String field) {
+    switch (field) {
+      case 'purchaseOrderCode': return 'Purchase Order Code';
+      case 'purchaseOrderFile': return 'Purchase Order File';
+      case 'suppliersPackingList': return "Supplier's Packing List";
+      case 'quantityPurchased': return 'Quantity Purchased';
+      case 'orderDate': return 'Order Date';
+      case 'expectedDeliveryDate': return 'Expected Delivery Date';
+      case 'cost': return 'Cost';
+      default: return field;
+    }
+  }
+
+  void _deleteOrder(PurchaseOrder order) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Purchase Order'),
+          content: Text('Are you sure you want to delete PO: ${order.purchaseOrderCode}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await _poService.deletePurchaseOrder(order.purchaseOrderCode);
+                  _showSnackBar('Purchase Order deleted successfully!');
+                  Navigator.pop(context);
+                  _fetchPurchaseOrders(); // Refresh the list
+                } catch (e) {
+                  _showSnackBar('Failed to delete purchase order: $e', isError: true);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: ThemeData(
+        primarySwatch: Colors.blueGrey,
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            textStyle: const TextStyle(fontSize: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Purchase Orders Management',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          backgroundColor: Theme.of(context).primaryColor,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Add New Purchase Order'),
+                  onPressed: _showAddDialog,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : hasError
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red, size: 50),
+                              const SizedBox(height: 10),
+                              Text(
+                                errorMessage,
+                                style: const TextStyle(color: Colors.red, fontSize: 16),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: _fetchPurchaseOrders,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : orders.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No purchase orders found. Click "Add New Purchase Order" to add one.',
+                                style: TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                            )
+                          : Expanded(
+                              child: Card(
+                                elevation: 8,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    columnSpacing: 24,
+                                    dataRowHeight: 60,
+                                    headingRowColor: MaterialStateProperty.resolveWith<Color?>(
+                                      (Set<MaterialState> states) {
+                                        return Theme.of(context).primaryColor.withOpacity(0.1);
+                                      },
+                                    ),
+                                    border: TableBorder(
+                                      horizontalInside: BorderSide(
+                                        color: Colors.grey.shade300,
+                                        width: 1.0,
+                                      ),
+                                      top: BorderSide(
+                                        color: Colors.grey.shade300,
+                                        width: 1.0,
+                                      ),
+                                      bottom: BorderSide(
+                                        color: Colors.grey.shade300,
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    columns: const [
+                                      DataColumn(label: Text('Purchase Order Code', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Purchase Order File', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text("Supplier's Packing List", style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Quantity Purchased', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Order Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Expected Delivery Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Cost', style: TextStyle(fontWeight: FontWeight.bold))),
+                                      DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    ],
+                                    rows: orders.map((order) {
+                                      return DataRow(cells: [
+                                        DataCell(
+                                          Text(order.purchaseOrderCode),
+                                          onTap: () => _editCellDialog(order, 'purchaseOrderCode'),
+                                        ),
+                                        DataCell(
+                                          order.purchaseOrderFile != null && order.purchaseOrderFile!.isNotEmpty
+                                              ? GestureDetector(
+                                                  child: const Text('View File', style: TextStyle(color: Colors.blue)),
+                                                  onTap: () => _editCellDialog(order, 'purchaseOrderFile'),
+                                                )
+                                              : GestureDetector(
+                                                  child: const Text('N/A (Add File)', style: TextStyle(color: Colors.grey)),
+                                                  onTap: () => _editCellDialog(order, 'purchaseOrderFile'),
+                                                ),
+                                        ),
+                                        DataCell(
+                                          order.suppliersPackingList != null && order.suppliersPackingList!.isNotEmpty
+                                              ? GestureDetector(
+                                                  child: const Text('View List', style: TextStyle(color: Colors.blue)),
+                                                  onTap: () => _editCellDialog(order, 'suppliersPackingList'),
+                                                )
+                                              : GestureDetector(
+                                                  child: const Text('N/A (Add List)', style: TextStyle(color: Colors.grey)),
+                                                  onTap: () => _editCellDialog(order, 'suppliersPackingList'),
+                                                ),
+                                        ),
+                                        DataCell(
+                                          Text(order.quantityPurchased.toString()),
+                                          onTap: () => _editCellDialog(order, 'quantityPurchased'),
+                                        ),
+                                        DataCell(
+                                          Text(DateFormat('yyyy-MM-dd').format(order.orderDate)),
+                                          onTap: () => _editCellDialog(order, 'orderDate'),
+                                        ),
+                                        DataCell(
+                                          Text(DateFormat('yyyy-MM-dd').format(order.expectedDeliveryDate)),
+                                          onTap: () => _editCellDialog(order, 'expectedDeliveryDate'),
+                                        ),
+                                        DataCell(
+                                          Text(NumberFormat.currency(locale: 'en_PH', symbol: '₱').format(order.cost)),
+                                          onTap: () => _editCellDialog(order, 'cost'),
+                                        ),
+                                        DataCell(
+                                          Row(
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                                onPressed: () {
+                                                  // This is handled by onTap on DataCell
+                                                },
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.delete, color: Colors.red),
+                                                onPressed: () => _deleteOrder(order),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ]);
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
