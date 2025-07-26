@@ -26,7 +26,7 @@ class InventoryBarChart extends StatelessWidget {
         child: Neumorphic(
           style: NeumorphicStyle(
             depth: -4,
-            color: const Color.fromARGB(255, 233, 241, 250), // light bluish base
+            color: const Color.fromARGB(255, 233, 241, 250), 
             shadowDarkColor: const Color(0xFFB0CDEB),
             shadowLightColor: Colors.white,
             boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(16)),
@@ -40,17 +40,32 @@ class InventoryBarChart extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2A4C78), // dark blue for contrast
+                  color: Color(0xFF2A4C78), 
                 ),
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: Row(
+                child: isLoading
+                  ? Center(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color.fromARGB(255, 127, 169, 223),
+                          ),
+                        ),
+                      ),
+                    )
+                  : top10.isEmpty
+                      ? const Center(child: Text('No data'))
+                      : Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // LEFT: Item labels
+                    // Item labels
                     SizedBox(
-                      width: 120, // adjust width as needed
+                      width: 120,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -75,7 +90,7 @@ class InventoryBarChart extends StatelessWidget {
 
                     const SizedBox(width: 8),
 
-                    // RIGHT: The actual chart (bars only)
+                    // RIGHT: Chart
                     Expanded(
                       child: SfCartesianChart(
                         backgroundColor: Colors.transparent,
