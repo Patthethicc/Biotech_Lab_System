@@ -55,4 +55,41 @@ class TransactionEntryService {
     );
     return response;
   }
+
+  Future<TransactionEntry?> getTransactionById(String id) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(
+      Uri.parse('$baseUrl/transaction/getTransactionByID/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return TransactionEntry.fromJson(data);
+    } else if (response.statusCode == 404) {
+      return null; 
+    } else {
+      throw Exception('Failed to load transaction: ${response.statusCode}');
+    }
+  }
+
+  Future<bool> transactionExists(String id) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(
+      Uri.parse('$baseUrl/transaction/exists/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as bool;
+    } else {
+      throw Exception('Failed to check transaction existence: ${response.statusCode}');
+    }
+  }
 }
