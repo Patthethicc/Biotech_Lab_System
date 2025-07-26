@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/stock_alert_service.dart';
-import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart'; 
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
@@ -80,9 +80,9 @@ class _StockAlertState extends State<StockAlert> {
   bool _isLoading = true;
 
   int _startIndex = 0;
-  int _rowsPerPage = 5; 
-  final List<int> _rowsPerPageOptions = [5, 10, 25, 50]; 
-  final int _showAllValue = -1; 
+  int _rowsPerPage = 5;
+  final List<int> _rowsPerPageOptions = [5, 10, 25, 50];
+  final int _showAllValue = -1;
 
   @override
   void initState() {
@@ -102,7 +102,7 @@ class _StockAlertState extends State<StockAlert> {
   }
 
   void nextPage() {
-    if (_rowsPerPage == _showAllValue) return; 
+    if (_rowsPerPage == _showAllValue) return;
     setState(() {
       if (_startIndex + _rowsPerPage < _displayStockAlerts.length) {
         _startIndex += _rowsPerPage;
@@ -123,7 +123,7 @@ class _StockAlertState extends State<StockAlert> {
     if (newRowsPerPage == null) return;
     setState(() {
       _rowsPerPage = newRowsPerPage;
-      _startIndex = 0; 
+      _startIndex = 0;
     });
   }
 
@@ -178,57 +178,66 @@ class _StockAlertState extends State<StockAlert> {
                           ),
                         )
                       else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(), 
-                          itemBuilder: (context, index) {
-                            final alert = _displayStockAlerts[_startIndex + index];
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Neumorphic(
-                                style: NeumorphicStyle(
-                                  depth: 5,
-                                  intensity: 0.7,
-                                  boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
-                                  lightSource: LightSource.topLeft,
-                                  color: Colors.white, 
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Item Code: ${alert.itemCode}",
-                                        style: const TextStyle(
-                                          fontSize: 20, 
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF01579B), 
+                        // Added ConstrainedBox for width control
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 600), // Adjust max width as needed
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              final alert = _displayStockAlerts[_startIndex + index];
+                              return Padding(
+                                // Reduced vertical padding
+                                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Neumorphic(
+                                  style: NeumorphicStyle(
+                                    depth: 5,
+                                    intensity: 0.7,
+                                    boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
+                                    lightSource: LightSource.topLeft,
+                                    color: Colors.white,
+                                  ),
+                                  child: Padding(
+                                    // Reduced internal padding
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Item Code: ${alert.itemCode}",
+                                          style: const TextStyle(
+                                            // Reduced font size
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF01579B),
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        "Quantity on Hand: ${alert.quantityOnHand}",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey[700],
+                                        const SizedBox(height: 4), // Reduced SizedBox height
+                                        Text(
+                                          "Quantity on Hand: ${alert.quantityOnHand}",
+                                          style: TextStyle(
+                                            // Reduced font size
+                                            fontSize: 14,
+                                            color: Colors.grey[700],
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Inventory ID: ${alert.inventoryID}",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
+                                        const SizedBox(height: 2), // Reduced SizedBox height
+                                        Text(
+                                          "Inventory ID: ${alert.inventoryID}",
+                                          style: TextStyle(
+                                            // Reduced font size
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                          itemCount: endIndex - _startIndex,
+                              );
+                            },
+                            itemCount: endIndex - _startIndex,
+                          ),
                         ),
                       const SizedBox(height: 16),
                       if (!_isLoading && _displayStockAlerts.isNotEmpty)
@@ -243,77 +252,14 @@ class _StockAlertState extends State<StockAlert> {
 
   Widget _buildPaginationControls(int endIndex) {
     final bool showAll = _rowsPerPage == _showAllValue;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 20.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
         children: [
           NeumorphicText(
-            'Entries per page:',
-            style: NeumorphicStyle(
-              depth: 0, 
-              intensity: 0.7,
-              lightSource: LightSource.topLeft,
-              color: Colors.black87,
-            ),
-            textStyle: NeumorphicTextStyle(
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container( 
-            constraints: const BoxConstraints(maxWidth: 80), 
-            child: Neumorphic(
-              style: NeumorphicStyle(
-                depth: 2,
-                boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
-                color: Colors.white,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButtonFormField<int>( 
-                  value: _rowsPerPage,
-                  decoration: const InputDecoration( 
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    isDense: true,
-                  ),
-                  items: [
-                    ..._rowsPerPageOptions.map((value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(value.toString()),
-                    )),
-                    DropdownMenuItem(
-                      value: _showAllValue,
-                      child: const Text('All'),
-                    ),
-                  ],
-                  onChanged: _changeRowsPerPage,
-                  dropdownColor: Colors.white,
-                  alignment: Alignment.center,
-                  style: TextStyle(
-                    color: Color(0xFF01579B),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                  icon: Icon(Icons.arrow_drop_down, color: Color(0xFF01579B)),
-                  iconEnabledColor: const Color(0xFF01579B),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 20),
-
-          _NeumorphicNavButton(
-            icon: Icons.chevron_left,
-            enabled: !showAll && _startIndex > 0,
-            onPressed: prevPage,
-            tooltip: 'Previous Page',
-          ),
-          const SizedBox(width: 8),
-
-          NeumorphicText(
-            '${_displayStockAlerts.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayStockAlerts.length}',
+            'Rows per page:',
             style: NeumorphicStyle(
               depth: 1,
               intensity: 0.7,
@@ -323,6 +269,66 @@ class _StockAlertState extends State<StockAlert> {
             textStyle: NeumorphicTextStyle(
               fontSize: 14,
             ),
+          ),
+          const SizedBox(width: 10),
+          Neumorphic(
+            style: NeumorphicStyle(
+              depth: 2,
+              boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
+              color: Colors.white,
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: 12, 
+              vertical: 6),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                value: _rowsPerPage,
+                isDense: true,
+                items: [
+                  ..._rowsPerPageOptions
+                      .map((e) => DropdownMenuItem(value: e, child: Text('$e')))
+                      .toList(),
+                  DropdownMenuItem(
+                    value: _showAllValue,
+                    child: Text('Show All'),
+                  ),
+                ],
+                onChanged: _changeRowsPerPage,
+                dropdownColor: Colors.white,
+                alignment: Alignment.center,
+                style: const TextStyle(
+                  color: Color(0xFF01579B),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF01579B)),
+                iconEnabledColor: const Color(0xFF01579B),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 20),
+          _NeumorphicNavButton(
+            icon: Icons.chevron_left,
+            enabled: !showAll && _startIndex > 0,
+            onPressed: prevPage,
+            tooltip: 'Previous Page',
+          ),
+          const SizedBox(width: 8),
+
+          NeumorphicText(
+              showAll
+                ? 'Showing all ${_displayStockAlerts.length} entries'
+                :'${_displayStockAlerts.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayStockAlerts.length}',
+              style: NeumorphicStyle(
+                depth: 1,
+                intensity: 0.7,
+                lightSource: LightSource.topLeft,
+                color: Colors.black87,
+              ),
+              textStyle: NeumorphicTextStyle(
+                fontSize: 14,
+              ),
           ),
           const SizedBox(width: 20),
 
@@ -336,4 +342,5 @@ class _StockAlertState extends State<StockAlert> {
       ),
     );
   }
+
 }
