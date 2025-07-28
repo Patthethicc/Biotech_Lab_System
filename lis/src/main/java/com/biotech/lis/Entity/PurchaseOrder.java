@@ -27,6 +27,6 @@ public class PurchaseOrder {
     private LocalDate orderDate;
     private LocalDate expectedDeliveryDate;
     private double cost;
-    private int addedBy;
+    private String addedBy;
     private LocalDateTime dateTimeAdded;
 }
