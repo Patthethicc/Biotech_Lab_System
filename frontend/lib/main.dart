@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/models/ui/expiry_alert.dart';
 import 'models/ui/dashboard.dart';
 import 'models/ui/stock_alert.dart';
 import 'models/ui/tableTemplate.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget{
         '/edit_profile': (context) => EditProfilePage(),
         '/dashboard': (context) => Dashboard(),
         '/stock_alert': (context) => StockAlert(),
+        '/expiry_alert': (context) => ExpiryAlert(),
         '/purchase_order': (context) => const PurchaseOrderPage(),
         '/transaction_entry': (context) => TransactionEntryPage(),
         '/inventory': (context) => InventoryPage(),
