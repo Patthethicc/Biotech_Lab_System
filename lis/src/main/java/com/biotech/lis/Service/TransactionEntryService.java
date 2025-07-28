@@ -29,6 +29,9 @@ public class TransactionEntryService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    InventoryService inventoryService;
+
     @Transactional // rolls back automatically if any exception occurs
     public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
 
@@ -46,6 +49,8 @@ public class TransactionEntryService {
         TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
+        inventoryService.addInventory(savedEntry);
+
         return savedEntry;
     }
  
@@ -68,10 +73,20 @@ public class TransactionEntryService {
             throw new IllegalArgumentException("Transaction not found with ID: " + transactionEntry.getDrSIReferenceNum());
         }
 
+        Integer prevQty = getTransactionEntryById(transactionEntry.getDrSIReferenceNum()).get().getQuantity();
+
         User user = getCurrentUser();
         setAuditFields(transactionEntry, user);
+        TransactionEntry updatedEntry = transactionEntryRepository.save(transactionEntry);
+        if(prevQty > transactionEntry.getQuantity()) {
+            stockLocatorService.updateStockFromTransaction(updatedEntry, true);
+        } else {
+            stockLocatorService.updateStockFromTransaction(updatedEntry, false);
+        }
 
-        return transactionEntryRepository.save(transactionEntry);
+        inventoryService.updateInventoryTrns(updatedEntry);
+
+        return updatedEntry;
     }
     
     @Transactional

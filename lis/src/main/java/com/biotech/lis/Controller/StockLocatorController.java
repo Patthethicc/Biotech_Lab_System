@@ -45,7 +45,7 @@ public class StockLocatorController {
     public ResponseEntity<StockLocator> getStockByBrandAndProduct(
             @RequestParam String brand, 
             @RequestParam String productDescription) {
-        Optional<StockLocator> stockLocator = stockLocatorService.getStockByBrandAndProduct(brand, productDescription);
+        Optional<StockLocator> stockLocator = stockLocatorService.getStocksByBrandAndProduct(brand, productDescription);
         if (stockLocator.isPresent()) {
             return ResponseEntity.ok(stockLocator.get());
         } else {

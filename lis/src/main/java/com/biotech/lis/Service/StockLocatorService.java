@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.StockLocator;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Repository.StockLocatorRepository;
@@ -20,8 +21,24 @@ public class StockLocatorService {
         return stockLocatorRepository.findAll();
     }
 
-    public Optional<StockLocator> getStockByBrandAndProduct(String brand, String productDescription) {
+    public Optional<StockLocator> getStocksByBrandAndProduct(String brand, String productDescription) {
         return stockLocatorRepository.findByBrandAndProductDescription(brand, productDescription);
+    }
+
+    public Integer getManilaStock(String brand, String productDescription) {
+        Optional<StockLocator> stockLocatorOpt = getStocksByBrandAndProduct(brand, productDescription);
+        StockLocator stockLocator = stockLocatorOpt.get();
+
+        return stockLocator.getLazcanoRef1() + stockLocator.getLazcanoRef2() +
+        stockLocator.getLimbaga() + stockLocator.getGandiaColdStorage() + stockLocator.getGandiaRef1()
+        + stockLocator.getGandiaRef2();
+    }
+
+    public Integer getCebuStock(String brand, String productDescription) {
+        Optional<StockLocator> stockLocatorOpt = getStocksByBrandAndProduct(brand, productDescription);
+        StockLocator stockLocator = stockLocatorOpt.get();
+
+        return stockLocator.getCebu();
     }
 
     public void updateStockFromTransaction(TransactionEntry transactionEntry, boolean isAddition) {

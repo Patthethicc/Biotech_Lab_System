@@ -1,6 +1,5 @@
 package com.biotech.lis.Entity;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -37,6 +36,9 @@ public class TransactionEntry {
     
     @Column(name = "expiryDate")
     private LocalDate expiryDate;
+
+    @Column(name = "cost")
+    private Double cost;
     
     @Column(name = "quantity")
     private Integer quantity;

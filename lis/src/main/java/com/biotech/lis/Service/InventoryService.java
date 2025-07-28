@@ -7,10 +7,13 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.Inventory;
+import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,13 +28,39 @@ public class InventoryService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    BrandService brandService;
+
+    @Autowired
+    StockLocatorService stockLocatorService;
+
     @Transactional
-    public Inventory addInventory(Inventory inventory) {
+    public Inventory addInventory(TransactionEntry transactionEntry) {
+        Inventory inventory = new Inventory();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
+        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
+        if (brand == null) {
+            throw new EntityNotFoundException();
+        }
+
+        inventory.setItemCode(brandService.generateItemCode(brand));
+        inventory.setBrand(transactionEntry.getBrand());
+        inventory.setProductDescription(transactionEntry.getProductDescription());
+        inventory.setLotSerialNumber(transactionEntry.getLotSerialNumber());
+        inventory.setCost(transactionEntry.getQuantity() * transactionEntry.getCost());
+        inventory.setExpiryDate(transactionEntry.getExpiryDate());
+
+        String brandName = inventory.getBrand();
+        String prodDesc = inventory.getProductDescription();
+
+        inventory.setStocksManila(stockLocatorService.getManilaStock(brandName, prodDesc));
+        inventory.setStocksCebu(stockLocatorService.getCebuStock(brandName, prodDesc));
+        inventory.setQuantityOnHand(inventory.getStocksManila() + inventory.getStocksCebu());
         inventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         inventory.setDateTimeAdded(cDateTime);
+
         return inventoryRepository.save(inventory);
     }
 
@@ -43,16 +72,69 @@ public class InventoryService {
         return inventoryRepository.findAll();
     }
 
+    public Optional<Inventory> getInventoryByBrandAndProdDesc(String brand, String prodDesc) {
+        return inventoryRepository.findByBrandAndProductDescription(brand, prodDesc);
+    }
+
     @Transactional
-    public Inventory updateInventory(Inventory inventory) {
+    public Inventory updateInventoryInv(Inventory inventory) {
         Inventory existingInventory = getInventoryById(inventory.getInventoryId());
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
+        Brand brand = brandService.getBrandbyName(inventory.getBrand());
+        if (brand == null) {
+            throw new EntityNotFoundException();
+        }
+
+        existingInventory.setBrand(inventory.getBrand());
+        existingInventory.setProductDescription(inventory.getProductDescription());
+        existingInventory.setLotSerialNumber(inventory.getLotSerialNumber());
+        existingInventory.setCost(inventory.getCost());
+        existingInventory.setExpiryDate(inventory.getExpiryDate());
+
+        String brandName = inventory.getBrand();
+        String prodDesc = inventory.getProductDescription();
+
+        existingInventory.setStocksManila(stockLocatorService.getManilaStock(brandName, prodDesc));
+        existingInventory.setStocksCebu(stockLocatorService.getCebuStock(brandName, prodDesc));
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
 
-        existingInventory.setQuantityOnHand(inventory.getQuantityOnHand());
+        return inventoryRepository.save(existingInventory);
+    }
+
+    public Inventory updateInventoryTrns(TransactionEntry transactionEntry) {
+        Optional<Inventory> invOpt = getInventoryByBrandAndProdDesc(transactionEntry.getBrand(), 
+            transactionEntry.getProductDescription());
+        if (invOpt == null) {
+            throw new EntityNotFoundException();
+        }
+        Inventory existingInventory = invOpt.get();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userService.getUserById(Long.parseLong(auth.getName()));
+        LocalDateTime cDateTime = LocalDateTime.now();
+        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
+        if (brand == null) {
+            throw new EntityNotFoundException();
+        }
+
+        existingInventory.setBrand(transactionEntry.getBrand());
+        existingInventory.setProductDescription(transactionEntry.getProductDescription());
+        existingInventory.setLotSerialNumber(transactionEntry.getLotSerialNumber());
+        existingInventory.setCost(transactionEntry.getCost());
+        existingInventory.setExpiryDate(transactionEntry.getExpiryDate());
+
+        String brandName = transactionEntry.getBrand();
+        String prodDesc = transactionEntry.getProductDescription();
+
+        existingInventory.setStocksManila(stockLocatorService.getManilaStock(brandName, prodDesc));
+        existingInventory.setStocksCebu(stockLocatorService.getCebuStock(brandName, prodDesc));
+        existingInventory.setQuantityOnHand(existingInventory.getStocksManila() + existingInventory.getStocksCebu());
+        existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        existingInventory.setDateTimeAdded(cDateTime);
+
         return inventoryRepository.save(existingInventory);
     }
 
@@ -67,7 +149,6 @@ public class InventoryService {
     public Integer inventoryExists(Inventory inventory) {
         String itemCode = inventory.getItemCode();
         if (itemCode == null || itemCode.trim().isEmpty()) {
-            System.out.println("hello there im a bug");
             return 0;
         }
 

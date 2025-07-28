@@ -18,15 +18,19 @@ import java.time.LocalDateTime;
 @Table(name = "`purchaseOrder`")
 public class PurchaseOrder {
     @Id
-    private String purchaseOrderCode;
+    private String itemCode;
+    private String brand;
+    private String productDescription;
+    private String lotSerialNumber;
     @Lob
     private byte[] purchaseOrderFile;
     @Lob
     private byte[] suppliersPackingList;
-    private int quantityPurchased;
+    @Lob
+    private byte[] inventoryOfDeliveredItems;
     private LocalDate orderDate;
-    private LocalDate expectedDeliveryDate;
+    private String addedBy;
     private double cost;
-    private int addedBy;
     private LocalDateTime dateTimeAdded;
+    private String drSIReferenceNum;
 }

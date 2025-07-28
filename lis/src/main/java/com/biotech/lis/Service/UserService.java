@@ -54,7 +54,7 @@ public class UserService {
             if(BCrypt.checkpw(password, String.valueOf(stored_User.getPassword()))) {
                 request.setCheck(true);
                 request.setPassword("password");
-                request.setToken(jwtService.generateToken(stored_User.getUser_id()));
+                request.setToken(jwtService.generateToken(stored_User.getUserId()));
             }
         }
         return request;

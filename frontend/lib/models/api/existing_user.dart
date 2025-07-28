@@ -1,14 +1,14 @@
 import 'dart:ffi';
 
 class ExistingUser {
-  final Long user_id;
+  final Long userId;
   final String firstName;
   final String lastName;
   final String email;
   final String password;
 
   ExistingUser({
-    required this.user_id,
+    required this.userId,
     required this.firstName, 
     required this.lastName,
     required this.email,
@@ -16,7 +16,7 @@ class ExistingUser {
 
   factory ExistingUser.fromJson(Map<String, dynamic> json) {
     return ExistingUser(
-      user_id: json['user_id'],
+      userId: json['userId'],
       firstName: json['firstName'],
       lastName: json['lastName'],
       email: json['email'],
@@ -25,7 +25,7 @@ class ExistingUser {
   }
 
   Map<String, dynamic> toJson() => {
-    'user_id': user_id,
+    'user_id': userId,
     'firstName': firstName,
     'lastName': lastName,
     'email': email,

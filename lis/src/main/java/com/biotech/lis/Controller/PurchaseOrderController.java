@@ -61,7 +61,7 @@ public class PurchaseOrderController {
             return ResponseEntity.badRequest().build(); // null
         }
         try {
-            Optional<PurchaseOrder> existingOrder = purchaseOrderService.getPurchaseOrderByCode(purchaseOrder.getPurchaseOrderCode());
+            Optional<PurchaseOrder> existingOrder = purchaseOrderService.getPurchaseOrderByCode(purchaseOrder.getItemCode());
             if (existingOrder.isEmpty()) {
                 return ResponseEntity.notFound().build(); // no entity
             }
