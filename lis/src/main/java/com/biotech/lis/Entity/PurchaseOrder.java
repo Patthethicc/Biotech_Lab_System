@@ -30,7 +30,6 @@ public class PurchaseOrder {
     private byte[] inventoryOfDeliveredItems;
     private LocalDate orderDate;
     private String addedBy;
-    private double cost;
     private LocalDateTime dateTimeAdded;
     private String drSIReferenceNum;
 }

@@ -1,6 +1,7 @@
 package com.biotech.lis.Service;
 
 
+import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
@@ -21,10 +22,17 @@ public class PurchaseOrderService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    BrandService brandService;
+
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
+        
+        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
+
+        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
 
         purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         purchaseOrder.setDateTimeAdded(cDateTime);
