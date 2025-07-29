@@ -70,14 +70,14 @@ class _NeumorphicNavButtonState extends State<_NeumorphicNavButton> {
   }
 }
 
-class DataTemplate extends StatefulWidget {
-  const DataTemplate({super.key});
+class InventoryPage extends StatefulWidget {
+  const InventoryPage({super.key});
 
   @override
-  State<DataTemplate> createState() => _DataTemplateState();
+  State<InventoryPage> createState() => _InventoryPageState();
 }
 
-class _DataTemplateState extends State<DataTemplate> {
+class _InventoryPageState extends State<InventoryPage> {
   final inventoryService = InventoryService();
   final itemDetailsService = ItemDetailsService();
 
@@ -266,23 +266,19 @@ class _DataTemplateState extends State<DataTemplate> {
                   ),
 
                   TextFormField(
-                    readOnly: true,  // Prevent manual text entrys
+                    readOnly: true,  // Prevent manual text entry
                     decoration: InputDecoration(
                       labelText: 'Expiry Date',
                       suffixIcon: Icon(Icons.calendar_today),
                       hintText: 'Tap to select date',
                     ),
                     onTap: () async {
-                      
                       final DateTime? picked = await showDatePicker(
                         context: context,
                         initialDate: DateTime.now(),
                         firstDate: DateTime(2000),
                         lastDate: DateTime(2100),
-
                       );
-
-                      
                       if (picked != null) {
                         expiryDateController.text = DateFormat('yyyy-MM-dd').format(picked);
                       }
@@ -394,7 +390,6 @@ class _DataTemplateState extends State<DataTemplate> {
           ),
           ElevatedButton(
             onPressed: () async {
-              
               Item newItem = Item(
                 itemCode: itemCodeController.text,
                 brand: brandController.text,
@@ -408,8 +403,6 @@ class _DataTemplateState extends State<DataTemplate> {
                 drsiReferenceNumber: drsiReferenceNumberController.text
               );
 
-              print(itemCodeController.text);
-
               Inventory updatedInventory = Inventory(
                 inventoryID: invID,
                 itemCode: itemCodeController.text,
@@ -422,7 +415,6 @@ class _DataTemplateState extends State<DataTemplate> {
               if(mode == "Write") {
                 await itemDetailsService.createInventory(newItem);
               } else if(mode == "Edit") {
-                print(updatedInventory.dateTimeAdded);
                 await inventoryService.updateInventory(updatedInventory);
               }
               Navigator.pop(context);

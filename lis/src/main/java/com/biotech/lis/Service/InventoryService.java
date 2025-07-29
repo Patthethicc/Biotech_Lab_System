@@ -76,6 +76,22 @@ public class InventoryService {
         return inventoryRepository.findByBrandAndProductDescription(brand, prodDesc);
     }
 
+    public List<Inventory> getHighestStock() {
+        List<Inventory> inventories = getInventories();
+        inventories.sort((o1, o2)
+                  -> o2.getQuantityOnHand().compareTo(
+                      o1.getQuantityOnHand()));
+        return inventories;
+    }
+
+    public List<Inventory> getLowestStock() {
+        List<Inventory> inventories = getInventories();
+        inventories.sort((o1, o2)
+                  -> o1.getQuantityOnHand().compareTo(
+                      o2.getQuantityOnHand()));
+        return inventories;
+    }
+
     @Transactional
     public Inventory updateInventoryInv(Inventory inventory) {
         Inventory existingInventory = getInventoryById(inventory.getInventoryId());

@@ -12,9 +12,10 @@ import com.biotech.lis.Entity.StockLocator;
 @Repository
 public interface StockLocatorRepository extends JpaRepository<StockLocator, String> {
     
-    @Query("SELECT s FROM StockLocator s WHERE s.brand = :brand AND s.productDescription = :productDescription")
+    @Query("SELECT s FROM StockLocator s WHERE LOWER(s.brand) = LOWER(:brand) AND LOWER(s.productDescription) = LOWER(:productDescription)") // not case sensitive
     Optional<StockLocator> findByBrandAndProductDescription(@Param("brand") String brand, @Param("productDescription") String productDescription);
-    
-    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM StockLocator s WHERE s.brand = :brand AND s.productDescription = :productDescription")
-    boolean existsByBrandAndProductDescription(@Param("brand") String brand, @Param("productDescription") String productDescription);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM StockLocator s WHERE LOWER(s.brand) = LOWER(:brand) AND LOWER(s.productDescription) = LOWER(:productDescription)") // not case sensitive
+    boolean existsByBrandAndProductDescription(@Param("brand") String brand, @Param("productDescription") String productDescription); 
+
 }

@@ -30,7 +30,33 @@ class InventoryService {
       final List data = json.decode(response.body);
       return data.map((json) => Inventory.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load inventory');
+      throw Exception('Failed to load inventory ${response.statusCode}');
+    }
+  }
+
+  Future<List<Inventory>> getTopStock() async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(Uri.parse('$baseUrl/inv/v1/getTopStock'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((json) => Inventory.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed top stocks ${response.statusCode}');
+    }
+  }
+
+  Future<List<Inventory>> getBottomStock() async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(Uri.parse('$baseUrl/inv/v1/getLowStock'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((json) => Inventory.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed low stocks ${response.statusCode}');
     }
   }
 

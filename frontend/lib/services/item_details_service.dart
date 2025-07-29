@@ -30,7 +30,16 @@ class ItemDetailsService {
     }
   }
 
-  
+  Future<Item> createInventory(Item item) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final res = await http.post(
+      Uri.parse('$baseUrl/item/v1/addItem'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'},
+      body: json.encode(item.toJson()),
+    );
+    return Item.fromJson(json.decode(res.body));
+  }
 
   Future<(bool success, String message)> deleteItem(String itemCode) async {
     try {
@@ -50,6 +59,19 @@ class ItemDetailsService {
       }
     } catch (e) {
       return (false, 'Error communicating with backend during delete: $e');
+    }
+  }
+
+  Future<List<Item>> getExpiringItems(int days) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(Uri.parse('$baseUrl/item/v1/getExpiringItems/$days'),
+      headers: {'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((json) => Item.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load items ${response.statusCode}');
     }
   }
 }
