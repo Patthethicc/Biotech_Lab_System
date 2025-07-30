@@ -45,6 +45,20 @@ class PurchaseOrder {
     } catch (e) {
       throw DataParsingException('Error parsing PurchaseOrder from JSON: $e');
     }
+    return PurchaseOrder(
+      purchaseOrderCode: json['purchaseOrderCode'],
+      itemCode: json['itemCode'],
+      purchaseOrderFile: json['purchaseOrderFile'],
+      suppliersPackingList: json['suppliersPackingList'],
+      quantityPurchased: json['quantityPurchased'],
+      orderDate: DateTime.parse(json['orderDate']),
+      expectedDeliveryDate: DateTime.parse(json['expectedDeliveryDate']),
+      cost: (json['cost'] as num).toDouble(),
+      addedBy: json['addedBy'],
+      dateTimeAdded: json['dateTimeAdded'] != null ? DateTime.parse(json['dateTimeAdded']) : null,
+      hasPurchaseOrderFile: json['hasPurchaseOrderFile'] ?? false,
+      hasSuppliersPackingList: json['hasSuppliersPackingList'] ?? false,
+    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -65,4 +79,5 @@ class DataParsingException implements Exception {
   DataParsingException(this.message);
   @override
   String toString() => 'DataParsingException: $message';
+
 }
