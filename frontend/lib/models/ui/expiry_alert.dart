@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
-import 'package:frontend/models/api/item_model.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:frontend/services/item_details_service.dart';
-import 'package:intl/intl.dart'; 
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
@@ -78,10 +75,10 @@ class ExpiryAlert extends StatefulWidget {
 }
 
 class _ExpiryAlertState extends State<ExpiryAlert> {
-  final itemDetailsService = ItemDetailsService();
+  final inventoryService = InventoryService();
 
-  List<Item> _allExpiryAlerts = [];
-  List<Item> _displayAlerts = [];
+  List<Inventory> _allExpiryAlerts = [];
+  List<Inventory> _displayAlerts = [];
   bool _isLoading = true;
   bool _isHovered = false;
 
@@ -100,7 +97,7 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
   }
 
   void _fetchData() {
-    itemDetailsService.getExpiringItems(7).then((value) {
+    inventoryService.getExpiringItems(7).then((value) {
       setState(() {
         _allExpiryAlerts = value;
         _displayAlerts = List.from(_allExpiryAlerts);
@@ -242,10 +239,10 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
         DataCell(Text(e.brand)),
         DataCell(Text(e.productDescription)),
         DataCell(Text(e.lotSerialNumber)),
-        DataCell(Text(e.stocksManila)),
-        DataCell(Text(e.stocksCebu)),
+        DataCell(Text(e.stocksManila.toString())),
+        DataCell(Text(e.stocksCebu.toString())),
         DataCell(Text(e.expiryDate.toString())),
-        DataCell(Text(e.expiryDate!.difference(DateTime.now()).inDays.toString(), style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),)),
+        DataCell(Text(DateTime.parse(e.expiryDate).difference(DateTime.now()).inDays.toString(),style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),)),
       ],
       color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
         final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue

@@ -1,44 +1,49 @@
-import 'dart:convert';
-
-class DataParsingException implements Exception {
-  final String message;
-  DataParsingException(this.message);
-  @override
-  String toString() => 'DataParsingException: $message';
-}
+import 'dart:typed_data';
 
 class PurchaseOrder {
-  final String purchaseOrderCode;
-  final String? itemCode;
-  final String? purchaseOrderFile;
-  final String? suppliersPackingList;
-  final int quantityPurchased;
-  final DateTime orderDate;
-  final DateTime expectedDeliveryDate;
-  final double cost;
-  final String? addedBy;
-  final DateTime? dateTimeAdded;
-  final bool hasPurchaseOrderFile;
-  final bool hasSuppliersPackingList;
+  String itemCode;
+  String brand;
+  String productDescription;
+  String lotSerialNumber;
+  Uint8List? purchaseOrderFile;
+  Uint8List? suppliersPackingList;
+  Uint8List? inventoryOfDeliveredItems;
+  DateTime orderDate;
+  String drSIReferenceNum;
 
   PurchaseOrder({
-    required this.purchaseOrderCode,
-    this.itemCode,
+    required this.itemCode,
+    required this.brand,
+    required this.productDescription,
+    required this.lotSerialNumber,
     this.purchaseOrderFile,
     this.suppliersPackingList,
-    required this.quantityPurchased,
+    this.inventoryOfDeliveredItems,
     required this.orderDate,
-    required this.expectedDeliveryDate,
-    required this.cost,
-    this.addedBy,
-    this.dateTimeAdded,
-    this.hasPurchaseOrderFile = false,
-    this.hasSuppliersPackingList = false,
+    required this.drSIReferenceNum,
   });
 
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
-    if (json['purchaseOrderCode'] == null) {
-      throw DataParsingException('Purchase order code is null from API response');
+    try {
+      return PurchaseOrder(
+        itemCode: json['itemCode'],
+        brand: json['brand'],
+        productDescription: json['productDescription'],
+        lotSerialNumber: json['lotSerialNumber'],
+        purchaseOrderFile: json['purchaseOrderFile'] != null 
+            ? Uint8List.fromList(List<int>.from(json['purchaseOrderFile']))
+            : null,
+        suppliersPackingList: json['suppliersPackingList'] != null
+            ? Uint8List.fromList(List<int>.from(json['suppliersPackingList']))
+            : null,
+        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
+            ? Uint8List.fromList(List<int>.from(json['inventoryOfDeliveredItems']))
+            : null,
+        orderDate: DateTime.parse(json['orderDate']),
+        drSIReferenceNum: json['drSIReferenceNum'],
+      );
+    } catch (e) {
+      throw DataParsingException('Error parsing PurchaseOrder from JSON: $e');
     }
     return PurchaseOrder(
       purchaseOrderCode: json['purchaseOrderCode'],
@@ -56,18 +61,23 @@ class PurchaseOrder {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'purchaseOrderCode': purchaseOrderCode,
-      'itemCode': itemCode,
-      'purchaseOrderFile': purchaseOrderFile,
-      'suppliersPackingList': suppliersPackingList,
-      'quantityPurchased': quantityPurchased,
-      'orderDate': orderDate.toIso8601String(),
-      'expectedDeliveryDate': expectedDeliveryDate.toIso8601String(),
-      'cost': cost,
-      'addedBy': addedBy,
-      'dateTimeAdded': dateTimeAdded?.toIso8601String(),
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    'itemCode': itemCode,
+    'brand': brand,
+    'productDescription': productDescription,
+    'lotSerialNumber': lotSerialNumber,
+    'purchaseOrderFile': purchaseOrderFile?.toList(),
+    'suppliersPackingList': suppliersPackingList?.toList(),
+    'inventoryOfDeliveredItems': inventoryOfDeliveredItems?.toList(),
+    'orderDate': orderDate.toIso8601String(),
+    'drSIReferenceNum': drSIReferenceNum,
+  };
+}
+
+class DataParsingException implements Exception {
+  final String message;
+  DataParsingException(this.message);
+  @override
+  String toString() => 'DataParsingException: $message';
+
 }

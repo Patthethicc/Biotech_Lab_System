@@ -100,11 +100,11 @@ public class UserService {
 
     public User updateUser(User user) {
         try {
-            if (user.getUser_id() == null) {
+            if (user.getUserId() == null) {
                 throw new InvalidUserDataException("User ID is required for update");
             }
             
-            User existingUser = getUserById(user.getUser_id());
+            User existingUser = getUserById(user.getUserId());
             
             validateUserData(user);
             
@@ -115,7 +115,7 @@ public class UserService {
             }
             
             User updatedUser = userRepository.save(user);
-            logger.info("User updated successfully with ID: " + user.getUser_id());
+            logger.info("User updated successfully with ID: " + user.getUserId());
             return updatedUser;
             
         } catch (UserNotFoundException | UserAlreadyExistsException | InvalidUserDataException e) {
@@ -179,7 +179,7 @@ public class UserService {
                 request.setPassword("password");
                 
                 try {
-                    request.setToken(jwtService.generateToken(stored_User.getUser_id()));
+                    request.setToken(jwtService.generateToken(stored_User.getUserId()));
                 } catch (Exception e) {
                     throw new JwtTokenException("Failed to generate authentication token");
                 }

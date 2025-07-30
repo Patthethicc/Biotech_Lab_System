@@ -1,13 +1,10 @@
 package com.biotech.lis.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -29,6 +26,9 @@ public class TransactionEntryService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    InventoryService inventoryService;
+
     @Transactional // rolls back automatically if any exception occurs
     public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
 
@@ -46,6 +46,8 @@ public class TransactionEntryService {
         TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
+        inventoryService.addInventory(savedEntry);
+
         return savedEntry;
     }
  
@@ -68,10 +70,20 @@ public class TransactionEntryService {
             throw new IllegalArgumentException("Transaction not found with ID: " + transactionEntry.getDrSIReferenceNum());
         }
 
+        Integer prevQty = getTransactionEntryById(transactionEntry.getDrSIReferenceNum()).get().getQuantity();
+
         User user = getCurrentUser();
         setAuditFields(transactionEntry, user);
+        TransactionEntry updatedEntry = transactionEntryRepository.save(transactionEntry);
+        if(prevQty > transactionEntry.getQuantity()) {
+            stockLocatorService.updateStockFromTransaction(updatedEntry, true);
+        } else {
+            stockLocatorService.updateStockFromTransaction(updatedEntry, false);
+        }
 
-        return transactionEntryRepository.save(transactionEntry);
+        inventoryService.updateInventoryTrns(updatedEntry);
+
+        return updatedEntry;
     }
     
     @Transactional

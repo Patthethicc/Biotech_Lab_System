@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:frontend/models/api/combined_entry.dart';
 import 'package:http/http.dart' as http;
 import '../models/api/transaction_entry.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:file_picker/file_picker.dart';
 
 class TransactionEntryService {
   final String baseUrl = dotenv.env['API_URL']!;
@@ -22,13 +25,31 @@ class TransactionEntryService {
 
   Future<http.Response> submitTransactionEntry(Map<String, dynamic> newEntry) async {
     String? token = await storage.read(key: 'jwt_token');
-    final response = await http.post(
+
+    CombinedEntry entry = CombinedEntry.fromJson(newEntry);
+
+    final response1 = await http.post(
       Uri.parse('$baseUrl/transaction/createTransactionEntry'),
       headers: {'Content-Type': 'application/json',
           'Authorization': 'Bearer $token'},
-      body: jsonEncode(newEntry),
+      body: jsonEncode(entry.toTransactionEntry()),
     );
-    return response;
+
+    await Future.delayed(Duration(seconds: 10));
+
+    final response2 = await http.post(
+      Uri.parse('$baseUrl/PO/v1/addPO'),
+      headers: {'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token'},
+      body: jsonEncode(entry.toPurchaseOrder()),
+    );
+
+    return response1;
+  }
+
+  Future<Uint8List?> pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    return result?.files.first.bytes;
   }
 
   Future<http.Response> updateTransactionEntry(String id, Map<String, dynamic> updatedEntry) async {

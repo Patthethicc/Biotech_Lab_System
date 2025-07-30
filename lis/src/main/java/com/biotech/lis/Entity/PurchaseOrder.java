@@ -19,26 +19,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Table(name = "`purchaseOrder`")
 public class PurchaseOrder {
     @Id
-    private String purchaseOrderCode;
     private String itemCode;
+    private String brand;
+    private String productDescription;
+    private String lotSerialNumber;
     @Lob
     private byte[] purchaseOrderFile;
     @Lob
     private byte[] suppliersPackingList;
-    private int quantityPurchased;
+    @Lob
+    private byte[] inventoryOfDeliveredItems;
     private LocalDate orderDate;
-    private LocalDate expectedDeliveryDate;
-    private double cost;
     private String addedBy;
     private LocalDateTime dateTimeAdded;
-
-    @JsonProperty("hasPurchaseOrderFile")
-    public boolean hasPurchaseOrderFile() {
-        return this.purchaseOrderFile != null && this.purchaseOrderFile.length > 0;
-    }
-
-    @JsonProperty("hasSuppliersPackingList")
-    public boolean hasSuppliersPackingList() {
-        return this.suppliersPackingList != null && this.suppliersPackingList.length > 0;
-    }
+    private String drSIReferenceNum;
 }

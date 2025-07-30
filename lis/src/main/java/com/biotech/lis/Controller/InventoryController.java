@@ -18,11 +18,13 @@ public class InventoryController {
         this.inventoryService = inventoryService;
     }
 
-    @PostMapping("/addInv")
+    //For future reference
+
+    /*@PostMapping("/addInv")
     public ResponseEntity<Inventory> addInventory(@RequestBody Inventory inventory) {
         Inventory savedInventory = inventoryService.addInventory(inventory);
         return ResponseEntity.ok(savedInventory);
-    }
+    }*/
 
     @GetMapping("/getInv/{id}")
     public ResponseEntity<Inventory> getInvById(@PathVariable("id") Integer invId) {
@@ -38,7 +40,7 @@ public class InventoryController {
 
     @PutMapping("/updateInv")
     public ResponseEntity<Inventory> updateInventory(@RequestBody Inventory inventory) {
-        Inventory updatedInv = inventoryService.updateInventory(inventory);
+        Inventory updatedInv = inventoryService.updateInventoryInv(inventory);
         return ResponseEntity.ok(updatedInv);
     }
 

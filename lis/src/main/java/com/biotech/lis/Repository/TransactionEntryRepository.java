@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import com.biotech.lis.Entity.TransactionEntry;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Repository
@@ -39,4 +39,6 @@ public interface TransactionEntryRepository extends JpaRepository<TransactionEnt
     // Count transactions for current year
     @Query("SELECT COUNT(t) FROM TransactionEntry t WHERE YEAR(t.transactionDate) = YEAR(CURRENT_DATE)")
     int countCurrentYearTransactions();
+
+    List<TransactionEntry> findByTransactionDateBetween(Date startDate, Date endDate);
 }

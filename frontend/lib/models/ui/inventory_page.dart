@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
-import 'package:frontend/models/api/item_model.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:frontend/services/item_details_service.dart';
 import 'package:intl/intl.dart'; 
 
 class _NeumorphicNavButton extends StatefulWidget {
@@ -79,7 +77,6 @@ class DataTemplate extends StatefulWidget {
 
 class _DataTemplateState extends State<DataTemplate> {
   final inventoryService = InventoryService();
-  final itemDetailsService = ItemDetailsService();
 
   List<Inventory> _allInventories = [];
   List<Inventory> _displayInventories = [];
@@ -172,270 +169,6 @@ class _DataTemplateState extends State<DataTemplate> {
       }
     }
     return false;
-  }
-
-  // leave invID 0 if ur in write mode
-  void showAddDialogue(String mode, int invID) {
-    final formKey = GlobalKey<FormState>();
-
-    final itemCodeController = TextEditingController();
-    final brandController = TextEditingController();
-    final productDescController = TextEditingController();
-    final lotSerialNumController = TextEditingController();
-    final expiryDateController = TextEditingController();
-    final stocksManilaController = TextEditingController();
-    final stocksCebuController = TextEditingController();
-    final purchaseOrderRefController = TextEditingController();
-    final supplierPackingListController = TextEditingController();
-    final drsiReferenceNumberController = TextEditingController();
-    final addedByController = TextEditingController();
-
-    bool isWriteMode = false;
-    if(mode == "Write"){
-      isWriteMode = true;
-    }
-
-    showDialog(context: context, 
-    builder: (context) {
-      return AlertDialog(
-        title: Text(isWriteMode ? 'Add Inventory Data' : 'Edit Inventory Data'),
-        content: SizedBox(
-          width: 500,
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-
-                  TextFormField(
-                    controller: itemCodeController,
-                    decoration: InputDecoration(
-                      labelText: "Item Code"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || checkItemCodeDuplicate(value)) {
-                        return 'Enter a valid item code';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: brandController,
-                    decoration: const InputDecoration(
-                      labelText: "Brand"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid brand';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: productDescController,
-                    decoration: const InputDecoration(
-                      labelText: "Product Description"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Product Description';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    controller: lotSerialNumController,
-                    decoration: const InputDecoration(
-                      labelText: "Lot/Serial num"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid brand';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    readOnly: true,  // Prevent manual text entrys
-                    decoration: InputDecoration(
-                      labelText: 'Expiry Date',
-                      suffixIcon: Icon(Icons.calendar_today),
-                      hintText: 'Tap to select date',
-                    ),
-                    onTap: () async {
-                      
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-
-                      );
-
-                      
-                      if (picked != null) {
-                        expiryDateController.text = DateFormat('yyyy-MM-dd').format(picked);
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a date';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: stocksManilaController,
-                    decoration: InputDecoration(
-                      labelText: isWriteMode ? "Stocks Manila" : "Quantity on hand"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || int.parse(value) < 0) {
-                        return isWriteMode ? 'Enter a valid stock number' : 'Enter a valid quantity';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: stocksCebuController,
-                    decoration: const InputDecoration(
-                      labelText: "Stocks Cebu"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || int.parse(value) < 0) {
-                        return 'Enter a valid stock number';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    controller: purchaseOrderRefController,
-                    decoration: const InputDecoration(
-                      labelText: "Purchase Order Reference"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Reference';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    controller: supplierPackingListController,
-                    decoration: const InputDecoration(
-                      labelText: "Supplier Packing List"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Packing List';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  isWriteMode ? SizedBox(): TextFormField(
-                    controller: addedByController,
-                    decoration: const InputDecoration(
-                      labelText: "Added by"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid String';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: drsiReferenceNumberController,
-                    decoration: const InputDecoration(
-                      labelText: "drsi Reference Number"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Packing List';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              
-              Item newItem = Item(
-                itemCode: itemCodeController.text,
-                brand: brandController.text,
-                productDescription: productDescController.text,
-                lotSerialNumber: lotSerialNumController.text,
-                expiryDate: DateTime.parse(expiryDateController.text),
-                stocksManila: stocksManilaController.text,
-                stocksCebu: stocksCebuController.text,
-                purchaseOrderReferenceNumber: purchaseOrderRefController.text,
-                supplierPackingList: supplierPackingListController.text,
-                drsiReferenceNumber: drsiReferenceNumberController.text
-              );
-
-              print(itemCodeController.text);
-
-              Inventory updatedInventory = Inventory(
-                inventoryID: invID,
-                itemCode: itemCodeController.text,
-                brand: brandController.text,
-                quantityOnHand: int.parse(stocksManilaController.text),
-                addedBy: addedByController.text,
-                dateTimeAdded: expiryDateController.text
-              );
-
-              if(mode == "Write") {
-                await itemDetailsService.createInventory(newItem);
-              } else if(mode == "Edit") {
-                print(updatedInventory.dateTimeAdded);
-                await inventoryService.updateInventory(updatedInventory);
-              }
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                builder: (BuildContext context) => super.widget));
-              },
-            child: const Text("Add")
-          )
-        ],
-      );
-    });
   }
   
   @override
@@ -530,7 +263,7 @@ class _DataTemplateState extends State<DataTemplate> {
                       onEnter: (_) => setState(() => _isHovered = true),
                       onExit: (_) => setState(() => _isHovered = false),
                       child: NeumorphicButton(
-                        onPressed: () => showAddDialogue("Write", 0),
+                        //onPressed: () => showAddDialogue("Write", 0),
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // smaller height
                         style: NeumorphicStyle(
                           depth: _isHovered ? -4 : 4,
@@ -579,7 +312,12 @@ class _DataTemplateState extends State<DataTemplate> {
                             DataColumn(label: Text("ID", style: TextStyle(color: Colors.white))),
                             DataColumn(label: Text("Item Code", style: TextStyle(color: Colors.white))),
                             DataColumn(label: Text("Brand", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("On Hand", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Product Description", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Lot Serial Number", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Cost", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Expiry Date", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Stocks Manila", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Stocks Cebu", style: TextStyle(color: Colors.white))),
                             DataColumn(label: Text("Added By", style: TextStyle(color: Colors.white))),
                             DataColumn(label: Text("Date Added", style: TextStyle(color: Colors.white))),
                           ],
@@ -632,7 +370,7 @@ class _DataTemplateState extends State<DataTemplate> {
             IconButton(
               icon: Icon(Icons.edit),
               onPressed: () {
-                showAddDialogue("Edit", e.inventoryID!.toInt());
+                //showAddDialogue("Edit", e.inventoryID!.toInt());
               },
             )
             ]
@@ -640,7 +378,12 @@ class _DataTemplateState extends State<DataTemplate> {
         DataCell(Text(e.inventoryID.toString())),
         DataCell(Text(e.itemCode)),
         DataCell(Text(e.brand)),
-        DataCell(Text(e.quantityOnHand.toString())),
+        DataCell(Text(e.productDescription)),
+        DataCell(Text(e.lotSerialNumber)),
+        DataCell(Text(e.cost.toString())),
+        DataCell(Text(e.expiryDate.toString().split(' ')[0])),
+        DataCell(Text(e.stocksManila.toString())),
+        DataCell(Text(e.stocksCebu.toString())),
         DataCell(Text(e.addedBy)),
         DataCell(Text(e.dateTimeAdded.toString().split(' ')[0])),
       ],
