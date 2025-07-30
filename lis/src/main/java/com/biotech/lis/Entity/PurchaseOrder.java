@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Data
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 public class PurchaseOrder {
     @Id
     private String purchaseOrderCode;
+    private String itemCode;
     @Lob
     private byte[] purchaseOrderFile;
     @Lob
@@ -29,4 +31,14 @@ public class PurchaseOrder {
     private double cost;
     private String addedBy;
     private LocalDateTime dateTimeAdded;
+
+    @JsonProperty("hasPurchaseOrderFile")
+    public boolean hasPurchaseOrderFile() {
+        return this.purchaseOrderFile != null && this.purchaseOrderFile.length > 0;
+    }
+
+    @JsonProperty("hasSuppliersPackingList")
+    public boolean hasSuppliersPackingList() {
+        return this.suppliersPackingList != null && this.suppliersPackingList.length > 0;
+    }
 }

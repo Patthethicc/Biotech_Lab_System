@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:frontend/models/api/purchase_order.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:typed_data';
 
-// Exception for network errors
 class NetworkException implements Exception {
   final String message;
   NetworkException(this.message);
@@ -31,7 +31,7 @@ class PurchaseOrderService {
       if (e is FormatException) {
         throw DataParsingException('Invalid JSON response: $e');
       }
-      rethrow; // Rethrow other exceptions like NetworkException or SocketException
+      rethrow; 
     }
   }
 
@@ -74,8 +74,26 @@ class PurchaseOrderService {
         Uri.parse('$baseUrl/PO/v1/deletePO/$purchaseOrderCode'),
         headers:{'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       );
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 && response.statusCode != 204) {
         throw NetworkException('Failed to delete purchase order: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> downloadFile(String endpointPath) async {
+    String? token = await storage.read(key: 'jwt_token');
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl$endpointPath'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      } else {
+        throw NetworkException('File not found or failed to download: ${response.statusCode}');
       }
     } catch (e) {
       rethrow;

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class PurchaseOrderService {
@@ -27,6 +28,10 @@ public class PurchaseOrderService {
         validatePurchaseOrderCode(purchaseOrder.getPurchaseOrderCode());
         if (purchaseOrderRepository.existsById(purchaseOrder.getPurchaseOrderCode())) {
             throw new IllegalArgumentException("Purchase order already exists with code: " + purchaseOrder.getPurchaseOrderCode());
+        }
+
+        if (purchaseOrder.getItemCode() == null || purchaseOrder.getItemCode().trim().isEmpty()) {
+            purchaseOrder.setItemCode(UUID.randomUUID().toString());
         }
 
         User user = getCurrentUser();
@@ -48,14 +53,23 @@ public class PurchaseOrderService {
         validatePurchaseOrder(purchaseOrder);
         validatePurchaseOrderCode(purchaseOrder.getPurchaseOrderCode());
 
-        if (!purchaseOrderRepository.existsById(purchaseOrder.getPurchaseOrderCode())) {
-            throw new IllegalArgumentException("Purchase order not found with code: " + purchaseOrder.getPurchaseOrderCode());
-        }
+        PurchaseOrder existingOrder = purchaseOrderRepository.findById(purchaseOrder.getPurchaseOrderCode())
+                .orElseThrow(() -> new IllegalArgumentException("Purchase order not found with code: " + purchaseOrder.getPurchaseOrderCode()));
 
         User user = getCurrentUser();
-        setAuditFields(purchaseOrder, user);
 
-        return purchaseOrderRepository.save(purchaseOrder);
+        existingOrder.setPurchaseOrderFile(purchaseOrder.getPurchaseOrderFile());
+        existingOrder.setSuppliersPackingList(purchaseOrder.getSuppliersPackingList());
+        existingOrder.setQuantityPurchased(purchaseOrder.getQuantityPurchased());
+        existingOrder.setOrderDate(purchaseOrder.getOrderDate());
+        existingOrder.setExpectedDeliveryDate(purchaseOrder.getExpectedDeliveryDate());
+        existingOrder.setCost(purchaseOrder.getCost());
+        
+        existingOrder.setAddedBy(user.getFirstName() + " " + user.getLastName());
+        existingOrder.setDateTimeAdded(LocalDateTime.now());
+
+
+        return purchaseOrderRepository.save(existingOrder);
     }
 
     @Transactional
