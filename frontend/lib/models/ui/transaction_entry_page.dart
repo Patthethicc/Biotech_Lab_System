@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/brand.dart';
+import 'package:frontend/services/brand_service.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
 import 'package:frontend/services/transaction_entry_service.dart';
@@ -76,14 +78,19 @@ class TransactionEntryPage extends StatefulWidget {
 
 class _TransactionEntryPageState extends State<TransactionEntryPage> {
   final TransactionEntryService _service = TransactionEntryService();
+  final BrandService _brandService = BrandService();
   final TextEditingController _referenceController = TextEditingController();
   late final TextEditingController _itemSearchController;
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _costController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _itemDescriptionController = TextEditingController();
+  final TextEditingController _lotNumberController = TextEditingController();
   List<TransactionEntry> _records = [];
   List<TransactionEntry> _allRecords = [];
   List<TransactionEntry> _displayRecords = [];
+  List<Brand> _brandsNotStr = [];
+  List<String> _brands = [];
   bool _isLoading = true;
   bool _isHovered = false;
 
@@ -95,8 +102,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   DateTime? _selectedTransactionDate;
   DateTime? _automaticExpiryDate;
   String? _selectedBrand;
-  String? _selectedItemDescription;
-  int? _selectedLotNumber;
   String? _selectedStockLocation;
   Uint8List? _poFile;
   Uint8List? _packingListFile;
@@ -110,8 +115,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   bool _referenceExists = false;
   String? _referenceError;
 
-  final List<String> _brands = ['Anbio', 'Biorex', 'Bioelab', 'Bioway', 'Biobase', 'Dymind', 'DH', 'Ediagnosis', 'Genrui',
-    'Lifotronic', 'Mindray', 'Olympus', 'Render', 'Rayto', 'Uniper'];
+  Future<void> _loadBrands() async {
+    final brands = await _brandService.getBrands();
+    setState(() {
+      _brandsNotStr = brands;
+    });
+    _brands = _brandsNotStr.map((e) => e.toString()).toList();
+  }
+
   final List<String> _stockLocations = [
     'Lazcano Ref 1',
     'Lazcano Ref 2',
@@ -122,42 +133,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     'Cebu'
   ];
 
-  final Map<String, List<int>> _lotNumbers = {
-    'Anbio': [1001, 1002, 1003, 1004],
-    'Biorex': [2001, 2002, 2003, 2004], 
-    'Bioelab': [3001, 3002, 3003, 3004], 
-    'Bioway': [4001, 4002, 4003, 4004], 
-    'Biobase': [5001, 5002, 5003, 5004], 
-    'Dymind': [6001, 6002, 6003, 6004],
-    'DH': [7001, 7002, 7003, 7004],
-    'Ediagnosis': [8001, 8002, 8003, 8004],
-    'Genrui': [9001, 9002, 9003, 9004],
-    'Lifotronic': [10001, 10002, 10003, 10004],
-    'Mindray': [11001, 11002, 11003, 11004],
-    'Olympus': [12001, 12002, 12003, 12004],
-    'Render': [13001, 13002, 13003, 13004],
-    'Rayto': [14001, 14002, 14003, 14004],
-    'Uniper': [15001, 15002, 15003, 15004],
-  };
-
-  List<String> _allItems = [
-    'Laptop Pro 15-inch',
-    'Cholesterol 120ml',
-    'ALT Test Kit',
-    'Blood Glucose Strips',
-    'Microscope Slides',
-    'Petri Dishes',
-    'Lab Gloves',
-    'Centrifuge Tubes',
-    'Pipette Tips',
-    'Chemical Reagents'
-  ];
-
   @override
   void initState() {
     super.initState();
     _itemSearchController = TextEditingController();
     _fetchRecords();
+    _loadBrands();
     _searchController.addListener(_filterRecords);
   }
 
@@ -356,18 +337,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     });
   }
 
-  void _calculateExpiryDate() {
-    if (_selectedBrand != null && _selectedItemDescription != null && _allItems.contains(_selectedItemDescription)) {
-      setState(() {
-        _automaticExpiryDate = DateTime.now().add(const Duration(days: 730));
-      });
-    } else {
-      setState(() {
-        _automaticExpiryDate = null;
-      });
-    }
-  }
-
   Future<void> _pickFile(String type) async {
   final fileBytes = await _service.pickFile();
   if (fileBytes != null) {
@@ -383,7 +352,6 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
   Future<void> _submitData() async {
     if (_selectedTransactionDate == null || _selectedBrand == null ||
-        _selectedItemDescription == null || _selectedLotNumber == null ||
         _automaticExpiryDate == null || _selectedStockLocation == null ||
         int.tryParse(_quantityController.text) == null || double.tryParse(_costController.text) == null) {
       _showErrorDialog(['One or more fields are missing or invalid.']);
@@ -394,8 +362,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       "drSIReferenceNum": _referenceController.text,
       "transactionDate": _selectedTransactionDate!.toIso8601String(),
       "brand": _selectedBrand,
-      "productDescription": _selectedItemDescription,
-      "lotSerialNumber": _selectedLotNumber,
+      "productDescription": _itemDescriptionController,
+      "lotSerialNumber": _lotNumberController,
       "expiryDate": _automaticExpiryDate!.toIso8601String(),
       "cost": double.parse(_costController.text),
       "quantity": int.parse(_quantityController.text),
@@ -477,11 +445,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _itemSearchController.clear();
     _quantityController.clear();
     _costController.clear();
+    _itemDescriptionController.clear();
+    _lotNumberController.clear();
     _selectedTransactionDate = null;
     _automaticExpiryDate = null;
     _selectedBrand = null;
-    _selectedItemDescription = null;
-    _selectedLotNumber = null;
     _referenceError = null;
     _referenceExists = false;
     _isValidatingReference = false;
@@ -556,109 +524,40 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                           prefixIcon: Icon(Icons.arrow_drop_down),
                         ),
                         items: _brands.map((String brand) {
-                          return DropdownMenuItem<String>(
-                            value: brand,
-                            child: Text(brand),
-                          );
-                        }).toList(),
+                              return DropdownMenuItem<String>(
+                                value: brand,
+                                child: Text(brand),
+                              );
+                            }).toList(),
                         onChanged: (String? newValue) {
                           setState(() {
-                            _selectedBrand = newValue;
-                            _selectedLotNumber = null; 
+                            _selectedBrand = newValue; 
                           });
-                          _calculateExpiryDate();
                         },
                       ),
                       const SizedBox(height: 16),
 
-                      Autocomplete<String>(
-                        optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text == '') {
-                            return const Iterable<String>.empty();
-                          }
-                          return _allItems.where((String option) {
-                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                          });
-                        },
-                        onSelected: (String selection) {
-                          setState(() { 
-                            _selectedItemDescription = selection;
-                            _itemSearchController.text = selection; 
-                          });
-                          _calculateExpiryDate();
-                        },
-                        fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
-                          return TextField(
-                            controller: fieldTextEditingController,
-                            focusNode: fieldFocusNode,
-                            decoration: const InputDecoration(
-                              labelText: 'Item Description',
-                              hintText: 'Type or select an item',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.description),
-                            ),
-                            onChanged: (text) {
-                                setState(() { 
-                                  _selectedItemDescription = text;
-                                });
-                            },
-                          );
-                        },
-                        optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
-                          return Align(
-                            alignment: Alignment.topLeft,
-                            child: Material(
-                              elevation: 4.0,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: MediaQuery.of(context).size.width * 0.5, 
-                                ), 
-                                child: ListView.builder(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount: options.length,
-                                  itemBuilder: (BuildContext context, int index) {
-                                    final String option = options.elementAt(index);
-                                    return GestureDetector(
-                                      onTap: () {
-                                        onSelected(option);
-                                      },
-                                      child: ListTile(
-                                        title: Text(option),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+                      TextField(
+                        controller: _itemDescriptionController,
+                        keyboardType: TextInputType.text,
+                        decoration: const InputDecoration(
+                          labelText: 'Item Description',
+                          hintText: 'Enter item description',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.edit), 
+                        ),
                       ),
                       const SizedBox(height: 16),
 
-                      DropdownButtonFormField<int>(
-                        value: _selectedLotNumber,
+                      TextField(
+                        controller: _lotNumberController,
+                        keyboardType: TextInputType.text,
                         decoration: const InputDecoration(
                           labelText: 'Lot Number',
+                          hintText: 'Enter lot number',
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.arrow_drop_down), 
+                          prefixIcon: Icon(Icons.edit), 
                         ),
-                        items: _selectedBrand != null && _lotNumbers.containsKey(_selectedBrand)
-                            ? _lotNumbers[_selectedBrand]!.map((int lotNumber) {
-                                return DropdownMenuItem<int>(
-                                  value: lotNumber,
-                                  child: Text(lotNumber.toString()),
-                                );
-                              }).toList()
-                            : [], 
-                        onChanged: _selectedBrand != null && _lotNumbers.containsKey(_selectedBrand)
-                            ? (int? newValue) {
-                                setState(() { 
-                                  _selectedLotNumber = newValue;
-                                });
-                                _calculateExpiryDate();
-                              }
-                            : null, 
                       ),
                       const SizedBox(height: 16),
 
@@ -840,13 +739,10 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     if (_selectedBrand == null) {
       errors.add('Brand is required');
     }
-    if (_selectedItemDescription == null || _selectedItemDescription!.isEmpty) {
+    if (_itemDescriptionController.text.trim().isEmpty) {
       errors.add('Item Description is required');
     }
-    if (_selectedBrand != null && !_lotNumbers.containsKey(_selectedBrand)) {
-      errors.add('Lot numbers are not defined for the selected brand.');
-    }
-    if (_selectedLotNumber == null) {
+    if (_lotNumberController.text.trim().isEmpty) {
       errors.add('Lot Number is required');
     }
     if (_automaticExpiryDate == null) {
@@ -943,8 +839,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                   Text('Reference: ${_referenceController.text}'),
                   Text('Transaction Date: ${_selectedTransactionDate != null ? DateFormat('yyyy-MM-dd').format(_selectedTransactionDate!) : 'N/A'}'),
                   Text('Brand: ${_selectedBrand ?? 'N/A'}'),
-                  Text('Item: ${_selectedItemDescription ?? 'N/A'}'),
-                  Text('Lot Number: ${_selectedLotNumber?.toString() ?? 'N/A'}'),
+                  Text('Item: ${_itemDescriptionController.text}'),
+                  Text('Lot Number: ${_lotNumberController.text}'),
                   Text('Expiry Date: ${_automaticExpiryDate != null ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!) : 'N/A'}'),
                   Text('Cost: ${_costController.text.isNotEmpty ? _costController.text : 'N/A'}'),
                   Text('Quantity: ${_quantityController.text.isNotEmpty ? _quantityController.text : 'N/A'}'),
@@ -992,8 +888,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _selectedTransactionDate = entry.transactionDate;
     _selectedBrand = entry.brand;
     _itemSearchController.text = entry.itemDescription;
-    _selectedItemDescription = entry.itemDescription;
-    _selectedLotNumber = int.tryParse(entry.lotNumber); 
+    _itemDescriptionController.text = entry.itemDescription;
+    _lotNumberController.text = entry.lotNumber; 
     _automaticExpiryDate = entry.expiryDate;
     _costController.text = entry.cost.toString();
     _quantityController.text = entry.quantity.toString();
@@ -1054,118 +950,29 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      DropdownButtonFormField<String>(
-                        value: _selectedBrand,
+                      TextField(
+                        controller: _itemDescriptionController,
+                        keyboardType: TextInputType.text,
                         decoration: const InputDecoration(
-                          labelText: 'Brand',
+                          labelText: 'Item Description',
+                          hintText: 'Enter item description',
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.arrow_drop_down),
+                          prefixIcon: Icon(Icons.edit), 
                         ),
-                        items: _brands.map((String brand) {
-                          return DropdownMenuItem<String>(
-                            value: brand,
-                            child: Text(brand),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedBrand = newValue;
-                            _selectedLotNumber = null;
-                          });
-                          _calculateExpiryDate();
-                        },
                       ),
                       const SizedBox(height: 16),
 
-                      Autocomplete<String>(
-                        optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text == '') {
-                            return const Iterable<String>.empty();
-                          }
-                          return _allItems.where((String option) {
-                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                          });
-                        },
-                        onSelected: (String selection) {
-                          setState(() {
-                            _selectedItemDescription = selection;
-                            _itemSearchController.text = selection;
-                          });
-                          _calculateExpiryDate();
-                        },
-                        fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController, FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
-                          return TextField(
-                            controller: fieldTextEditingController,
-                            focusNode: fieldFocusNode,
-                            decoration: const InputDecoration(
-                              labelText: 'Item Description',
-                              hintText: 'Type or select an item',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.description),
-                            ),
-                            onChanged: (text) {
-                                setState(() {
-                                  _selectedItemDescription = text;
-                                });
-                            },
-                          );
-                        },
-                        optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected, Iterable<String> options) {
-                          return Align(
-                            alignment: Alignment.topLeft,
-                            child: Material(
-                              elevation: 4.0,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: MediaQuery.of(context).size.width * 0.5,
-                                ),
-                                child: ListView.builder(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount: options.length,
-                                  itemBuilder: (BuildContext context, int index) {
-                                    final String option = options.elementAt(index);
-                                    return GestureDetector(
-                                      onTap: () {
-                                        onSelected(option);
-                                      },
-                                      child: ListTile(
-                                        title: Text(option),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      DropdownButtonFormField<int>(
-                        value: _selectedLotNumber,
+                      TextField(
+                        controller: _lotNumberController,
+                        keyboardType: TextInputType.text,
                         decoration: const InputDecoration(
                           labelText: 'Lot Number',
+                          hintText: 'Enter lot number',
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.arrow_drop_down),
+                          prefixIcon: Icon(Icons.edit), 
                         ),
-                        items: _selectedBrand != null && _lotNumbers.containsKey(_selectedBrand)
-                            ? _lotNumbers[_selectedBrand]!.map((int lotNumber) {
-                                return DropdownMenuItem<int>(
-                                  value: lotNumber,
-                                  child: Text(lotNumber.toString()),
-                                );
-                              }).toList()
-                            : [],
-                        onChanged: _selectedBrand != null && _lotNumbers.containsKey(_selectedBrand)
-                            ? (int? newValue) {
-                                setState(() {
-                                  _selectedLotNumber = newValue;
-                                });
-                                _calculateExpiryDate();
-                              }
-                            : null,
                       ),
+
                       const SizedBox(height: 16),
 
                       InkWell(
@@ -1279,13 +1086,10 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     if (_selectedBrand == null) {
       errors.add('Brand is required');
     }
-    if (_selectedItemDescription == null || _selectedItemDescription!.isEmpty) {
+    if (_itemDescriptionController.text.trim().isEmpty) {
       errors.add('Item Description is required');
     }
-    if (_selectedBrand != null && !_lotNumbers.containsKey(_selectedBrand)) {
-      errors.add('Lot numbers are not defined for the selected brand.');
-    }
-    if (_selectedLotNumber == null) {
+    if (_lotNumberController.text.trim().isEmpty) {
       errors.add('Lot Number is required');
     }
     if (_automaticExpiryDate == null) {
@@ -1319,8 +1123,8 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       "drSIReferenceNum": _referenceController.text,
       "transactionDate": _selectedTransactionDate!.toIso8601String(),
       "brand": _selectedBrand,
-      "productDescription": _selectedItemDescription,
-      "lotSerialNumber": _selectedLotNumber,
+      "productDescription": _itemDescriptionController,
+      "lotSerialNumber": _lotNumberController,
       "expiryDate": _automaticExpiryDate!.toIso8601String(),
       "quantity": int.parse(_quantityController.text),
       "stockLocation": _selectedStockLocation

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:intl/intl.dart'; 
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
