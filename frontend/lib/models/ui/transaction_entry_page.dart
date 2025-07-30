@@ -100,7 +100,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   final int _showAllValue = -1;
 
   DateTime? _selectedTransactionDate;
-  DateTime? _automaticExpiryDate;
+  DateTime? _selectedExpiryDate;
   String? _selectedBrand;
   String? _selectedStockLocation;
   Uint8List? _poFile;
@@ -352,7 +352,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
   Future<void> _submitData() async {
     if (_selectedTransactionDate == null || _selectedBrand == null ||
-        _automaticExpiryDate == null || _selectedStockLocation == null ||
+        _selectedExpiryDate == null || _selectedStockLocation == null ||
         int.tryParse(_quantityController.text) == null || double.tryParse(_costController.text) == null) {
       _showErrorDialog(['One or more fields are missing or invalid.']);
       return;
@@ -364,7 +364,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       "brand": _selectedBrand,
       "productDescription": _itemDescriptionController,
       "lotSerialNumber": _lotNumberController,
-      "expiryDate": _automaticExpiryDate!.toIso8601String(),
+      "expiryDate": _selectedExpiryDate!.toIso8601String(),
       "cost": double.parse(_costController.text),
       "quantity": int.parse(_quantityController.text),
       "stockLocation": _selectedStockLocation,
@@ -448,7 +448,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _itemDescriptionController.clear();
     _lotNumberController.clear();
     _selectedTransactionDate = null;
-    _automaticExpiryDate = null;
+    _selectedExpiryDate = null;
     _selectedBrand = null;
     _referenceError = null;
     _referenceExists = false;
@@ -565,27 +565,27 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                         onTap: () async {
                           final DateTime? picked = await showDatePicker(
                             context: context,
-                            initialDate: _automaticExpiryDate ?? DateTime.now().add(const Duration(days: 730)),
-                            firstDate: DateTime(2000),
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000), 
                             lastDate: DateTime(2100),
                           );
                           if (picked != null) {
                             setState(() {
-                              _automaticExpiryDate = picked;
+                              _selectedExpiryDate = picked;
                             });
                           }
                         },
                         child: InputDecorator(
                           decoration: const InputDecoration(
-                            labelText: 'Expiration Date',
+                            labelText: 'Expiry Date',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.edit),
                             suffixIcon: Icon(Icons.calendar_today),
                           ),
                           child: Text(
-                            _automaticExpiryDate != null
-                                ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!)
-                                : 'Select expiration date',
+                            _selectedExpiryDate != null
+                                ? DateFormat('yyyy-MM-dd').format(_selectedExpiryDate!)
+                                : 'Select expiry date',
                           ),
                         ),
                       ),
@@ -745,7 +745,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     if (_lotNumberController.text.trim().isEmpty) {
       errors.add('Lot Number is required');
     }
-    if (_automaticExpiryDate == null) {
+    if (_selectedExpiryDate == null) {
       errors.add('Expiry Date is required');
     }
     if (_quantityController.text.trim().isEmpty) {
@@ -841,7 +841,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                   Text('Brand: ${_selectedBrand ?? 'N/A'}'),
                   Text('Item: ${_itemDescriptionController.text}'),
                   Text('Lot Number: ${_lotNumberController.text}'),
-                  Text('Expiry Date: ${_automaticExpiryDate != null ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!) : 'N/A'}'),
+                  Text('Expiry Date: ${_selectedExpiryDate != null ? DateFormat('yyyy-MM-dd').format(_selectedExpiryDate!) : 'N/A'}'),
                   Text('Cost: ${_costController.text.isNotEmpty ? _costController.text : 'N/A'}'),
                   Text('Quantity: ${_quantityController.text.isNotEmpty ? _quantityController.text : 'N/A'}'),
                   Text('Stock Location: ${_selectedStockLocation ?? 'N/A'}'),
@@ -890,7 +890,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _itemSearchController.text = entry.itemDescription;
     _itemDescriptionController.text = entry.itemDescription;
     _lotNumberController.text = entry.lotNumber; 
-    _automaticExpiryDate = entry.expiryDate;
+    _selectedExpiryDate = entry.expiryDate;
     _costController.text = entry.cost.toString();
     _quantityController.text = entry.quantity.toString();
     _selectedStockLocation = entry.stockLocation; 
@@ -975,31 +975,31 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
                       const SizedBox(height: 16),
 
-                      InkWell(
+                     InkWell(
                         onTap: () async {
                           final DateTime? picked = await showDatePicker(
                             context: context,
-                            initialDate: _automaticExpiryDate ?? DateTime.now().add(const Duration(days: 730)),
-                            firstDate: DateTime(2000),
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(2000), 
                             lastDate: DateTime(2100),
                           );
                           if (picked != null) {
                             setState(() {
-                              _automaticExpiryDate = picked;
+                              _selectedExpiryDate = picked;
                             });
                           }
                         },
                         child: InputDecorator(
                           decoration: const InputDecoration(
-                            labelText: 'Expiration Date',
+                            labelText: 'Expiry Date',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.edit),
                             suffixIcon: Icon(Icons.calendar_today),
                           ),
                           child: Text(
-                            _automaticExpiryDate != null
-                                ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!)
-                                : 'Select expiration date',
+                            _selectedExpiryDate != null
+                                ? DateFormat('yyyy-MM-dd').format(_selectedExpiryDate!)
+                                : 'Select expiry date',
                           ),
                         ),
                       ),
@@ -1092,7 +1092,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     if (_lotNumberController.text.trim().isEmpty) {
       errors.add('Lot Number is required');
     }
-    if (_automaticExpiryDate == null) {
+    if (_selectedExpiryDate == null) {
       errors.add('Expiry Date is required');
     }
     if (_quantityController.text.trim().isEmpty) {
@@ -1125,7 +1125,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       "brand": _selectedBrand,
       "productDescription": _itemDescriptionController,
       "lotSerialNumber": _lotNumberController,
-      "expiryDate": _automaticExpiryDate!.toIso8601String(),
+      "expiryDate": _selectedExpiryDate!.toIso8601String(),
       "quantity": int.parse(_quantityController.text),
       "stockLocation": _selectedStockLocation
     };
