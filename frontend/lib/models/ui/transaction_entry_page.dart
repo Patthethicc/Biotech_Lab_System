@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
@@ -77,6 +79,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   final TextEditingController _referenceController = TextEditingController();
   late final TextEditingController _itemSearchController;
   final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _costController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   List<TransactionEntry> _records = [];
   List<TransactionEntry> _allRecords = [];
@@ -95,6 +98,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   String? _selectedItemDescription;
   int? _selectedLotNumber;
   String? _selectedStockLocation;
+  Uint8List? _poFile;
+  Uint8List? _packingListFile;
+  Uint8List? _inventoryFile;
   bool _dontAskAgain = false;
   TransactionEntry? _selectedEntryForEdit;
   Set<TransactionEntry> _selectedEntries = {};
@@ -362,11 +368,24 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     }
   }
 
+  Future<void> _pickFile(String type) async {
+  final fileBytes = await _service.pickFile();
+  if (fileBytes != null) {
+    setState(() {
+      switch (type) {
+        case 'po': _poFile = fileBytes; break;
+        case 'packing': _packingListFile = fileBytes; break;
+        case 'inventory': _inventoryFile = fileBytes; break;
+      }
+    });
+  }
+}
+
   Future<void> _submitData() async {
     if (_selectedTransactionDate == null || _selectedBrand == null ||
         _selectedItemDescription == null || _selectedLotNumber == null ||
         _automaticExpiryDate == null || _selectedStockLocation == null ||
-        int.tryParse(_quantityController.text) == null) {
+        int.tryParse(_quantityController.text) == null || double.tryParse(_costController.text) == null) {
       _showErrorDialog(['One or more fields are missing or invalid.']);
       return;
     }
@@ -378,8 +397,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       "productDescription": _selectedItemDescription,
       "lotSerialNumber": _selectedLotNumber,
       "expiryDate": _automaticExpiryDate!.toIso8601String(),
+      "cost": double.parse(_costController.text),
       "quantity": int.parse(_quantityController.text),
-      "stockLocation": _selectedStockLocation
+      "stockLocation": _selectedStockLocation,
+      "purchaseOrderFile": _poFile,
+      "suppliersPackingList": _packingListFile,
+      "inventoryOfDeliveredItems": _inventoryFile 
     };
 
     debugPrint(jsonEncode(newEntry)); 
@@ -453,6 +476,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _referenceController.clear();
     _itemSearchController.clear();
     _quantityController.clear();
+    _costController.clear();
     _selectedTransactionDate = null;
     _automaticExpiryDate = null;
     _selectedBrand = null;
@@ -461,7 +485,10 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _referenceError = null;
     _referenceExists = false;
     _isValidatingReference = false;
-    _selectedStockLocation = null; 
+    _selectedStockLocation = null;
+    _poFile = null;
+    _packingListFile = null;
+    _inventoryFile = null;
 
     showDialog(
       context: context,
@@ -666,6 +693,17 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       const SizedBox(height: 16),
 
                       TextField(
+                        controller: _costController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Cost',
+                          hintText: 'Enter cost per unit/pc',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.edit), 
+                        ),
+                      ),
+
+                      TextField(
                         controller: _quantityController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -695,6 +733,75 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                             _selectedStockLocation = newValue;
                           });
                         },
+                      ),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Purchase Order', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          OutlinedButton(
+                            onPressed: () => _pickFile('po'),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.upload_file),
+                                SizedBox(width: 8),
+                                Text(_poFile == null ? 'Upload File' : 'File Selected'),
+                              ],
+                            ),
+                          ),
+                          if (_poFile != null) Text(
+                            '${_poFile!.lengthInBytes / 1024} KB',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Supplier\'s Packing List', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          OutlinedButton(
+                            onPressed: () => _pickFile('packing'),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.upload_file),
+                                SizedBox(width: 8),
+                                Text(_packingListFile == null ? 'Upload File' : 'File Selected'),
+                              ],
+                            ),
+                          ),
+                          if (_packingListFile != null) Text(
+                            '${_packingListFile!.lengthInBytes / 1024} KB',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Inventory of Delivered Items', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          OutlinedButton(
+                            onPressed: () => _pickFile('inventory'),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.upload_file),
+                                SizedBox(width: 8),
+                                Text( _inventoryFile == null ? 'Upload File' : 'File Selected'),
+                              ],
+                            ),
+                          ),
+                          if ( _inventoryFile != null) Text(
+                            '${ _inventoryFile!.lengthInBytes / 1024} KB',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -749,6 +856,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       errors.add('Quantity is required');
     } else if (int.tryParse(_quantityController.text) == null || int.parse(_quantityController.text) <= 0) {
       errors.add('Quantity must be a valid positive number');
+    }
+    if (_costController.text.trim().isEmpty) {
+      errors.add('Cost is required');
+    } else if (double.tryParse(_costController.text) == null || double.parse(_costController.text) <= 0) {
+      errors.add('Cost must be a valid positive number');
     }
     if (_selectedStockLocation == null) {
       errors.add('Stock Location is required');
@@ -834,8 +946,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                   Text('Item: ${_selectedItemDescription ?? 'N/A'}'),
                   Text('Lot Number: ${_selectedLotNumber?.toString() ?? 'N/A'}'),
                   Text('Expiry Date: ${_automaticExpiryDate != null ? DateFormat('yyyy-MM-dd').format(_automaticExpiryDate!) : 'N/A'}'),
+                  Text('Cost: ${_costController.text.isNotEmpty ? _costController.text : 'N/A'}'),
                   Text('Quantity: ${_quantityController.text.isNotEmpty ? _quantityController.text : 'N/A'}'),
                   Text('Stock Location: ${_selectedStockLocation ?? 'N/A'}'),
+                  Text('Purchase Order File: ${_poFile ?? 'N/A'}'),
+                  Text('Supplier\'s Packing List File: ${_packingListFile ?? 'N/A'}'),
+                  Text('Inventory of Delivered Items File: ${_inventoryFile?? 'N/A'}'),
                   const SizedBox(height: 16),
                   CheckboxListTile(
                     title: const Text('Do not ask me again'),
@@ -879,6 +995,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _selectedItemDescription = entry.itemDescription;
     _selectedLotNumber = int.tryParse(entry.lotNumber); 
     _automaticExpiryDate = entry.expiryDate;
+    _costController.text = entry.cost.toString();
     _quantityController.text = entry.quantity.toString();
     _selectedStockLocation = entry.stockLocation; 
 
@@ -1082,6 +1199,18 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       const SizedBox(height: 16),
 
                       TextField(
+                        controller: _costController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Cost',
+                          hintText: 'Enter cost per unit/pc',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.edit), 
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      TextField(
                         controller: _quantityController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -1166,6 +1295,11 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
       errors.add('Quantity is required');
     } else if (int.tryParse(_quantityController.text) == null || int.parse(_quantityController.text) <= 0) {
       errors.add('Quantity must be a valid positive number');
+    }
+    if (_costController.text.trim().isEmpty) {
+      errors.add('Cost is required');
+    } else if (double.tryParse(_costController.text) == null || double.parse(_costController.text) <= 0) {
+      errors.add('Cost must be a valid positive number');
     }
     if (_selectedStockLocation == null) {
       errors.add('Stock Location is required');
@@ -1422,7 +1556,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Data Recording',
+          'Transaction Entry',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black,
@@ -1834,6 +1968,15 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                                       ),
                                       DataColumn(
                                         label: Text(
+                                          'Cost',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      DataColumn(
+                                        label: Text(
                                           'Quantity',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
@@ -1972,6 +2115,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final itemWidth = getColumnWidth(120, 1.5);
     final lotWidth = getColumnWidth(80, 1.0);
     final expiryWidth = getColumnWidth(90, 1.0);
+    final costWidth = getColumnWidth(60, 0.8);
     final quantityWidth = getColumnWidth(60, 0.8);
     final locationWidth = getColumnWidth(100, 1.2);
 
@@ -2055,6 +2199,18 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
             width: expiryWidth,
             child: Text(
               formatter.format(data.expiryDate),
+              softWrap: true,
+              style: TextStyle(
+                height: 1.2,
+                fontSize: screenWidth > 600 ? 14 : 12,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
+          DataCell(SizedBox(
+            width: costWidth,
+            child: Text(
+              data.quantity.toString(),
               softWrap: true,
               style: TextStyle(
                 height: 1.2,

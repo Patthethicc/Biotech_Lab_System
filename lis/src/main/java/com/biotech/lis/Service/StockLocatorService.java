@@ -6,7 +6,6 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.StockLocator;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Repository.StockLocatorRepository;

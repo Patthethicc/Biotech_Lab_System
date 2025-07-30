@@ -12,7 +12,6 @@ import 'models/ui/edit_profile.dart';
 import 'models/ui/purchase_order.dart';
 import 'models/ui/transaction_entry_page.dart';
 import 'models/ui/inventory_page.dart';
-import 'models/ui/item_details.dart';
 import 'models/ui/stock_locator.dart';
 
 void main() async{
@@ -41,7 +40,6 @@ class MyApp extends StatelessWidget{
         '/inventory': (context) => InventoryPage(),
         '/stock_locator': (context) => StockLocatorPage(),
         '/data_template': (context) => DataTemplate()
-        //item details 
       },
     );
   }

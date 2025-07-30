@@ -10,7 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.TransactionEntryRepository;

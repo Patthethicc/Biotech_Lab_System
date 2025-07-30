@@ -4,9 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.DTO.DashboardStatsDTO;
-import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
-import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 
 import java.time.LocalDate;
@@ -19,9 +17,6 @@ public class DashboardService {
     
     @Autowired
     private TransactionEntryRepository transactionRepository;
-    
-    @Autowired
-    private PurchaseOrderRepository purchaseOrderRepository;
     
     public DashboardStatsDTO getDashboardStats(String period, String date) {
         LocalDate startDate;

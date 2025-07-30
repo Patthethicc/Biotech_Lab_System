@@ -1,32 +1,46 @@
+import 'dart:typed_data';
+
 class PurchaseOrder {
-  String purchaseOrderCode;
-  String? purchaseOrderFile;
-  String? suppliersPackingList;
-  int quantityPurchased;
+  String itemCode;
+  String brand;
+  String productDescription;
+  String lotSerialNumber;
+  Uint8List? purchaseOrderFile;
+  Uint8List? suppliersPackingList;
+  Uint8List? inventoryOfDeliveredItems;
   DateTime orderDate;
-  DateTime expectedDeliveryDate;
-  double cost;
+  String drSIReferenceNum;
 
   PurchaseOrder({
-    required this.purchaseOrderCode,
+    required this.itemCode,
+    required this.brand,
+    required this.productDescription,
+    required this.lotSerialNumber,
     this.purchaseOrderFile,
     this.suppliersPackingList,
-    required this.quantityPurchased,
+    this.inventoryOfDeliveredItems,
     required this.orderDate,
-    required this.expectedDeliveryDate,
-    required this.cost,
+    required this.drSIReferenceNum,
   });
 
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
     try {
       return PurchaseOrder(
-        purchaseOrderCode: json['purchaseOrderCode'],
-        purchaseOrderFile: json['purchaseOrderFile'],
-        suppliersPackingList: json['suppliersPackingList'],
-        quantityPurchased: json['quantityPurchased'],
+        itemCode: json['itemCode'],
+        brand: json['brand'],
+        productDescription: json['productDescription'],
+        lotSerialNumber: json['lotSerialNumber'],
+        purchaseOrderFile: json['purchaseOrderFile'] != null 
+            ? Uint8List.fromList(List<int>.from(json['purchaseOrderFile']))
+            : null,
+        suppliersPackingList: json['suppliersPackingList'] != null
+            ? Uint8List.fromList(List<int>.from(json['suppliersPackingList']))
+            : null,
+        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
+            ? Uint8List.fromList(List<int>.from(json['inventoryOfDeliveredItems']))
+            : null,
         orderDate: DateTime.parse(json['orderDate']),
-        expectedDeliveryDate: DateTime.parse(json['expectedDeliveryDate']),
-        cost: (json['cost'] as num).toDouble(),
+        drSIReferenceNum: json['drSIReferenceNum'],
       );
     } catch (e) {
       throw DataParsingException('Error parsing PurchaseOrder from JSON: $e');
@@ -34,13 +48,15 @@ class PurchaseOrder {
   }
 
   Map<String, dynamic> toJson() => {
-    'purchaseOrderCode': purchaseOrderCode,
-    'purchaseOrderFile': purchaseOrderFile,
-    'suppliersPackingList': suppliersPackingList,
-    'quantityPurchased': quantityPurchased,
+    'itemCode': itemCode,
+    'brand': brand,
+    'productDescription': productDescription,
+    'lotSerialNumber': lotSerialNumber,
+    'purchaseOrderFile': purchaseOrderFile?.toList(),
+    'suppliersPackingList': suppliersPackingList?.toList(),
+    'inventoryOfDeliveredItems': inventoryOfDeliveredItems?.toList(),
     'orderDate': orderDate.toIso8601String(),
-    'expectedDeliveryDate': expectedDeliveryDate.toIso8601String(),
-    'cost': cost,
+    'drSIReferenceNum': drSIReferenceNum,
   };
 }
 
