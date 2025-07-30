@@ -33,18 +33,20 @@ public class InventoryService {
     @Autowired
     StockLocatorService stockLocatorService;
 
+    @Autowired
+    PurchaseOrderService purchaseOrderService;
+
+    @Autowired
+    TransactionEntryService transactionEntryService;
+
     @Transactional
     public Inventory addInventory(TransactionEntry transactionEntry) {
         Inventory inventory = new Inventory();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
-        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
-        if (brand == null) {
-            throw new EntityNotFoundException();
-        }
 
-        inventory.setItemCode(brandService.generateItemCode(brand));
+        inventory.setItemCode(transactionEntry.getItemCode());
         inventory.setBrand(transactionEntry.getBrand());
         inventory.setProductDescription(transactionEntry.getProductDescription());
         inventory.setLotSerialNumber(transactionEntry.getLotSerialNumber());
@@ -154,7 +156,15 @@ public class InventoryService {
     }
 
     public void deleteByInventoryId(Integer inventoryId) {
+        Inventory inventory = getInventoryById(inventoryId);
+        purchaseOrderService.deletePurchaseOrder(inventory.getItemCode());
+        transactionEntryService.deleteTransactionEntryByCode(inventory.getItemCode());
+
         inventoryRepository.deleteById(inventoryId);
+    }
+
+    public void deleteByInventoryItemCode(String itemCode) {
+        inventoryRepository.deleteByItemCode(itemCode);
     }
 
     public List<Inventory> getStockAlerts(Integer amount) {

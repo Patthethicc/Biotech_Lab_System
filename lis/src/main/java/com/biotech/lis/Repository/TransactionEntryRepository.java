@@ -10,6 +10,7 @@ import com.biotech.lis.Entity.TransactionEntry;
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TransactionEntryRepository extends JpaRepository<TransactionEntry, String> {
@@ -41,4 +42,8 @@ public interface TransactionEntryRepository extends JpaRepository<TransactionEnt
     int countCurrentYearTransactions();
 
     List<TransactionEntry> findByTransactionDateBetween(Date startDate, Date endDate);
+
+    void deleteByItemCode(String itemCode);
+
+    Optional<TransactionEntry> findByItemCode(String itemCode);
 }

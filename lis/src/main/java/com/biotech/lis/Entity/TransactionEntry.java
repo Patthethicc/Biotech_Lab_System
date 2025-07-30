@@ -46,6 +46,10 @@ public class TransactionEntry {
     @Column(name = "stockLocation")
     private String stockLocation;
 
+    //not to be shown in transaction table
+    @Column(name="itemCode")
+    private String itemCode;
+
     @Column(name = "addedBy")
     private String addedBy;
 

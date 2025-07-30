@@ -10,9 +10,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.TransactionEntryRepository;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class TransactionEntryService {
@@ -29,6 +32,12 @@ public class TransactionEntryService {
     @Autowired
     InventoryService inventoryService;
 
+    @Autowired
+    PurchaseOrderService purchaseOrderService;
+
+    @Autowired
+    BrandService brandService;
+
     @Transactional // rolls back automatically if any exception occurs
     public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
 
@@ -42,7 +51,13 @@ public class TransactionEntryService {
 
         User user = getCurrentUser();
         setAuditFields(transactionEntry, user);
+        
+        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
+        if (brand == null) {
+            throw new EntityNotFoundException();
+        }
 
+        transactionEntry.setItemCode(brandService.generateItemCode(brand));
         TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
@@ -54,6 +69,11 @@ public class TransactionEntryService {
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
         validateTransactionId(id);
         return transactionEntryRepository.findById(id);
+    }
+
+    public Optional<TransactionEntry> getTransactionEntryByCode(String code) {   
+        validateTransactionId(code);
+        return transactionEntryRepository.findByItemCode(code);
     }
 
     public List<TransactionEntry> getAllTransactionEntries() {
@@ -94,8 +114,17 @@ public class TransactionEntryService {
         if (!transactionEntryRepository.existsById(id)) {
             throw new IllegalArgumentException("Transaction not found with ID: " + id);
         }
-        
+        TransactionEntry transactionEntry = getTransactionEntryById(id).get();
+        inventoryService.deleteByInventoryItemCode(transactionEntry.getItemCode());
+        purchaseOrderService.deletePurchaseOrder(transactionEntry.getItemCode());
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
         transactionEntryRepository.deleteById(id);
+    }
+
+    public void deleteTransactionEntryByCode(String code) {
+        TransactionEntry transactionEntry = getTransactionEntryByCode(code).get();
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        transactionEntryRepository.deleteByItemCode(code);
     }
 
     public boolean existsById(String id) {

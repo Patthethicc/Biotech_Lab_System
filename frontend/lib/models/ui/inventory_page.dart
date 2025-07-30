@@ -120,7 +120,9 @@ class _DataTemplateState extends State<DataTemplate> {
           final itemCodeMatch =
               inventory.itemCode.toLowerCase().contains(query);
           final brandMatch = inventory.brand.toLowerCase().contains(query);
-          return itemCodeMatch || brandMatch;
+          final productDescription = inventory.productDescription.toLowerCase().trim().contains(query);
+          final lotSerialNumber = inventory.lotSerialNumber.toLowerCase().contains(query);
+          return itemCodeMatch || brandMatch || productDescription || lotSerialNumber;
         }).toList();
       } else {
         _displayInventories = List.from(_allInventories);
@@ -237,7 +239,7 @@ class _DataTemplateState extends State<DataTemplate> {
                                   child: TextField(
                                     controller: _searchController,
                                     decoration: const InputDecoration(
-                                      hintText: 'Search by Item Code or Brand',
+                                      hintText: 'Search by Item Code, Brand, Description or Lot field',
                                       border: InputBorder.none,
                                       isDense: true,
                                     ),

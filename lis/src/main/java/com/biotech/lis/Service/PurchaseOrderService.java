@@ -25,6 +25,12 @@ public class PurchaseOrderService {
     @Autowired
     BrandService brandService;
 
+    @Autowired
+    TransactionEntryService transactionEntryService;
+
+    @Autowired
+    InventoryService inventoryService;
+
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);
@@ -84,6 +90,8 @@ public class PurchaseOrderService {
         if (!purchaseOrderRepository.existsById(code)) {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
+        transactionEntryService.deleteTransactionEntryByCode(code);
+        inventoryService.deleteByInventoryItemCode(code);
         purchaseOrderRepository.deleteById(code);
     }
 

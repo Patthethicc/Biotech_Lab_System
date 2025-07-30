@@ -220,7 +220,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           final referenceMatch = record.reference.toLowerCase().contains(query);
           final brandMatch = record.brand.toLowerCase().contains(query);
           final itemMatch = record.itemDescription.toLowerCase().contains(query);
-          return referenceMatch || brandMatch || itemMatch;
+          final itemDescription = record.itemDescription.toLowerCase().trim().contains(query);
+          final lotNumber = record.lotNumber.toLowerCase().contains(query);
+          return referenceMatch || brandMatch || itemMatch || itemDescription || lotNumber;
         }).toList();
       } else {
         _displayRecords = List.from(_allRecords);
