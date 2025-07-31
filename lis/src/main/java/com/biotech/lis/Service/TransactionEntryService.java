@@ -33,9 +33,6 @@ public class TransactionEntryService {
     InventoryService inventoryService;
 
     @Autowired
-    PurchaseOrderService purchaseOrderService;
-
-    @Autowired
     BrandService brandService;
 
     @Transactional // rolls back automatically if any exception occurs
@@ -115,8 +112,6 @@ public class TransactionEntryService {
             throw new IllegalArgumentException("Transaction not found with ID: " + id);
         }
         TransactionEntry transactionEntry = getTransactionEntryById(id).get();
-        inventoryService.deleteByInventoryItemCode(transactionEntry.getItemCode());
-        purchaseOrderService.deletePurchaseOrder(transactionEntry.getItemCode());
         stockLocatorService.updateStockFromTransaction(transactionEntry, false);
         transactionEntryRepository.deleteById(id);
     }

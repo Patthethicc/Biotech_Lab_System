@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:frontend/models/ui/brand.dart';
 import 'package:frontend/models/ui/expiry_alert.dart';
 import 'models/ui/dashboard.dart';
 import 'models/ui/stock_alert.dart';
@@ -35,11 +36,12 @@ class MyApp extends StatelessWidget{
         '/dashboard': (context) => Dashboard(),
         '/stock_alert': (context) => StockAlert(),
         '/expiry_alert': (context) => ExpiryAlert(),
-        '/purchase_order': (context) => const PurchaseOrderPage(),
+        //'/purchase_order': (context) => const PurchaseOrderPage(),
         '/transaction_entry': (context) => TransactionEntryPage(),
         '/inventory': (context) => InventoryPage(),
+        '/brand': (context) => BrandPage(),
         '/stock_locator': (context) => StockLocatorPage(),
-        '/data_template': (context) => DataTemplate()
+        //'/data_template': (context) => DataTemplate()
       },
     );
   }

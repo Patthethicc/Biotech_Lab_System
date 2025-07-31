@@ -335,6 +335,17 @@ class _HomePageState extends State<HomePage>{
               },
             ),
             ListTile(
+              title: const Text('Brands',
+                style: TextStyle(
+                  color: Color.fromARGB(179, 0, 0, 0),
+                  fontSize: 14,
+                )),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/brand');
+              },
+            ),
+            ListTile(
               title: const Text('Stock Alerts',
                 style: TextStyle(
                   color: Color.fromARGB(179, 0, 0, 0),

@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class PurchaseOrderService {
@@ -25,12 +24,6 @@ public class PurchaseOrderService {
 
     @Autowired
     BrandService brandService;
-
-    @Autowired
-    TransactionEntryService transactionEntryService;
-
-    @Autowired
-    InventoryService inventoryService;
 
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
@@ -91,8 +84,6 @@ public class PurchaseOrderService {
         if (!purchaseOrderRepository.existsById(code)) {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
-        transactionEntryService.deleteTransactionEntryByCode(code);
-        inventoryService.deleteByInventoryItemCode(code);
         purchaseOrderRepository.deleteById(code);
     }
 

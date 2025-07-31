@@ -36,9 +36,6 @@ public class InventoryService {
     @Autowired
     PurchaseOrderService purchaseOrderService;
 
-    @Autowired
-    TransactionEntryService transactionEntryService;
-
     @Transactional
     public Inventory addInventory(TransactionEntry transactionEntry) {
         Inventory inventory = new Inventory();
@@ -157,8 +154,6 @@ public class InventoryService {
 
     public void deleteByInventoryId(Integer inventoryId) {
         Inventory inventory = getInventoryById(inventoryId);
-        purchaseOrderService.deletePurchaseOrder(inventory.getItemCode());
-        transactionEntryService.deleteTransactionEntryByCode(inventory.getItemCode());
 
         inventoryRepository.deleteById(inventoryId);
     }
