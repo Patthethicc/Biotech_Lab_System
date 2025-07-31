@@ -1,17 +1,17 @@
-class Brand {
-  final int brandId;
+class BrandModel {
+  final int? brandId;
   final String brandName;
-  final String abbreviation;
-  final int latestSequence;
+  final String? abbreviation;
+  final int? latestSequence;
 
-  Brand({
-    required this.brandId,
+  BrandModel({
+    this.brandId,
     required this.brandName,
-    required this.abbreviation,
-    required this.latestSequence});
+    this.abbreviation ,
+    this.latestSequence });
 
-  factory Brand.fromJson(Map<String, dynamic> json) {
-    return Brand(
+  factory BrandModel.fromJson(Map<String, dynamic> json) {
+    return BrandModel(
       brandId: json['brandId'],
       brandName: json['brandName'],
       abbreviation: json['abbreviation'],

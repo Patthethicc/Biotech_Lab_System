@@ -11,8 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.biotech.lis.Entity.Brand;
+import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
+import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -34,6 +37,12 @@ public class TransactionEntryService {
 
     @Autowired
     BrandService brandService;
+
+    @Autowired
+    InventoryRepository inventoryRepository;
+
+    @Autowired
+    PurchaseOrderRepository purchaseOrderRepository;
 
     @Transactional // rolls back automatically if any exception occurs
     public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
@@ -113,6 +122,8 @@ public class TransactionEntryService {
         }
         TransactionEntry transactionEntry = getTransactionEntryById(id).get();
         stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        purchaseOrderRepository.deleteById(transactionEntry.getItemCode());
+        inventoryRepository.deleteByItemCode(transactionEntry.getItemCode());
         transactionEntryRepository.deleteById(id);
     }
 

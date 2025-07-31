@@ -313,7 +313,7 @@ class _HomePageState extends State<HomePage>{
               },
             ),
             ListTile(
-              title: const Text('Data Recording',
+              title: const Text('Transaction Entry',
                 style: TextStyle(
                   color: Color.fromARGB(179, 0, 0, 0),
                   fontSize: 14,
@@ -378,17 +378,6 @@ class _HomePageState extends State<HomePage>{
                 Navigator.pushNamed(context, '/expiry_alert');
               },
             ),
-            /*ListTile(
-              title: const Text('Template Test',
-                style: TextStyle(
-                  color: Color.fromARGB(179, 0, 0, 0),
-                  fontSize: 14,
-                )),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/data_template');
-              },
-            ),*/
             ListTile(
               title: const Text('Purchase Order',
                 style: TextStyle(

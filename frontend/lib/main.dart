@@ -35,12 +35,11 @@ class MyApp extends StatelessWidget{
         '/dashboard': (context) => Dashboard(),
         '/stock_alert': (context) => StockAlert(),
         '/expiry_alert': (context) => ExpiryAlert(),
-        //'/purchase_order': (context) => const PurchaseOrderPage(),
+        '/purchase_order': (context) => const PurchaseOrderPage(),
         '/transaction_entry': (context) => TransactionEntryPage(),
         '/inventory': (context) => InventoryPage(),
         '/brand': (context) => BrandPage(),
         '/stock_locator': (context) => StockLocatorPage(),
-        //'/data_template': (context) => DataTemplate()
       },
     );
   }

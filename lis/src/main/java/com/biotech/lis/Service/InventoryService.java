@@ -12,6 +12,8 @@ import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Repository.PurchaseOrderRepository;
+import com.biotech.lis.Repository.TransactionEntryRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -35,6 +37,15 @@ public class InventoryService {
 
     @Autowired
     PurchaseOrderService purchaseOrderService;
+
+    @Autowired
+    PurchaseOrderRepository purchaseOrderRepository;
+
+    @Autowired
+    TransactionEntryRepository transactionEntryRepository;
+
+    @Autowired
+    TransactionEntryService transactionEntryService;
 
     @Transactional
     public Inventory addInventory(TransactionEntry transactionEntry) {
@@ -155,11 +166,13 @@ public class InventoryService {
     public void deleteByInventoryId(Integer inventoryId) {
         Inventory inventory = getInventoryById(inventoryId);
 
-        inventoryRepository.deleteById(inventoryId);
-    }
+        purchaseOrderRepository.deleteByItemCode(inventory.getItemCode());
+        transactionEntryRepository.deleteByItemCode(inventory.getItemCode());
 
-    public void deleteByInventoryItemCode(String itemCode) {
-        inventoryRepository.deleteByItemCode(itemCode);
+        TransactionEntry transactionEntry = transactionEntryService.getTransactionEntryByCode(inventory.getItemCode()).get();
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        
+        inventoryRepository.deleteById(inventoryId);
     }
 
     public List<Inventory> getStockAlerts(Integer amount) {

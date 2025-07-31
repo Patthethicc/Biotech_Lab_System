@@ -3,8 +3,12 @@ package com.biotech.lis.Service;
 
 import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.PurchaseOrder;
+import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
+import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
+import com.biotech.lis.Repository.TransactionEntryRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
@@ -24,6 +28,18 @@ public class PurchaseOrderService {
 
     @Autowired
     BrandService brandService;
+
+    @Autowired
+    TransactionEntryRepository transactionEntryRepository;
+
+    @Autowired
+    InventoryRepository inventoryRepository;
+
+    @Autowired
+    TransactionEntryService transactionEntryService;
+
+    @Autowired
+    StockLocatorService stockLocatorService;
 
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
@@ -84,6 +100,12 @@ public class PurchaseOrderService {
         if (!purchaseOrderRepository.existsById(code)) {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
+        transactionEntryRepository.deleteByItemCode(code);
+        inventoryRepository.deleteByItemCode(code);
+
+        TransactionEntry transactionEntry = transactionEntryService.getTransactionEntryByCode(code).get();
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+
         purchaseOrderRepository.deleteById(code);
     }
 

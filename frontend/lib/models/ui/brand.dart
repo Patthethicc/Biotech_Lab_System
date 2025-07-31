@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:frontend/models/api/brand.dart';
+import 'package:frontend/models/api/brand_model.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/brand_service.dart';
 import 'package:frontend/services/inventory_service.dart';
@@ -80,8 +80,8 @@ class BrandPage extends StatefulWidget {
 class _BrandPageState extends State<BrandPage> {
   final brandService = BrandService();
 
-  List<Brand> _allBrands = [];
-  List<Brand> _displayBrands = [];
+  List<BrandModel> _allBrands = [];
+  List<BrandModel> _displayBrands = [];
   bool _isLoading = true;
   bool _isHovered = false;
 
@@ -140,30 +140,14 @@ class _BrandPageState extends State<BrandPage> {
   }
 
   // leave invID 0 if ur in write mode
-  void showAddDialogue(String mode, int invID) {
+  void showAddDialogue() {
     final formKey = GlobalKey<FormState>();
-
-    final itemCodeController = TextEditingController();
-    final brandController = TextEditingController();
-    final productDescController = TextEditingController();
-    final lotSerialNumController = TextEditingController();
-    final expiryDateController = TextEditingController();
-    final stocksManilaController = TextEditingController();
-    final stocksCebuController = TextEditingController();
-    final purchaseOrderRefController = TextEditingController();
-    final supplierPackingListController = TextEditingController();
-    final drsiReferenceNumberController = TextEditingController();
-    final addedByController = TextEditingController();
-
-    bool isWriteMode = false;
-    if(mode == "Write"){
-      isWriteMode = true;
-    }
+    final nameController = TextEditingController();
 
     showDialog(context: context, 
     builder: (context) {
       return AlertDialog(
-        title: Text(isWriteMode ? 'Add Inventory Data' : 'Edit Inventory Data'),
+        title: Text('Add Brand'),
         content: SizedBox(
           width: 500,
           child: Form(
@@ -171,7 +155,19 @@ class _BrandPageState extends State<BrandPage> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-
+                  TextFormField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: "Brand Name"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter a valid brand name';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
                 ],
               ),
             ),
@@ -184,6 +180,14 @@ class _BrandPageState extends State<BrandPage> {
           ),
           ElevatedButton(
             onPressed: () async {
+              final BrandModel newBrand = BrandModel(brandName: nameController.text,);
+              await brandService.createBrand(newBrand);
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                builder: (BuildContext context) => super.widget));
+              
             } ,
             child: const Text("Add")
           )
@@ -201,7 +205,7 @@ class _BrandPageState extends State<BrandPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Inventory Data',
+          'Brand Data',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black, // Set text color explicitly if background is transparent
@@ -284,7 +288,7 @@ class _BrandPageState extends State<BrandPage> {
                       onEnter: (_) => setState(() => _isHovered = true),
                       onExit: (_) => setState(() => _isHovered = false),
                       child: NeumorphicButton(
-                        onPressed: () => showAddDialogue("Write", 0),
+                        onPressed: () => showAddDialogue(),
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // smaller height
                         style: NeumorphicStyle(
                           depth: _isHovered ? -4 : 4,
@@ -330,9 +334,7 @@ class _BrandPageState extends State<BrandPage> {
                       : DataTable(                         
                           columns: const [
                             DataColumn(label: Text("", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Brand ID", style: TextStyle(color: Colors.white))),
                             DataColumn(label: Text("Brand Name", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Abbreviation", style: TextStyle(color: Colors.white))),
                           ],
                           rows: _populateRows().isEmpty
                               ? []
@@ -355,9 +357,7 @@ class _BrandPageState extends State<BrandPage> {
       return [
         const DataRow(cells: [
           DataCell(Text('')),
-          DataCell(Text('')),
           DataCell(Text('No results found')),
-          DataCell(Text('')),
         ])
       ];
     }
@@ -370,7 +370,7 @@ class _BrandPageState extends State<BrandPage> {
           children: [IconButton(
             icon: Icon(Icons.delete_forever),
             onPressed: () async {
-              await brandService.deleteBrand(e.brandId.toInt());
+              await brandService.deleteBrand(e.brandId!.toInt());
               Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -386,9 +386,7 @@ class _BrandPageState extends State<BrandPage> {
             )
             ]
         )),
-        DataCell(Text(e.brandId.toString())),
         DataCell(Text(e.brandName.toString())),
-        DataCell(Text(e.abbreviation.toString()))
       ],
       color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
         final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue

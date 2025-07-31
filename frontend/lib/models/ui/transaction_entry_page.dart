@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:frontend/models/api/brand.dart';
+import 'package:frontend/models/api/brand_model.dart';
 import 'package:frontend/services/brand_service.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
@@ -89,7 +89,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   List<TransactionEntry> _records = [];
   List<TransactionEntry> _allRecords = [];
   List<TransactionEntry> _displayRecords = [];
-  List<Brand> _brandsNotStr = [];
+  List<BrandModel> _brandsNotStr = [];
   List<String> _brands = [];
   bool _isLoading = true;
   bool _isHovered = false;

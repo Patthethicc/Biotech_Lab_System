@@ -13,8 +13,11 @@ class TransactionEntryService {
 
   Future<List<TransactionEntry>> fetchTransactionEntries() async {
     String? token = await storage.read(key: 'jwt_token');
+    print("what");
     final response = await http.get(Uri.parse('$baseUrl/transaction/all'),
     headers:{'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
+    print(response.statusCode);
+    print(response.body);
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => TransactionEntry.fromJson(e)).toList();
@@ -74,6 +77,7 @@ class TransactionEntryService {
         'Authorization': 'Bearer $token'
       },
     );
+
     return response;
   }
 
