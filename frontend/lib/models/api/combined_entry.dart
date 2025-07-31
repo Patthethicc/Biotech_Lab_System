@@ -15,9 +15,9 @@ class CombinedEntry {
   final String stockLocation;
   final DateTime expiryDate;
   
-  final Uint8List? purchaseOrderFile;
-  final Uint8List? suppliersPackingList;
-  final Uint8List? inventoryOfDeliveredItems;
+  final String? purchaseOrderFile;
+  final String? suppliersPackingList;
+  final String? inventoryOfDeliveredItems;
 
   CombinedEntry({
     required this.brand,
@@ -45,15 +45,9 @@ class CombinedEntry {
       transactionDate: DateTime.parse(json['transactionDate'] as String? ?? DateTime.now().toIso8601String()),
       stockLocation: json['stockLocation'] as String,
       expiryDate: DateTime.parse(json['expiryDate'] as String),
-      purchaseOrderFile: json['purchaseOrderFile'] != null 
-          ? Uint8List.fromList(List<int>.from(json['purchaseOrderFile']))
-          : null,
-      suppliersPackingList: json['suppliersPackingList'] != null
-          ? Uint8List.fromList(List<int>.from(json['suppliersPackingList']))
-          : null,
-      inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
-          ? Uint8List.fromList(List<int>.from(json['inventoryOfDeliveredItems']))
-          : null,
+      purchaseOrderFile: json['purchaseOrderFile'],
+      suppliersPackingList: json['suppliersPackingList'],
+      inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'],
     );
   }
 

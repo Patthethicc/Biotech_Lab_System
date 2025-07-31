@@ -139,7 +139,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     setState(() {
       if (query.isNotEmpty) {
         _displayOrders = _allOrders.where((order) {
-          return order.purchaseOrderCode.toLowerCase().contains(query);
+          return order.itemCode.toLowerCase().contains(query);
         }).toList();
       } else {
         _displayOrders = List.from(_allOrders);
@@ -217,333 +217,54 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     });
   }
 
-  // In frontend/purchase_order.dart
-
-// REPLACE your existing _showAddDialog with this one.
-void _showAddDialog() {
-  final _formKey = GlobalKey<FormState>();
-  final codeController = TextEditingController();
-  final quantityController = TextEditingController();
-  final costController = TextEditingController();
-  DateTime? orderDate;
-  DateTime? deliveryDate;
-
-  String? selectedPoFileName;
-  Uint8List? selectedPoFileBytes;
-  String? selectedPackingListFileName;
-  Uint8List? selectedPackingListFileBytes;
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text('Add Purchase Order'),
-        content: Form(
-          key: _formKey,
-          child: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setStateDialog) {
-              
-              // --- KEY CHANGE: Simplified helper functions ---
-              // This is a more direct way to handle the state update.
-              Future<void> _pickPoFile() async {
-                FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
-                if (result != null && result.files.single.bytes != null) {
-                  setStateDialog(() {
-                    selectedPoFileName = result.files.single.name;
-                    selectedPoFileBytes = result.files.single.bytes;
-                  });
-                }
-              }
-
-              Future<void> _pickPackingListFile() async {
-                FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
-                if (result != null && result.files.single.bytes != null) {
-                  setStateDialog(() {
-                    selectedPackingListFileName = result.files.single.name;
-                    selectedPackingListFileBytes = result.files.single.bytes;
-                  });
-                }
-              }
-              // --- END OF KEY CHANGE ---
-
-              return SingleChildScrollView(
-                child: SizedBox(
-                  width: 500,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        controller: codeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Purchase Order Code',
-                          prefixIcon: Icon(Icons.confirmation_number),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text("Purchase Order File (Optional)",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Neumorphic(
-                              style: NeumorphicStyle(
-                                depth: -2,
-                                boxShape: NeumorphicBoxShape.roundRect(
-                                    BorderRadius.circular(8)),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 16),
-                              child: Text(
-                                selectedPoFileName ?? 'No file selected',
-                                style: TextStyle(
-                                    color: selectedPoFileName != null
-                                        ? Colors.black
-                                        : Colors.grey[600]),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          // --- KEY CHANGE: Directly call the helper function ---
-                          NeumorphicButton(
-                            onPressed: _pickPoFile,
-                            child: const Text('Select File'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text("Supplier's Packing List (Optional)",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Neumorphic(
-                              style: NeumorphicStyle(
-                                depth: -2,
-                                boxShape: NeumorphicBoxShape.roundRect(
-                                    BorderRadius.circular(8)),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 16),
-                              child: Text(
-                                selectedPackingListFileName ?? 'No file selected',
-                                style: TextStyle(
-                                    color: selectedPackingListFileName != null
-                                        ? Colors.black
-                                        : Colors.grey[600]),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          // --- KEY CHANGE: Directly call the helper function ---
-                          NeumorphicButton(
-                            onPressed: _pickPackingListFile,
-                            child: const Text('Select File'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: quantityController,
-                        decoration: const InputDecoration(
-                          labelText: 'Quantity Purchased',
-                          prefixIcon: Icon(Icons.shopping_cart),
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return 'Required';
-                          if (int.tryParse(value) == null ||
-                              int.parse(value) <= 0) {
-                            return 'Enter a valid quantity';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: orderDate ?? DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked != null) {
-                            setStateDialog(() {
-                              orderDate = picked;
-                            });
-                          }
-                        },
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Order Date',
-                            prefixIcon: const Icon(Icons.calendar_today),
-                            border: const OutlineInputBorder(),
-                            errorText: orderDate == null ? 'Required' : null,
-                          ),
-                          child: Text(orderDate != null
-                              ? DateFormat('yyyy-MM-dd').format(orderDate!)
-                              : 'Select Order Date'),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: deliveryDate ?? DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked != null) {
-                            setStateDialog(() {
-                              deliveryDate = picked;
-                            });
-                          }
-                        },
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Expected Delivery Date',
-                            prefixIcon: const Icon(Icons.delivery_dining),
-                            border: const OutlineInputBorder(),
-                            errorText:
-                                deliveryDate == null ? 'Required' : null,
-                          ),
-                          child: Text(deliveryDate != null
-                              ? DateFormat('yyyy-MM-dd').format(deliveryDate!)
-                              : 'Select Expected Delivery Date'),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: costController,
-                        decoration: const InputDecoration(
-                          labelText: 'Cost',
-                          prefixIcon: Icon(Icons.attach_money),
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return 'Required';
-                          if (double.tryParse(value) == null ||
-                              double.parse(value) < 0) {
-                            return 'Enter a valid cost';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate() &&
-                  orderDate != null &&
-                  deliveryDate != null) {
-                String? poFileAsBase64;
-                if (selectedPoFileBytes != null) {
-                  poFileAsBase64 = base64Encode(selectedPoFileBytes!);
-                }
-
-                String? packingListAsBase64;
-                if (selectedPackingListFileBytes != null) {
-                  packingListAsBase64 =
-                      base64Encode(selectedPackingListFileBytes!);
-                }
-
-                final newOrder = PurchaseOrder(
-                  purchaseOrderCode: codeController.text,
-                  purchaseOrderFile: poFileAsBase64,
-                  suppliersPackingList: packingListAsBase64,
-                  quantityPurchased: int.parse(quantityController.text),
-                  orderDate: orderDate!,
-                  expectedDeliveryDate: deliveryDate!,
-                  cost: double.parse(costController.text),
-                );
-
-                try {
-                  await _poService.addPurchaseOrder(newOrder);
-
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                    _showDialog(
-                        'Success', 'Purchase Order added successfully!');
-                    _fetchPurchaseOrders();
-                  }
-                } catch (e) {
-                  _showDialog('Error', 'Failed to add purchase order: $e');
-                }
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-  void _showEditDialog(PurchaseOrder order) {
+  void _showAddDialog() {
     final _formKey = GlobalKey<FormState>();
-    final codeController = TextEditingController(text: order.purchaseOrderCode);
-    final quantityController = TextEditingController(text: order.quantityPurchased.toString());
-    final costController = TextEditingController(text: order.cost.toString());
-    DateTime? orderDate = order.orderDate;
-    DateTime? deliveryDate = order.expectedDeliveryDate;
+    final itemController = TextEditingController();
+    final brandController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final lotSerialController = TextEditingController();
+    final drsiController = TextEditingController();
+    DateTime? orderDate;
 
     String? selectedPoFileName;
     Uint8List? selectedPoFileBytes;
     String? selectedPackingListFileName;
     Uint8List? selectedPackingListFileBytes;
+    String? selectedInventoryName;
+    Uint8List? selectedInventoryBytes;
+
+    Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+      if (result != null && result.files.single.bytes != null) {
+        setStateDialog(() {
+          switch (fileType) {
+            case 'po':
+              selectedPoFileName = result.files.single.name;
+              selectedPoFileBytes = result.files.single.bytes;
+              break;
+            case 'packingList':
+              selectedPackingListFileName = result.files.single.name;
+              selectedPackingListFileBytes = result.files.single.bytes;
+              break;
+            case 'inventory':
+              selectedInventoryName = result.files.single.name;
+              selectedInventoryBytes = result.files.single.bytes;
+              break;
+          }
+        });
+      }
+    }
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit PO: ${order.purchaseOrderCode}'),
+          title: const Text('Add Purchase Order'),
           content: Form(
             key: _formKey,
             child: StatefulBuilder(
               builder: (BuildContext context, StateSetter setStateDialog) {
-                Future<void> _pickPoFile() async {
-                  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
-                  if (result != null && result.files.single.bytes != null) {
-                    setStateDialog(() {
-                      selectedPoFileName = result.files.single.name;
-                      selectedPoFileBytes = result.files.single.bytes;
-                    });
-                  }
-                }
-
-                Future<void> _pickPackingListFile() async {
-                  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
-                  if (result != null && result.files.single.bytes != null) {
-                    setStateDialog(() {
-                      selectedPackingListFileName = result.files.single.name;
-                      selectedPackingListFileBytes = result.files.single.bytes;
-                    });
-                  }
-                }
-
                 return SingleChildScrollView(
                   child: SizedBox(
                     width: 500,
@@ -551,109 +272,35 @@ void _showAddDialog() {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextFormField(
-                          controller: codeController,
-                          readOnly: true, // This makes the field non-editable
-                          decoration: const InputDecoration(
-                            labelText: 'Purchase Order Code',
-                            filled: true,
-                            fillColor: Color.fromARGB(255, 232, 232, 232)
-                          ),
-                        ),
+                        TextFormField(controller: itemController, decoration: const InputDecoration(labelText: 'Item Code', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
                         const SizedBox(height: 16),
-                        
-                        const Text("Replace Purchase Order File (Optional)"),
-                        const SizedBox(height: 4),
-                        Text('Current: ${order.hasPurchaseOrderFile ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[600])),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: Text(selectedPoFileName ?? 'Select new file...')),
-                            ElevatedButton(onPressed: _pickPoFile, child: const Text('Select')),
-                          ],
-                        ),
+                        TextFormField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
                         const SizedBox(height: 16),
-
-                        const Text("Replace Packing List (Optional)"),
-                        const SizedBox(height: 4),
-                        Text('Current: ${order.hasSuppliersPackingList ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[600])),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(child: Text(selectedPackingListFileName ?? 'Select new file...')),
-                            ElevatedButton(onPressed: _pickPackingListFile, child: const Text('Select')),
-                          ],
-                        ),
+                        TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Product Description', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
                         const SizedBox(height: 16),
-                
-                        TextFormField(
-                          controller: quantityController,
-                          decoration: const InputDecoration(labelText: 'Quantity Purchased'),
-                          keyboardType: TextInputType.number,
-                          validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                        ),
+                        TextFormField(controller: lotSerialController, decoration: const InputDecoration(labelText: 'Lot/Serial Number', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        const SizedBox(height: 16),
+                        TextFormField(controller: drsiController, decoration: const InputDecoration(labelText: 'DR/SI Reference No.', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
                         const SizedBox(height: 16),
                         InkWell(
                           onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: orderDate ?? DateTime.now(),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              setStateDialog(() {
-                                orderDate = picked;
-                              });
-                            }
+                            final picked = await showDatePicker(context: context, initialDate: orderDate ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
+                            if (picked != null) setStateDialog(() => orderDate = picked);
                           },
                           child: InputDecorator(
-                            decoration: InputDecoration(
-                              labelText: 'Order Date',
-                              prefixIcon: const Icon(Icons.calendar_today),
-                              border: const OutlineInputBorder(),
-                              errorText: orderDate == null ? 'Required' : null,
-                            ),
-                            child: Text(orderDate != null
-                                ? DateFormat('yyyy-MM-dd').format(orderDate!)
-                                : 'Select Order Date'),
+                            decoration: InputDecoration(labelText: 'Order Date', prefixIcon: const Icon(Icons.calendar_today), border: const OutlineInputBorder(), errorText: orderDate == null ? 'Required' : null),
+                            child: Text(orderDate != null ? DateFormat('yyyy-MM-dd').format(orderDate!) : 'Select Order Date'),
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        const Text("Purchase Order File (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Row(children: [ Expanded(child: Text(selectedPoFileName ?? 'No file selected', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('po', setStateDialog), child: const Text('Select File'))]),
                         const SizedBox(height: 16),
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: deliveryDate ?? DateTime.now(),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              setStateDialog(() {
-                                deliveryDate = picked;
-                              });
-                            }
-                          },
-                          child: InputDecorator(
-                            decoration: InputDecoration(
-                              labelText: 'Expected Delivery Date',
-                              prefixIcon: const Icon(Icons.delivery_dining),
-                              border: const OutlineInputBorder(),
-                              errorText:
-                                  deliveryDate == null ? 'Required' : null,
-                            ),
-                            child: Text(deliveryDate != null
-                                ? DateFormat('yyyy-MM-dd').format(deliveryDate!)
-                                : 'Select Expected Delivery Date'),
-                          ),
-                        ),
+                        const Text("Supplier's Packing List (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Row(children: [ Expanded(child: Text(selectedPackingListFileName ?? 'No file selected', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('packingList', setStateDialog), child: const Text('Select File'))]),
                         const SizedBox(height: 16),
-                        TextFormField(
-                          controller: costController,
-                          decoration: const InputDecoration(labelText: 'Cost'),
-                          keyboardType: TextInputType.number,
-                          validator: (value) => value == null || value.isEmpty ? 'Required' : null,
-                        ),
+                        const Text("Inventory of Delivered Items (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Row(children: [ Expanded(child: Text(selectedInventoryName ?? 'No file selected', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('inventory', setStateDialog), child: const Text('Select File'))]),
                       ],
                     ),
                   ),
@@ -662,33 +309,154 @@ void _showAddDialog() {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  String? poFileAsBase64;
-                  if (selectedPoFileBytes != null) {
-                    poFileAsBase64 = base64Encode(selectedPoFileBytes!);
-                  }
-
-                  String? packingListAsBase64;
-                  if (selectedPackingListFileBytes != null) {
-                    packingListAsBase64 = base64Encode(selectedPackingListFileBytes!);
-                  }
-
-                  final updatedOrder = PurchaseOrder(
-                    purchaseOrderCode: codeController.text,
-                    purchaseOrderFile: selectedPoFileBytes != null ? poFileAsBase64 : order.purchaseOrderFile,
-                    suppliersPackingList: selectedPackingListFileBytes != null ? packingListAsBase64 : order.suppliersPackingList,
-                    quantityPurchased: int.parse(quantityController.text),
-                    orderDate: orderDate!,
-                    expectedDeliveryDate: deliveryDate!,
-                    cost: double.parse(costController.text),
-                  );
+                if (_formKey.currentState!.validate() && orderDate != null) {
+                  final newOrder = PurchaseOrder(
+                      itemCode: itemController.text,
+                      brand: brandController.text,
+                      productDescription: descriptionController.text,
+                      lotSerialNumber: lotSerialController.text,
+                      drSIReferenceNum: drsiController.text,
+                      orderDate: orderDate!,
+                      purchaseOrderFile: selectedPoFileBytes != null ? base64Encode(selectedPoFileBytes!) : null,
+                      suppliersPackingList: selectedPackingListFileBytes != null ? base64Encode(selectedPackingListFileBytes!) : null,
+                      inventoryOfDeliveredItems: selectedInventoryBytes != null ? base64Encode(selectedInventoryBytes!) : null);
 
                   try {
+                    await _poService.addPurchaseOrder(newOrder);
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                      _showDialog('Success', 'Purchase Order added!');
+                      _fetchPurchaseOrders();
+                    }
+                  } catch (e) {
+                    _showDialog('Error', 'Failed to add purchase order: $e');
+                  }
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditDialog(PurchaseOrder order) {
+    final _formKey = GlobalKey<FormState>();
+    final itemController = TextEditingController(text: order.itemCode);
+    final brandController = TextEditingController(text: order.brand);
+    final descriptionController = TextEditingController(text: order.productDescription);
+    final lotSerialController = TextEditingController(text: order.lotSerialNumber);
+    final drsiController = TextEditingController(text: order.drSIReferenceNum);
+    DateTime? orderDate = order.orderDate;
+
+    String? selectedPoFileName;
+    Uint8List? selectedPoFileBytes;
+    String? selectedPackingListFileName;
+    Uint8List? selectedPackingListFileBytes;
+    String? selectedInventoryName;
+    Uint8List? selectedInventoryBytes;
+
+    Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+      if (result != null && result.files.single.bytes != null) {
+        setStateDialog(() {
+          switch (fileType) {
+            case 'po':
+              selectedPoFileName = result.files.single.name;
+              selectedPoFileBytes = result.files.single.bytes;
+              break;
+            case 'packingList':
+              selectedPackingListFileName = result.files.single.name;
+              selectedPackingListFileBytes = result.files.single.bytes;
+              break;
+            case 'inventory':
+              selectedInventoryName = result.files.single.name;
+              selectedInventoryBytes = result.files.single.bytes;
+              break;
+          }
+        });
+      }
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit PO: ${order.itemCode}'),
+          content: Form(
+            key: _formKey,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateDialog) {
+                return SingleChildScrollView(
+                  child: SizedBox(
+                    width: 500,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextFormField(controller: itemController, readOnly: true, decoration: const InputDecoration(labelText: 'Item Code', filled: true)),
+                        const SizedBox(height: 16),
+                        TextFormField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        const SizedBox(height: 16),
+                        TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Product Description', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        const SizedBox(height: 16),
+                        TextFormField(controller: lotSerialController, decoration: const InputDecoration(labelText: 'Lot/Serial Number', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        const SizedBox(height: 16),
+                        TextFormField(controller: drsiController, decoration: const InputDecoration(labelText: 'DR/SI Reference No.', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        const SizedBox(height: 16),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(context: context, initialDate: orderDate ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
+                            if (picked != null) setStateDialog(() => orderDate = picked);
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(labelText: 'Order Date', prefixIcon: const Icon(Icons.calendar_today), border: const OutlineInputBorder(), errorText: orderDate == null ? 'Required' : null),
+                            child: Text(orderDate != null ? DateFormat('yyyy-MM-dd').format(orderDate!) : 'Select Order Date'),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text("Replace Purchase Order File (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Current: ${order.hasPurchaseOrderFile ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic)),
+                        Row(children: [ Expanded(child: Text(selectedPoFileName ?? 'Select new file...', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('po', setStateDialog), child: const Text('Select'))]),
+                        const SizedBox(height: 16),
+                        Text("Replace Packing List (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Current: ${order.hasSuppliersPackingList ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic)),
+                        Row(children: [ Expanded(child: Text(selectedPackingListFileName ?? 'Select new file...', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('packingList', setStateDialog), child: const Text('Select'))]),
+                        const SizedBox(height: 16),
+                        Text("Replace Inventory of Delivered Items (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Current: ${order.hasInventoryOfDeliveredItems ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic)),
+                        Row(children: [ Expanded(child: Text(selectedInventoryName ?? 'Select new file...', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('inventory', setStateDialog), child: const Text('Select'))]),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                if (_formKey.currentState!.validate() && orderDate != null) {
+                  final updatedOrder = PurchaseOrder(
+                    itemCode: itemController.text,
+                    brand: brandController.text,
+                    productDescription: descriptionController.text,
+                    lotSerialNumber: lotSerialController.text,
+                    drSIReferenceNum: drsiController.text,
+                    orderDate: orderDate!,
+                    purchaseOrderFile: selectedPoFileBytes != null ? base64Encode(selectedPoFileBytes!) : order.purchaseOrderFile,
+                    suppliersPackingList: selectedPackingListFileBytes != null ? base64Encode(selectedPackingListFileBytes!) : order.suppliersPackingList,
+                    inventoryOfDeliveredItems: selectedInventoryBytes != null ? base64Encode(selectedInventoryBytes!) : order.inventoryOfDeliveredItems
+                  );
+                  try {
                     await _poService.updatePurchaseOrder(updatedOrder);
-                    if(mounted) {
+                    if (mounted) {
                       Navigator.pop(context);
                       _showDialog('Success', 'Purchase Order updated.');
                       _fetchPurchaseOrders();
@@ -708,7 +476,7 @@ void _showAddDialog() {
 
   void _showDeleteConfirmationDialog() {
     final selectedCount = _selectedOrders.length;
-     final singleId = _selectedOrders.isNotEmpty ? _selectedOrders.first.purchaseOrderCode : "";
+    final singleId = _selectedOrders.isNotEmpty ? _selectedOrders.first.itemCode : "";
     final message = selectedCount > 1
         ? 'Are you sure you want to delete $selectedCount selected purchase orders? This action cannot be undone.'
         : 'Are you sure you want to delete the purchase order with Code: $singleId? This action cannot be undone.';
@@ -765,17 +533,17 @@ void _showAddDialog() {
 
       for (PurchaseOrder order in ordersToDelete) {
         try {
-          await _poService.deletePurchaseOrder(order.purchaseOrderCode);
+          await _poService.deletePurchaseOrder(order.itemCode);
           successCount++;
         } catch (e) {
-          errors.add('Error deleting ${order.purchaseOrderCode}: $e');
+          errors.add('Error deleting ${order.itemCode}: $e');
         }
       }
 
       if (!mounted) return;
       Navigator.of(context).pop();
 
-      await _fetchPurchaseOrders(); //This already clears selection
+      await _fetchPurchaseOrders();
 
       if (!mounted) return;
 
@@ -810,10 +578,21 @@ void _showAddDialog() {
     );
   }
 
-  Future<void> _downloadAndOpenFile(String poCode, String fileName, {bool isPackingList = false}) async {
-    final String endpointPath = isPackingList
-        ? '/PO/v1/getPO/$poCode/packinglist'
-        : '/PO/v1/getPO/$poCode/file';
+  Future<void> _downloadAndOpenFile(String itemCode, String fileName, {required String fileType}) async {
+    String endpointPath;
+
+    switch (fileType) {
+      case 'packinglist':
+        endpointPath = '/PO/v1/getPO/$itemCode/packinglist';
+        break;
+      case 'inventory':
+        endpointPath = '/PO/v1/getPO/$itemCode/inventory'; 
+        break;
+      case 'file':
+      default:
+        endpointPath = '/PO/v1/getPO/$itemCode/file';
+        break;
+    }
 
     showDialog(
       context: context,
@@ -1221,8 +1000,10 @@ void _showAddDialog() {
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
-                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
                                                     DataCell(Text('')),
+                                                    DataCell(Text('')),
+                                                    DataCell(Text('')),
+                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                   ])
@@ -1314,123 +1095,62 @@ void _showAddDialog() {
   }
 
   List<DataColumn> _buildDataColumns(double screenWidth) {
-      return <DataColumn>[
-      DataColumn(
-        label: Text(
-          screenWidth > 800 ? 'Purchase Order Code' : 'PO Code',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      DataColumn(
-        label: Text(
-          screenWidth > 1200 ? 'Purchase Order File' : 'Purchase Order File',
-           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      DataColumn(
-        label: Text(
-           screenWidth > 1200 ? "Supplier's Packing List" : "Sup. List",
-           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-       DataColumn(
-        label: Text(
-          'Quantity',
-           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      DataColumn(
-        label: Text(
-          screenWidth > 800 ? 'Order Date' : 'Ordered',
-           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      DataColumn(
-        label: Text(
-          screenWidth > 800 ? 'Expected Delivery' : 'Delivery',
-           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
-      DataColumn(
-        label: Text(
-          'Cost',
-           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
+    final headerStyle = TextStyle(fontWeight: FontWeight.bold, color: Colors.white);
+
+    return <DataColumn>[
+      DataColumn(label: Text('Item Code', style: headerStyle)), // itemCode
+      DataColumn(label: Text('Brand', style: headerStyle)), // brand
+      DataColumn(label: Text('Description', style: headerStyle)), // productDescription
+      DataColumn(label: Text('Lot Number', style: headerStyle)), // lotSerialNumber
+      DataColumn(label: Text('Order Date', style: headerStyle)), // orderDate
+      DataColumn(label: Text('DRSI Number', style: headerStyle,)), // drSIReferenceNum
+      DataColumn(label: Text('Purchase Order File', style: headerStyle)), // purchaseOrderFile
+      DataColumn(label: Text('Packing List', style: headerStyle)), // suppliersPackingList
+      DataColumn(label: Text('Inventory File', style: headerStyle)) // inventoryOfDeliveredItems
     ];
   }
-
-  List<DataRow> _buildDataRows(DateFormat formatter, int endIndex, double screenWidth) {
+    List<DataRow> _buildDataRows(DateFormat formatter, int endIndex, double screenWidth) {
     int counter = 0;
     final bool showAll = _rowsPerPage == _showAllValue;
-    final recordsToShow = showAll
-        ? _displayOrders
-        : _displayOrders.sublist(_startIndex, endIndex);
-    
-    final numberFormatter = NumberFormat.currency(locale: 'en_PH', symbol: '₱');
+    final recordsToShow = showAll ? _displayOrders : _displayOrders.sublist(_startIndex, endIndex);
 
     return recordsToShow.map<DataRow>((order) {
       final isSelected = _selectedOrders.contains(order);
-      final subtleBlueTint1 = const Color.fromRGBO(241, 245, 255, 1);
-      final subtleBlueTint2 = const Color.fromRGBO(230, 240, 255, 1);
-      final rowColor = counter.isEven ? subtleBlueTint1 : subtleBlueTint2;
+      final rowColor = counter.isEven ? const Color.fromRGBO(241, 245, 255, 1) : const Color.fromRGBO(230, 240, 255, 1);
       counter++;
 
       return DataRow(
         selected: isSelected,
-        onSelectChanged: (bool? selected) {
-          _toggleOrderSelection(order);
-        },
+        onSelectChanged: (bool? selected) => _toggleOrderSelection(order),
         color: WidgetStateProperty.all(rowColor),
         cells: [
-          DataCell(Text(order.purchaseOrderCode)),
+          DataCell(Text(order.itemCode)),
+          DataCell(Text(order.brand)),
+          DataCell(Text(order.productDescription, overflow: TextOverflow.ellipsis)),
+          DataCell(Text(order.lotSerialNumber)),
+          DataCell(Text(formatter.format(order.orderDate))),
+          DataCell(Text(order.drSIReferenceNum)),
           DataCell(
             (order.hasPurchaseOrderFile)
                 ? InkWell(
-                  onTap: () {
-                    final fileName = '${order.purchaseOrderCode}-PO.pdf';
-                    _downloadAndOpenFile(order.purchaseOrderCode, fileName, isPackingList: false);
-                  },
-                  child: const Text('View/Download', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))
-                )
-              : const Text('N/A'),
+                    onTap: () => _downloadAndOpenFile(order.itemCode, '${order.itemCode}-PO', fileType: 'file'),
+                    child: const Text('View', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)))
+                : const Text('N/A'),
           ),
           DataCell(
             (order.hasSuppliersPackingList)
                 ? InkWell(
-                  onTap: () {
-                    final fileName = '${order.purchaseOrderCode}-PackingList.pdf';
-                    _downloadAndOpenFile(order.purchaseOrderCode, fileName, isPackingList: true);
-                  },
-                  child: const Text('View/Download', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline))
-                )
-              : const Text('N/A'),
+                    onTap: () => _downloadAndOpenFile(order.itemCode, '${order.itemCode}-PackingList', fileType: 'packinglist'),
+                    child: const Text('View', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)))
+                : const Text('N/A'),
           ),
-          DataCell(Text(order.quantityPurchased.toString())),
-          DataCell(Text(formatter.format(order.orderDate))),
-          DataCell(Text(formatter.format(order.expectedDeliveryDate))),
-          DataCell(Text(numberFormatter.format(order.cost))),
+          DataCell(
+            (order.hasInventoryOfDeliveredItems)
+                ? InkWell(
+                    onTap: () => _downloadAndOpenFile(order.itemCode, '${order.itemCode}-Inventory', fileType: 'inventory'),
+                    child: const Text('View', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)))
+                : const Text('N/A'),
+          ),
         ],
       );
     }).toList();

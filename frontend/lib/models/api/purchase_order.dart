@@ -5,9 +5,9 @@ class PurchaseOrder {
   String brand;
   String productDescription;
   String lotSerialNumber;
-  Uint8List? purchaseOrderFile;
-  Uint8List? suppliersPackingList;
-  Uint8List? inventoryOfDeliveredItems;
+  String? purchaseOrderFile;
+  String? suppliersPackingList;
+  String? inventoryOfDeliveredItems;
   DateTime orderDate;
   String drSIReferenceNum;
 
@@ -23,42 +23,25 @@ class PurchaseOrder {
     required this.drSIReferenceNum,
   });
 
+  bool get hasPurchaseOrderFile => purchaseOrderFile != null && purchaseOrderFile!.isNotEmpty;
+  bool get hasSuppliersPackingList => suppliersPackingList != null && suppliersPackingList!.isNotEmpty;
+  bool get hasInventoryOfDeliveredItems => inventoryOfDeliveredItems != null && inventoryOfDeliveredItems!.isNotEmpty;
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
     try {
       return PurchaseOrder(
-        itemCode: json['itemCode'],
-        brand: json['brand'],
-        productDescription: json['productDescription'],
-        lotSerialNumber: json['lotSerialNumber'],
-        purchaseOrderFile: json['purchaseOrderFile'] != null 
-            ? Uint8List.fromList(List<int>.from(json['purchaseOrderFile']))
-            : null,
-        suppliersPackingList: json['suppliersPackingList'] != null
-            ? Uint8List.fromList(List<int>.from(json['suppliersPackingList']))
-            : null,
-        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
-            ? Uint8List.fromList(List<int>.from(json['inventoryOfDeliveredItems']))
-            : null,
+        itemCode: json['itemCode'] ?? 'Unknown Code',
+        brand: json['brand'] ?? 'No Brand Provided',
+        productDescription: json['productDescription'] ?? 'No Description',
+        lotSerialNumber: json['lotSerialNumber'] ?? 'N/A',
+        purchaseOrderFile: json['purchaseOrderFile'],
+        suppliersPackingList: json['suppliersPackingList'],
+        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'],
         orderDate: DateTime.parse(json['orderDate']),
-        drSIReferenceNum: json['drSIReferenceNum'],
+        drSIReferenceNum: json['drSIReferenceNum'] ?? 'N/A',
       );
     } catch (e) {
       throw DataParsingException('Error parsing PurchaseOrder from JSON: $e');
     }
-    return PurchaseOrder(
-      purchaseOrderCode: json['purchaseOrderCode'],
-      itemCode: json['itemCode'],
-      purchaseOrderFile: json['purchaseOrderFile'],
-      suppliersPackingList: json['suppliersPackingList'],
-      quantityPurchased: json['quantityPurchased'],
-      orderDate: DateTime.parse(json['orderDate']),
-      expectedDeliveryDate: DateTime.parse(json['expectedDeliveryDate']),
-      cost: (json['cost'] as num).toDouble(),
-      addedBy: json['addedBy'],
-      dateTimeAdded: json['dateTimeAdded'] != null ? DateTime.parse(json['dateTimeAdded']) : null,
-      hasPurchaseOrderFile: json['hasPurchaseOrderFile'] ?? false,
-      hasSuppliersPackingList: json['hasSuppliersPackingList'] ?? false,
-    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -66,9 +49,9 @@ class PurchaseOrder {
     'brand': brand,
     'productDescription': productDescription,
     'lotSerialNumber': lotSerialNumber,
-    'purchaseOrderFile': purchaseOrderFile?.toList(),
-    'suppliersPackingList': suppliersPackingList?.toList(),
-    'inventoryOfDeliveredItems': inventoryOfDeliveredItems?.toList(),
+    'purchaseOrderFile': purchaseOrderFile,
+    'suppliersPackingList': suppliersPackingList,
+    'inventoryOfDeliveredItems': inventoryOfDeliveredItems,
     'orderDate': orderDate.toIso8601String(),
     'drSIReferenceNum': drSIReferenceNum,
   };
