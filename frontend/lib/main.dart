@@ -4,7 +4,6 @@ import 'package:frontend/models/ui/brand.dart';
 import 'package:frontend/models/ui/expiry_alert.dart';
 import 'models/ui/dashboard.dart';
 import 'models/ui/stock_alert.dart';
-import 'models/ui/tableTemplate.dart';
 import 'models/ui/login.dart';
 import 'models/ui/register.dart';
 import 'models/ui/home.dart';
