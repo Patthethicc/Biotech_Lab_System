@@ -367,7 +367,7 @@ class _HomePageState extends State<HomePage>{
                 Navigator.pushNamed(context, '/expiry_alert');
               },
             ),
-            ListTile(
+            /*ListTile(
               title: const Text('Template Test',
                 style: TextStyle(
                   color: Color.fromARGB(179, 0, 0, 0),
@@ -377,7 +377,7 @@ class _HomePageState extends State<HomePage>{
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/data_template');
               },
-            ),
+            ),*/
             ListTile(
               title: const Text('Purchase Order',
                 style: TextStyle(
