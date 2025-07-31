@@ -14,6 +14,7 @@ import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
+import com.biotech.lis.Entity.PurchaseOrder;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -126,6 +127,27 @@ public class InventoryService {
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
 
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(inventory.getItemCode());
+        
+        purchaseOrder.setBrand(brandName);
+        purchaseOrder.setProductDescription(prodDesc);
+        purchaseOrder.setLotSerialNumber(inventory.getLotSerialNumber());
+        purchaseOrder.setOrderDate(inventory.getDateTimeAdded().toLocalDate());
+
+        purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        purchaseOrder.setDateTimeAdded(cDateTime);
+
+        purchaseOrderRepository.save(purchaseOrder);
+
+        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(inventory.getItemCode()).get();
+
+        transactionEntry.setBrand(brandName);
+        transactionEntry.setProductDescription(prodDesc);
+        transactionEntry.setLotSerialNumber(inventory.getLotSerialNumber());
+
+        transactionEntry.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        transactionEntry.setDateTimeAdded(cDateTime);
+
         return inventoryRepository.save(existingInventory);
     }
 
@@ -159,6 +181,18 @@ public class InventoryService {
         existingInventory.setQuantityOnHand(existingInventory.getStocksManila() + existingInventory.getStocksCebu());
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
+
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(transactionEntry.getItemCode());
+        
+        purchaseOrder.setBrand(brandName);
+        purchaseOrder.setProductDescription(prodDesc);
+        purchaseOrder.setLotSerialNumber(transactionEntry.getLotSerialNumber());
+        purchaseOrder.setOrderDate(transactionEntry.getDateTimeAdded().toLocalDate());
+        purchaseOrder.setDrSIReferenceNum(transactionEntry.getDrSIReferenceNum());
+        purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        purchaseOrder.setDateTimeAdded(cDateTime);
+
+        purchaseOrderRepository.save(purchaseOrder);
 
         return inventoryRepository.save(existingInventory);
     }

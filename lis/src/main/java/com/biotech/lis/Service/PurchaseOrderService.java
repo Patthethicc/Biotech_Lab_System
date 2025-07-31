@@ -3,7 +3,6 @@ package com.biotech.lis.Service;
 
 import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.PurchaseOrder;
-import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
@@ -34,9 +33,6 @@ public class PurchaseOrderService {
 
     @Autowired
     InventoryRepository inventoryRepository;
-
-    @Autowired
-    TransactionEntryService transactionEntryService;
 
     @Autowired
     StockLocatorService stockLocatorService;
@@ -103,8 +99,7 @@ public class PurchaseOrderService {
         transactionEntryRepository.deleteByItemCode(code);
         inventoryRepository.deleteByItemCode(code);
 
-        TransactionEntry transactionEntry = transactionEntryService.getTransactionEntryByCode(code).get();
-        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
 
         purchaseOrderRepository.deleteById(code);
     }
