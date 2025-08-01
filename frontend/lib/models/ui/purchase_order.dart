@@ -82,7 +82,6 @@ class PurchaseOrderPage extends StatefulWidget {
 class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   final PurchaseOrderService _poService = PurchaseOrderService();
   final TextEditingController _searchController = TextEditingController();
-
   List<PurchaseOrder> _allOrders = [];
   List<PurchaseOrder> _displayOrders = [];
   Set<PurchaseOrder> _selectedOrders = {};
@@ -234,7 +233,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     Uint8List? selectedInventoryBytes;
 
     Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
       if (result != null && result.files.single.bytes != null) {
         setStateDialog(() {
           switch (fileType) {
@@ -254,7 +253,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         });
       }
     }
-
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -343,7 +342,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       },
     );
   }
-
   void _showEditDialog(PurchaseOrder order) {
     final _formKey = GlobalKey<FormState>();
     final itemController = TextEditingController(text: order.itemCode);
@@ -361,7 +359,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     Uint8List? selectedInventoryBytes;
 
     Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any);
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
       if (result != null && result.files.single.bytes != null) {
         setStateDialog(() {
           switch (fileType) {
