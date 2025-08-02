@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/brand_model.dart';
@@ -101,11 +101,14 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
 
   DateTime? _selectedTransactionDate;
   DateTime? _selectedExpiryDate;
-  String? _selectedBrand;
+  BrandModel? _selectedBrand;
   String? _selectedStockLocation;
-  Uint8List? _poFile;
-  Uint8List? _packingListFile;
-  Uint8List? _inventoryFile;
+  String? selectedPoFileName;
+  Uint8List? selectedPoFileBytes;
+  String? selectedPackingListFileName;
+  Uint8List? selectedPackingListFileBytes;
+  String? selectedInventoryName;
+  Uint8List? selectedInventoryBytes;
   bool _dontAskAgain = false;
   TransactionEntry? _selectedEntryForEdit;
   Set<TransactionEntry> _selectedEntries = {};
@@ -120,12 +123,12 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     setState(() {
       _brandsNotStr = brands;
     });
-    _brands = _brandsNotStr.map((e) => e.toString()).toList();
+    _brands = _brandsNotStr.map((e) => e.toString().trim()).toList();
   }
 
   final List<String> _stockLocations = [
-    'Lazcano Ref 1',
-    'Lazcano Ref 2',
+    'Lazcano (Ref 1)',
+    'Lazcano (Ref 2)',
     'Gandia (Cold Storage)',
     'Gandia (Ref 1)',
     'Gandia (Ref 2)',
@@ -339,18 +342,27 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     });
   }
 
-  Future<void> _pickFile(String type) async {
-  final fileBytes = await _service.pickFile();
-  if (fileBytes != null) {
-    setState(() {
-      switch (type) {
-        case 'po': _poFile = fileBytes; break;
-        case 'packing': _packingListFile = fileBytes; break;
-        case 'inventory': _inventoryFile = fileBytes; break;
+  Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true, allowMultiple: false,);
+      if (result != null && result.files.single.bytes != null) {
+        setStateDialog(() {
+          switch (fileType) {
+            case 'po':
+              selectedPoFileName = result.files.single.name;
+              selectedPoFileBytes = result.files.single.bytes;
+              break;
+            case 'packingList':
+              selectedPackingListFileName = result.files.single.name;
+              selectedPackingListFileBytes = result.files.single.bytes;
+              break;
+            case 'inventory':
+              selectedInventoryName = result.files.single.name;
+              selectedInventoryBytes = result.files.single.bytes;
+              break;
+          }
+        });
       }
-    });
-  }
-}
+    }
 
   Future<void> _submitData() async {
     if (_selectedTransactionDate == null || _selectedBrand == null ||
@@ -363,16 +375,25 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final newEntry = {
       "drSIReferenceNum": _referenceController.text,
       "transactionDate": _selectedTransactionDate!.toIso8601String(),
-      "brand": _selectedBrand,
-      "productDescription": _itemDescriptionController,
-      "lotSerialNumber": _lotNumberController,
+      "brand": _selectedBrand?.brandName,
+      "productDescription": _itemDescriptionController.text,
+      "lotSerialNumber": _lotNumberController.text,
       "expiryDate": _selectedExpiryDate!.toIso8601String(),
       "cost": double.parse(_costController.text),
       "quantity": int.parse(_quantityController.text),
       "stockLocation": _selectedStockLocation,
-      "purchaseOrderFile": _poFile,
-      "suppliersPackingList": _packingListFile,
-      "inventoryOfDeliveredItems": _inventoryFile 
+      "purchaseOrderFileName": selectedPoFileName,
+      "suppliersPackingListName": selectedPackingListFileName,
+      "inventoryOfDeliveredItemsName": selectedInventoryName,
+      "purchaseOrderFile": selectedPoFileBytes != null 
+        ? base64Encode(selectedPoFileBytes!) 
+        : null,
+      "suppliersPackingList": selectedPackingListFileBytes != null
+        ? base64Encode(selectedPackingListFileBytes!)
+        : null,
+      "inventoryOfDeliveredItems": selectedInventoryBytes != null
+        ? base64Encode(selectedInventoryBytes!)
+        : null
     };
 
     debugPrint(jsonEncode(newEntry)); 
@@ -456,16 +477,19 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     _referenceExists = false;
     _isValidatingReference = false;
     _selectedStockLocation = null;
-    _poFile = null;
-    _packingListFile = null;
-    _inventoryFile = null;
+    selectedPoFileName = null;
+    selectedPackingListFileName = null;
+    selectedInventoryName = null;
+    selectedPoFileBytes = null;
+    selectedPackingListFileBytes = null;
+    selectedInventoryBytes = null;
 
     showDialog(
       context: context,
       barrierDismissible: false, 
       builder: (BuildContext context) {
         return StatefulBuilder( 
-          builder: (context, setState) {
+          builder: (context, setStateDialog) {
             return AlertDialog(
               title: const Text('Add New Transaction Entry'),
               content: SizedBox(
@@ -497,7 +521,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                             lastDate: DateTime.now(),
                           );
                           if (picked != null) {
-                            setState(() {
+                            setStateDialog(() {
                               _selectedTransactionDate = picked;
                             });
                           }
@@ -518,21 +542,20 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      DropdownButtonFormField<String>(
+                      DropdownButtonFormField<BrandModel>(
                         value: _selectedBrand,
                         decoration: const InputDecoration(
                           labelText: 'Brand',
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.arrow_drop_down),
                         ),
-                        items: _brands.map((String brand) {
-                              return DropdownMenuItem<String>(
+                        items: _brandsNotStr.map((BrandModel brand) {
+                              return DropdownMenuItem<BrandModel>(
                                 value: brand,
-                                child: Text(brand),
+                                child: Text(brand.toString()),
                               );
                             }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
+                        onChanged: (BrandModel? newValue) {
+                          setStateDialog(() {
                             _selectedBrand = newValue; 
                           });
                         },
@@ -572,7 +595,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                             lastDate: DateTime(2100),
                           );
                           if (picked != null) {
-                            setState(() {
+                            setStateDialog(() {
                               _selectedExpiryDate = picked;
                             });
                           }
@@ -603,7 +626,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                           prefixIcon: Icon(Icons.edit), 
                         ),
                       ),
-
+                      const SizedBox(height: 16),
                       TextField(
                         controller: _quantityController,
                         keyboardType: TextInputType.number,
@@ -630,79 +653,43 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                           );
                         }).toList(),
                         onChanged: (String? newValue) {
-                          setState(() {
+                          setStateDialog(() {
                             _selectedStockLocation = newValue;
                           });
                         },
                       ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+                      const Text("Purchase Order File (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Row(
                         children: [
-                          Text('Purchase Order', style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          OutlinedButton(
-                            onPressed: () => _pickFile('po'),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.upload_file),
-                                SizedBox(width: 8),
-                                Text(_poFile == null ? 'Upload File' : 'File Selected'),
-                              ],
-                            ),
-                          ),
-                          if (_poFile != null) Text(
-                            '${_poFile!.lengthInBytes / 1024} KB',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
+                          Expanded(child: Text(selectedPoFileName ?? 'No file selected', overflow: TextOverflow.ellipsis)),
+                          ElevatedButton(
+                            onPressed: () => _pickFileFor('po', setStateDialog),
+                            child: const Text('Select File')
+                          )
+                        ]
                       ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+                      const Text("Supplier's Packing List (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Row(
                         children: [
-                          Text('Supplier\'s Packing List', style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          OutlinedButton(
-                            onPressed: () => _pickFile('packing'),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.upload_file),
-                                SizedBox(width: 8),
-                                Text(_packingListFile == null ? 'Upload File' : 'File Selected'),
-                              ],
-                            ),
-                          ),
-                          if (_packingListFile != null) Text(
-                            '${_packingListFile!.lengthInBytes / 1024} KB',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
+                          Expanded(child: Text(selectedPackingListFileName ?? 'No file selected', overflow: TextOverflow.ellipsis)),
+                          ElevatedButton(
+                            onPressed: () => _pickFileFor('packingList', setStateDialog),
+                            child: const Text('Select File')
+                          )
+                        ]
                       ),
-
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+                      const Text("Inventory of Delivered Items (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Row(
                         children: [
-                          Text('Inventory of Delivered Items', style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          OutlinedButton(
-                            onPressed: () => _pickFile('inventory'),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.upload_file),
-                                SizedBox(width: 8),
-                                Text( _inventoryFile == null ? 'Upload File' : 'File Selected'),
-                              ],
-                            ),
-                          ),
-                          if ( _inventoryFile != null) Text(
-                            '${ _inventoryFile!.lengthInBytes / 1024} KB',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
+                          Expanded(child: Text(selectedInventoryName ?? 'No file selected', overflow: TextOverflow.ellipsis)),
+                          ElevatedButton(
+                            onPressed: () => _pickFileFor('inventory', setStateDialog),
+                            child: const Text('Select File')
+                          )
+                        ]
                       ),
                     ],
                   ),
@@ -847,9 +834,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                   Text('Cost: ${_costController.text.isNotEmpty ? _costController.text : 'N/A'}'),
                   Text('Quantity: ${_quantityController.text.isNotEmpty ? _quantityController.text : 'N/A'}'),
                   Text('Stock Location: ${_selectedStockLocation ?? 'N/A'}'),
-                  Text('Purchase Order File: ${_poFile ?? 'N/A'}'),
-                  Text('Supplier\'s Packing List File: ${_packingListFile ?? 'N/A'}'),
-                  Text('Inventory of Delivered Items File: ${_inventoryFile?? 'N/A'}'),
+                  Text('Purchase Order File: ${selectedPoFileName ?? 'N/A'}'),
+                  Text('Supplier\'s Packing List File: ${selectedPackingListFileName ?? 'N/A'}'),
+                  Text('Inventory of Delivered Items File: ${selectedInventoryName ?? 'N/A'}'),
                   const SizedBox(height: 16),
                   CheckboxListTile(
                     title: const Text('Do not ask me again'),
@@ -888,7 +875,10 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
   void _showEditEntryDialog(TransactionEntry entry) {
     _referenceController.text = entry.reference;
     _selectedTransactionDate = entry.transactionDate;
-    _selectedBrand = entry.brand;
+    _selectedBrand =_brandsNotStr.firstWhere(
+      (brand) => brand.toString() == entry.brand,
+      orElse: () => _brandsNotStr.first,
+      );
     _itemSearchController.text = entry.itemDescription;
     _itemDescriptionController.text = entry.itemDescription;
     _lotNumberController.text = entry.lotNumber; 
@@ -1124,9 +1114,9 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
     final updatedEntry = {
       "drSIReferenceNum": _referenceController.text,
       "transactionDate": _selectedTransactionDate!.toIso8601String(),
-      "brand": _selectedBrand,
-      "productDescription": _itemDescriptionController,
-      "lotSerialNumber": _lotNumberController,
+      "brand": _selectedBrand?.brandName,
+      "productDescription": _itemDescriptionController.text,
+      "lotSerialNumber": _lotNumberController.text,
       "expiryDate": _selectedExpiryDate!.toIso8601String(),
       "quantity": int.parse(_quantityController.text),
       "stockLocation": _selectedStockLocation
@@ -1807,6 +1797,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
                                               DataCell(Text('')),
                                               DataCell(Text('')),
                                               DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
+                                              DataCell(Text('')),
                                               DataCell(Text('')),
                                               DataCell(Text('')),
                                               DataCell(Text('')),

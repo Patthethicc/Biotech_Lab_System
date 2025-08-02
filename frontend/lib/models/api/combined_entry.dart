@@ -1,7 +1,5 @@
 import 'dart:typed_data';
-
-import 'package:frontend/models/api/purchase_order.dart';
-import 'package:frontend/models/api/transaction_entry.dart';
+import 'dart:convert';
 
 class CombinedEntry {
   final String brand;
@@ -15,9 +13,12 @@ class CombinedEntry {
   final String stockLocation;
   final DateTime expiryDate;
   
-  final String? purchaseOrderFile;
-  final String? suppliersPackingList;
-  final String? inventoryOfDeliveredItems;
+  String? purchaseOrderFileName;
+  String? suppliersPackingListName;
+  String? inventoryOfDeliveredItemsName;
+  final Uint8List? purchaseOrderFile;
+  final Uint8List? suppliersPackingList;
+  final Uint8List? inventoryOfDeliveredItems;
 
   CombinedEntry({
     required this.brand,
@@ -29,6 +30,9 @@ class CombinedEntry {
     required this.transactionDate,
     required this.stockLocation,
     required this.expiryDate,
+    this.purchaseOrderFileName,
+    this.suppliersPackingListName,
+    this.inventoryOfDeliveredItemsName,
     this.purchaseOrderFile,
     this.suppliersPackingList,
     this.inventoryOfDeliveredItems,
@@ -36,42 +40,57 @@ class CombinedEntry {
 
   factory CombinedEntry.fromJson(Map<String, dynamic> json) {
     return CombinedEntry(
-      brand: json['brand'] as String,
+      brand: json['brand'].toString().trim(),
       productDescription: json['productDescription'] as String,
       lotSerialNumber: json['lotSerialNumber'] as String,
       cost: json['cost'] as double,
       quantity: json['quantity'] as int,
-      reference: json['reference'] as String? ?? 'TRX-${DateTime.now().millisecondsSinceEpoch}',
+      reference: json['drSIReferenceNum'] as String? ?? 'TRX-${DateTime.now().millisecondsSinceEpoch}',
       transactionDate: DateTime.parse(json['transactionDate'] as String? ?? DateTime.now().toIso8601String()),
       stockLocation: json['stockLocation'] as String,
       expiryDate: DateTime.parse(json['expiryDate'] as String),
-      purchaseOrderFile: json['purchaseOrderFile'],
-      suppliersPackingList: json['suppliersPackingList'],
-      inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'],
+      purchaseOrderFileName: json['purchaseOrderFileName'] ?? 'No File Name',
+      suppliersPackingListName: json['suppliersPackingListName'] ?? 'No File Name',
+      inventoryOfDeliveredItemsName: json['inventoryOfDeliveredItemsName'] ?? 'No File Name',
+      purchaseOrderFile: json['purchaseOrderFile'] != null 
+          ? base64Decode(json['purchaseOrderFile'] as String) 
+          : null,
+      suppliersPackingList: json['suppliersPackingList'] != null
+          ? base64Decode(json['suppliersPackingList'] as String)
+          : null,
+      inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
+          ? base64Decode(json['inventoryOfDeliveredItems'] as String)
+          : null,
     );
   }
 
-  TransactionEntry toTransactionEntry() => TransactionEntry(
-    reference: reference,
-    transactionDate: transactionDate,
-    brand: brand,
-    itemDescription: productDescription,
-    lotNumber: lotSerialNumber,
-    expiryDate: expiryDate,
-    cost: cost,
-    quantity: quantity,
-    stockLocation: stockLocation,
-  );
+   Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{
+      'drSIReferenceNum': reference,
+      'transactionDate': transactionDate.toIso8601String(),
+      'brand': brand,
+      'productDescription': productDescription,
+      'lotSerialNumber': lotSerialNumber,
+      'expiryDate': expiryDate.toIso8601String(),
+      'cost': cost,
+      'quantity': quantity,
+      'stockLocation': stockLocation,
+      'purchaseOrderFileName': purchaseOrderFileName,
+      'suppliersPackingListName': suppliersPackingListName,
+      'inventoryOfDeliveredItemsName': inventoryOfDeliveredItemsName,
+    };
 
-  PurchaseOrder toPurchaseOrder() => PurchaseOrder(
-    itemCode: '',
-    brand: brand,
-    productDescription: productDescription,
-    lotSerialNumber: lotSerialNumber,
-    purchaseOrderFile: purchaseOrderFile,
-    suppliersPackingList: suppliersPackingList,
-    inventoryOfDeliveredItems: inventoryOfDeliveredItems,
-    orderDate: transactionDate,
-    drSIReferenceNum: reference,
-  );
+    // Handle file bytes - convert to base64 if not null
+    if (purchaseOrderFile != null) {
+      json['purchaseOrderFile'] = base64Encode(purchaseOrderFile!);
+    }
+    if (suppliersPackingList != null) {
+      json['suppliersPackingList'] = base64Encode(suppliersPackingList!);
+    }
+    if (inventoryOfDeliveredItems != null) {
+      json['inventoryOfDeliveredItems'] = base64Encode(inventoryOfDeliveredItems!);
+    }
+
+    return json;
+  }
 }

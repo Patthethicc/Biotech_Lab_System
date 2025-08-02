@@ -45,9 +45,6 @@ public class InventoryService {
     @Autowired
     TransactionEntryRepository transactionEntryRepository;
 
-    @Autowired
-    TransactionEntryService transactionEntryService;
-
     @Transactional
     public Inventory addInventory(TransactionEntry transactionEntry) {
         Inventory inventory = new Inventory();
@@ -203,7 +200,7 @@ public class InventoryService {
         purchaseOrderRepository.deleteByItemCode(inventory.getItemCode());
         transactionEntryRepository.deleteByItemCode(inventory.getItemCode());
 
-        TransactionEntry transactionEntry = transactionEntryService.getTransactionEntryByCode(inventory.getItemCode()).get();
+        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(inventory.getItemCode()).get();
         stockLocatorService.updateStockFromTransaction(transactionEntry, false);
         
         inventoryRepository.deleteById(inventoryId);

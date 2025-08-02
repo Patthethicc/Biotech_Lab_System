@@ -13,7 +13,7 @@ class BrandModel {
   factory BrandModel.fromJson(Map<String, dynamic> json) {
     return BrandModel(
       brandId: json['brandId'],
-      brandName: json['brandName'],
+      brandName: json['brandName'].toString().trim(),
       abbreviation: json['abbreviation'],
       latestSequence: json['latestSequence']
     );
@@ -25,4 +25,7 @@ class BrandModel {
     'abbreviation': abbreviation,
     'latestSequence': latestSequence
   };
+
+  @override
+  String toString() => brandName; 
 }

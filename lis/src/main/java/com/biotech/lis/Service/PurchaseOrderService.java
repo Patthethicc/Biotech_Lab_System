@@ -40,14 +40,14 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);
+        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
+        
+        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
+
         validatePurchaseOrderCode(purchaseOrder.getItemCode());
         if (purchaseOrderRepository.existsById(purchaseOrder.getItemCode())) {
             throw new IllegalArgumentException("Purchase order already exists with item code:" + purchaseOrder.getItemCode());
         }
-
-        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
-
-        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
 
         User user = getCurrentUser();
         setAuditFields(purchaseOrder, user);
@@ -112,7 +112,7 @@ public class PurchaseOrderService {
 
     private void validatePurchaseOrderCode(String code) {
         if (code == null || code.trim().isEmpty()) {
-            throw new IllegalArgumentException("Purchase Order Code cannot be null or empty");
+            throw new IllegalArgumentException("Item Code cannot be null or empty");
         }
     }
 

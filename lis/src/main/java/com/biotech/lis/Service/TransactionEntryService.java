@@ -11,7 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.biotech.lis.Entity.Brand;
-import com.biotech.lis.Entity.Inventory;
+import com.biotech.lis.Entity.CombinedTrnPO;
+import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
@@ -45,7 +46,8 @@ public class TransactionEntryService {
     PurchaseOrderRepository purchaseOrderRepository;
 
     @Transactional // rolls back automatically if any exception occurs
-    public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
+    public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
+        TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
 
         validateTransactionEntry(transactionEntry);
         validateTransactionId(transactionEntry.getDrSIReferenceNum());
@@ -68,6 +70,13 @@ public class TransactionEntryService {
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
         inventoryService.addInventory(savedEntry);
+
+        PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
+        purchaseOrder.setItemCode(savedEntry.getItemCode());
+        purchaseOrder.setAddedBy(savedEntry.getAddedBy());
+        purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
+
+        purchaseOrderRepository.save(purchaseOrder);
 
         return savedEntry;
     }
@@ -160,6 +169,9 @@ public class TransactionEntryService {
     // get the current authenticated user
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Authentication Object: " + auth);
+        System.out.println("Principal: " + auth.getPrincipal());
+        System.out.println("Name (ID): " + auth.getName());
         if (auth == null || auth.getName() == null) {
             throw new IllegalArgumentException("No authenticated user found");
         }

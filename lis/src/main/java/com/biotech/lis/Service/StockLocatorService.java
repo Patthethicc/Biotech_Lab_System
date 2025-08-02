@@ -42,9 +42,13 @@ public class StockLocatorService {
 
     public void updateStockFromTransaction(TransactionEntry transactionEntry, boolean isAddition) {
         String brand = transactionEntry.getBrand();
+        System.out.println(brand);
         String productDescription = transactionEntry.getProductDescription();
-        String stockLocation = transactionEntry.getStockLocation();
+        System.out.println(productDescription);
+        String stockLocation = transactionEntry.getStockLocation().toLowerCase();
+        System.out.println(stockLocation);
         Integer quantity = transactionEntry.getQuantity();
+        System.out.println(quantity);
 
         Optional<StockLocator> existingStock = stockLocatorRepository.findByBrandAndProductDescription(brand, productDescription);
         StockLocator stockLocator;
@@ -60,36 +64,36 @@ public class StockLocatorService {
 
         int quantityChange = isAddition ? quantity : -quantity;
         
-        switch (stockLocation.toLowerCase()) {
-            case "lazcano ref 1":
+        switch (stockLocation) {
+            case "lazcano (ref 1)":
                 int newLazcanoRef1 = stockLocator.getLazcanoRef1() + quantityChange;
                 if (!isAddition && newLazcanoRef1 < 0) { 
                     throw new RuntimeException("Insufficient stock at Lazcano Ref 1. Available: " + stockLocator.getLazcanoRef1() + ", Requested Deduction: " + quantity + " for " + productDescription);
                 }
                 stockLocator.setLazcanoRef1(newLazcanoRef1);
                 break;
-            case "lazcano ref 2":
+            case "lazcano (ref 2)":
                 int newLazcanoRef2 = stockLocator.getLazcanoRef2() + quantityChange;
                 if (!isAddition && newLazcanoRef2 < 0) {
                     throw new RuntimeException("Insufficient stock at Lazcano Ref 2. Available: " + stockLocator.getLazcanoRef2() + ", Requested Deduction: " + quantity + " for " + productDescription);
                 }
                 stockLocator.setLazcanoRef2(newLazcanoRef2);
                 break;
-            case "gandia cold storage":
+            case "gandia (cold storage)":
                 int newGandiaColdStorage = stockLocator.getGandiaColdStorage() + quantityChange;
                 if (!isAddition && newGandiaColdStorage < 0) {
                     throw new RuntimeException("Insufficient stock at Gandia Cold Storage. Available: " + stockLocator.getGandiaColdStorage() + ", Requested Deduction: " + quantity + " for " + productDescription);
                 }
                 stockLocator.setGandiaColdStorage(newGandiaColdStorage);
                 break;
-            case "gandia ref 1":
+            case "gandia (ref 1)":
                 int newGandiaRef1 = stockLocator.getGandiaRef1() + quantityChange;
                 if (!isAddition && newGandiaRef1 < 0) {
                     throw new RuntimeException("Insufficient stock at Gandia Ref 1. Available: " + stockLocator.getGandiaRef1() + ", Requested Deduction: " + quantity + " for " + productDescription);
                 }
                 stockLocator.setGandiaRef1(newGandiaRef1);
                 break;
-            case "gandia ref 2":
+            case "gandia (ref 2)":
                 int newGandiaRef2 = stockLocator.getGandiaRef2() + quantityChange;
                 if (!isAddition && newGandiaRef2 < 0) {
                     throw new RuntimeException("Insufficient stock at Gandia Ref 2. Available: " + stockLocator.getGandiaRef2() + ", Requested Deduction: " + quantity + " for " + productDescription);

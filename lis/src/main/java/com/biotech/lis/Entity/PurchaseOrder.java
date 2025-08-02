@@ -22,10 +22,13 @@ public class PurchaseOrder {
     private String brand;
     private String productDescription;
     private String lotSerialNumber;
+    private String purchaseOrderFileName;
     @Lob
     private byte[] purchaseOrderFile;
+    private String suppliersPackingListName;
     @Lob
     private byte[] suppliersPackingList;
+    private String inventoryOfDeliveredItemsName;
     @Lob
     private byte[] inventoryOfDeliveredItems;
     private LocalDate orderDate;

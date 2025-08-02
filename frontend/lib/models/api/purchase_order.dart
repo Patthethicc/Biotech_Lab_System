@@ -1,13 +1,17 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
 class PurchaseOrder {
   String itemCode;
   String brand;
   String productDescription;
   String lotSerialNumber;
-  String? purchaseOrderFile;
-  String? suppliersPackingList;
-  String? inventoryOfDeliveredItems;
+  String? purchaseOrderFileName;
+  Uint8List? purchaseOrderFile;
+  String? suppliersPackingListName;
+  Uint8List? suppliersPackingList;
+  String? inventoryOfDeliveredItemsName;
+  Uint8List? inventoryOfDeliveredItems;
   DateTime orderDate;
   String drSIReferenceNum;
 
@@ -16,51 +20,66 @@ class PurchaseOrder {
     required this.brand,
     required this.productDescription,
     required this.lotSerialNumber,
+    this.purchaseOrderFileName,
     this.purchaseOrderFile,
+    this.suppliersPackingListName,
     this.suppliersPackingList,
+    this.inventoryOfDeliveredItemsName,
     this.inventoryOfDeliveredItems,
     required this.orderDate,
     required this.drSIReferenceNum,
   });
 
-  bool get hasPurchaseOrderFile => purchaseOrderFile != null && purchaseOrderFile!.isNotEmpty;
-  bool get hasSuppliersPackingList => suppliersPackingList != null && suppliersPackingList!.isNotEmpty;
-  bool get hasInventoryOfDeliveredItems => inventoryOfDeliveredItems != null && inventoryOfDeliveredItems!.isNotEmpty;
+  bool get hasPurchaseOrderFile => purchaseOrderFile != null;
+  bool get hasSuppliersPackingList => suppliersPackingList != null;
+  bool get hasInventoryOfDeliveredItems => inventoryOfDeliveredItems != null;
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
-    try {
       return PurchaseOrder(
         itemCode: json['itemCode'] ?? 'Unknown Code',
         brand: json['brand'] ?? 'No Brand Provided',
         productDescription: json['productDescription'] ?? 'No Description',
         lotSerialNumber: json['lotSerialNumber'] ?? 'N/A',
-        purchaseOrderFile: json['purchaseOrderFile'],
-        suppliersPackingList: json['suppliersPackingList'],
-        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'],
+        purchaseOrderFileName: json['purchaseOrderFileName'] ?? 'No File Name',
+        purchaseOrderFile: json['purchaseOrderFile'] != null 
+          ? base64Decode(json['purchaseOrderFile'] as String) 
+          : null,
+        suppliersPackingListName: json['suppliersPackingListName'] ?? 'No File Name',
+        suppliersPackingList: json['suppliersPackingList'] != null
+          ? base64Decode(json['suppliersPackingList'] as String)
+          : null,
+        inventoryOfDeliveredItemsName: json['inventoryOfDeliveredItemsName'] ?? 'No File Name',
+        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
+          ? base64Decode(json['inventoryOfDeliveredItems'] as String)
+          : null,
         orderDate: DateTime.parse(json['orderDate']),
         drSIReferenceNum: json['drSIReferenceNum'] ?? 'N/A',
       );
-    } catch (e) {
-      throw DataParsingException('Error parsing PurchaseOrder from JSON: $e');
-    }
   }
 
-  Map<String, dynamic> toJson() => {
-    'itemCode': itemCode,
-    'brand': brand,
-    'productDescription': productDescription,
-    'lotSerialNumber': lotSerialNumber,
-    'purchaseOrderFile': purchaseOrderFile,
-    'suppliersPackingList': suppliersPackingList,
-    'inventoryOfDeliveredItems': inventoryOfDeliveredItems,
-    'orderDate': orderDate.toIso8601String(),
-    'drSIReferenceNum': drSIReferenceNum,
-  };
-}
+  Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{
+      'itemCode': itemCode,
+      'brand': brand,
+      'productDescription': productDescription,
+      'lotSerialNumber': lotSerialNumber,
+      'purchaseOrderFileName': purchaseOrderFileName,
+      'suppliersPackingListName': suppliersPackingListName,
+      'inventoryOfDeliveredItemsName': inventoryOfDeliveredItemsName,
+      'orderDate': orderDate.toIso8601String(),
+      'drSIReferenceNum': drSIReferenceNum,
+    };
 
-class DataParsingException implements Exception {
-  final String message;
-  DataParsingException(this.message);
-  @override
-  String toString() => 'DataParsingException: $message';
+    if (purchaseOrderFile != null) {
+      json['purchaseOrderFile'] = base64Encode(purchaseOrderFile!);
+    }
+    if (suppliersPackingList != null) {
+      json['suppliersPackingList'] = base64Encode(suppliersPackingList!);
+    }
+    if (inventoryOfDeliveredItems != null) {
+      json['inventoryOfDeliveredItems'] = base64Encode(inventoryOfDeliveredItems!);
+    }
+
+    return json;
+  }
 
 }

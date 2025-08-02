@@ -30,22 +30,17 @@ class TransactionEntryService {
     String? token = await storage.read(key: 'jwt_token');
 
     CombinedEntry entry = CombinedEntry.fromJson(newEntry);
+    print(newEntry);
 
     final response1 = await http.post(
       Uri.parse('$baseUrl/transaction/createTransactionEntry'),
       headers: {'Content-Type': 'application/json',
           'Authorization': 'Bearer $token'},
-      body: jsonEncode(entry.toTransactionEntry()),
+      body: jsonEncode(entry.toJson()),
     );
+    print(response1.statusCode);
+    print(response1);
 
-    await Future.delayed(Duration(seconds: 10));
-
-    final response2 = await http.post(
-      Uri.parse('$baseUrl/PO/v1/addPO'),
-      headers: {'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'},
-      body: jsonEncode(entry.toPurchaseOrder()),
-    );
 
     return response1;
   }

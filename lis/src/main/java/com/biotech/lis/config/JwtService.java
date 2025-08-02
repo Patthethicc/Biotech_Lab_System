@@ -30,6 +30,8 @@ public class JwtService {
 
     //generates user token
     public String generateToken(Long userId) {
+        System.out.println("balls");
+        System.out.println(userId);
         getSignInKey();
         return Jwts.builder()
                    .subject(userId.toString())
