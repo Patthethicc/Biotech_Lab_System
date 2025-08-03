@@ -36,13 +36,13 @@ class _HomePageState extends State<HomePage> {
   TextStyle headerStyle = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.bold,
-    color: Color(0xFF01579B), // Dark blue
+    color: Color(0xFF01579B), 
   );
 
   TextStyle smallTitleStyle = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: Color(0xFF01579B), // Consistent dark blue for labels
+    color: Color(0xFF01579B),
   );
 
   @override
@@ -213,7 +213,7 @@ class _HomePageState extends State<HomePage> {
           totalQuantity,
           isLoading: isLoadingDynamicCount,
         ),
-        summaryCard("Out of Stock", outOfStock),
+        // summaryCard("Out of Stock", outOfStock),
       ],
     );
   }
@@ -309,20 +309,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  Widget _leftTitles(double value, TitleMeta meta, List<String> labels) {
-    String label = '';
-    int idx = value.toInt();
-    if (idx >= 0 && idx < labels.length) {
-      label = labels[idx];
-    }
-    return SideTitleWidget(
-      meta: meta,
-      space: 4,
-      child: Text(label, style: const TextStyle(fontSize: 10)),
-    );
-  }
-
 
   Widget buildRightColumn() {
     return SizedBox(

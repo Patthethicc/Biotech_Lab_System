@@ -18,7 +18,7 @@ class LatestTransactionsTable extends StatelessWidget {
     final dateFormatter = DateFormat('MMM d, yyyy');
 
     return SizedBox(
-      width: 1000,
+      width: MediaQuery.of(context).size.width * 0.7,
       child: Neumorphic(
         style: NeumorphicStyle(
           depth: -4,
