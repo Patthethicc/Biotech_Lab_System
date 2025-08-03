@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/ui/latest_transaction_table.dart';
-import 'package:frontend/services/dashboard_service.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/transaction_entry_service.dart';
+import 'package:frontend/services/stock_alert_service.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
 import 'login.dart';
@@ -63,11 +62,15 @@ class _HomePageState extends State<HomePage> {
       final entries = await TransactionEntryService().fetchTransactionEntries();
       final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
+      final alerts = await StockAlertService().getStockAlerts();
+      final outOfStockItems = alerts.where((item) => item.quantityOnHand == 0).length;
+
       setState(() {
         transactions = filtered;
-        totalTransactions = filtered.length;
+        totalTransactions = entries.length;
         totalQuantity = filtered.fold(0, (sum, e) => sum + e.quantity);
-        dynamicCount = filtered.length; // This now reflects period correctly
+        dynamicCount = filtered.length;
+        outOfStock = outOfStockItems;
         loadingTable = false;
       });
     } catch (e) {
@@ -79,6 +82,7 @@ class _HomePageState extends State<HomePage> {
       setState(() => isLoadingDynamicCount = false);
     }
   }
+
 
 
 
@@ -200,28 +204,34 @@ class _HomePageState extends State<HomePage> {
       children: [
         summaryCard("Total Transactions", totalTransactions),
         summaryCard(
-          _cardLabel(),
+          cardLabel(selectedPeriod, "Transactions"),
           dynamicCount,
           isLoading: isLoadingDynamicCount,
         ),
-        summaryCard("Total Quantity", totalQuantity),
+        summaryCard(
+          cardLabel(selectedPeriod, "Quantity"),
+          totalQuantity,
+          isLoading: isLoadingDynamicCount,
+        ),
         summaryCard("Out of Stock", outOfStock),
       ],
     );
   }
 
-  String _cardLabel() {
-    switch (selectedPeriod) {
+
+  String cardLabel(String period, String labelType) {
+    switch (period) {
       case 'daily':
-        return "Today's Transactions";
+        return "Today's $labelType";
+      case 'weekly':
+        return "This Week's $labelType";
       case 'monthly':
-        return "This Month's Transactions";
-      case 'yearly':
-        return "This Year's Transactions";
+        return "This Month's $labelType";
       default:
-        return "Transactions";
+        return labelType;
     }
   }
+
 
   Widget summaryCard(String title, int value, {bool isLoading = false}) {
     return SizedBox(
