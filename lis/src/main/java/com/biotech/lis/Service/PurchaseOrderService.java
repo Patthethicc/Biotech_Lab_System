@@ -93,11 +93,15 @@ public class PurchaseOrderService {
         inventory.setProductDescription(existingPurchaseOrder.getProductDescription());
         inventory.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
 
+        inventoryRepository.save(inventory);
+
         TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(existingPurchaseOrder.getItemCode()).get();
         transactionEntry.setBrand(existingPurchaseOrder.getBrand());
         transactionEntry.setProductDescription(existingPurchaseOrder.getProductDescription());
         transactionEntry.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
         transactionEntry.setTransactionDate(existingPurchaseOrder.getOrderDate());
+
+        transactionEntryRepository.save(transactionEntry);
 
         return purchaseOrderRepository.save(existingPurchaseOrder);
     }
