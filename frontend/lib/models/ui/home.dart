@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/ui/latest_transaction_table.dart';
 import 'package:frontend/services/dashboard_service.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/transaction_entry_service.dart';
 import 'package:frontend/models/api/inventory.dart';
+import 'package:frontend/models/api/transaction_entry.dart';
 import 'login.dart';
 import 'inventory_bar_chart.dart';
 
@@ -21,7 +23,8 @@ class _HomePageState extends State<HomePage> {
 
   List<Inventory> top = [];
   List<Inventory> bottom = [];
-  bool loadingTop = true, loadingBottom = true;
+  List<TransactionEntry> transactions = [];
+  bool loadingTop = true, loadingBottom = true, loadingTable = true;
 
   int outOfStock = 0;
   String selectedPeriod = 'daily';
@@ -51,21 +54,33 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadAllStats() async {
     final svc = DashboardStatsService();
-    setState(() => isLoadingDynamicCount = true);
+
+    setState(() {
+      isLoadingDynamicCount = true;
+      loadingTable = true; // ← You forgot this
+    });
+
     try {
       final count = await svc.fetchTransactionCount(selectedPeriod);
       final entries = await TransactionEntryService().fetchTransactionEntries();
+      final result = await TransactionEntryService().fetchTransactionEntries();
 
       setState(() {
         dynamicCount = count;
         totalQuantity = entries.fold(0, (sum, e) => sum + e.quantity);
+        transactions = result;
+        loadingTable = false; // ← This is the key fix
       });
     } catch (e) {
       debugPrint('Error loading stats: $e');
+      setState(() {
+        loadingTable = false; // ← Must still stop loading even on error
+      });
     } finally {
       setState(() => isLoadingDynamicCount = false);
     }
   }
+
 
   Future<void> _loadInventories() async {
     setState(() {
@@ -125,6 +140,10 @@ class _HomePageState extends State<HomePage> {
           children: [
             buildSummaryCards(),
             const SizedBox(height: 20),
+            LatestTransactionsTable(
+              transactions: transactions,
+              isLoading: loadingTable,
+            ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -311,10 +330,12 @@ class _HomePageState extends State<HomePage> {
           ),
           buildDrawerItem(context, 'Dashboard', '/dashboard'),
           buildDrawerItem(context, 'View Profile', '/view_profile'),
-          buildDrawerItem(context, 'Data Recording', '/transaction_entry'),
+          buildDrawerItem(context, 'Transaction Entry', '/transaction_entry'),
           buildDrawerItem(context, 'Inventory', '/inventory'),
+          buildDrawerItem(context, 'Brands', '/brand'),
           buildDrawerItem(context, 'Stock Alerts', '/stock_alert'),
           buildDrawerItem(context, 'Stock Locator', '/stock_locator'),
+          buildDrawerItem(context, 'Expiration Alert', '/expiry_alert'),
           buildDrawerItem(context, 'Purchase Order', '/purchase_order'),
           ListTile(
             title: const Text('Log out', style: TextStyle(fontSize: 14)),
