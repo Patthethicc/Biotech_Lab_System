@@ -106,27 +106,42 @@ public class UserService {
             if (user.getUserId() == null) {
                 throw new InvalidUserDataException("User ID is required for update");
             }
-            
-            User existingUser = getUserById(user.getUserId());
-            
-            validateUserData(user);
-            
-            if (!existingUser.getEmail().equals(user.getEmail())) {
-                if (userRepository.findUserByEmail(user.getEmail()) != null) {
-                    throw new UserAlreadyExistsException("Email " + user.getEmail() + " is already in use");
-                }
+
+            User existingUser = userRepository.findById(user.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException("User with ID " + user.getUserId() + " not found"));
+
+            if (user.getFirstName() != null && !user.getFirstName().trim().isEmpty()) {
+                existingUser.setFirstName(user.getFirstName());
             }
-            
-            User updatedUser = userRepository.save(user);
-            logger.info("User updated successfully with ID: " + user.getUserId());
+            if (user.getLastName() != null && !user.getLastName().trim().isEmpty()) {
+                existingUser.setLastName(user.getLastName());
+            }
+            if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+                if (!existingUser.getEmail().equals(user.getEmail()) && userRepository.findUserByEmail(user.getEmail()) != null) {
+                    throw new UserAlreadyExistsException("Email " + user.getEmail() + " is already in use"); //
+                }
+                existingUser.setEmail(user.getEmail());
+            }
+
+            if (user.getPassword() != null && user.getPassword().length > 0) {
+                String newPassword = String.valueOf(user.getPassword());
+                if (newPassword.length() < 6) {
+                    throw new InvalidUserDataException("Password must be at least 6 characters long"); //
+                }
+                String pw_hash = BCrypt.hashpw(newPassword, BCrypt.gensalt(10)); //
+                existingUser.setPassword(pw_hash.toCharArray());
+            }
+
+            User updatedUser = userRepository.save(existingUser);
+            logger.info("User updated successfully with ID: " + updatedUser.getUserId()); 
             return updatedUser;
-            
+
         } catch (UserNotFoundException | UserAlreadyExistsException | InvalidUserDataException e) {
-            logger.warning("Failed to update user: " + e.getMessage());
+            logger.warning("Failed to update user: " + e.getMessage()); 
             throw e;
         } catch (Exception e) {
-            logger.severe("Unexpected error while updating user: " + e.getMessage());
-            throw new RuntimeException("Failed to update user due to internal error", e);
+            logger.severe("Unexpected error while updating user: " + e.getMessage()); 
+            throw new RuntimeException("Failed to update user due to internal error", e); 
         }
     }
 
