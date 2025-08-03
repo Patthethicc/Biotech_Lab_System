@@ -13,10 +13,13 @@ class NewUserService {
       body: json.encode(user.toJson()),
     );
 
-    if (response.statusCode == 200) {
-      return NewUser.fromJson(json.decode(response.body));
+    if (response.statusCode == 201) {
+      final responseBody = json.decode(response.body);
+      return NewUser.fromJson(responseBody['user']);
     } else {
-      throw Exception('Failed to post data');
+      final errorBody = json.decode(response.body);
+      final errorMessage = errorBody['message'] ?? 'Failed to create user. Please try again.';
+      throw Exception(errorMessage);
     }
   }
 }
