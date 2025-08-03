@@ -45,14 +45,13 @@ public class TransactionEntryService {
     @Autowired
     PurchaseOrderRepository purchaseOrderRepository;
 
-    @Transactional // rolls back automatically if any exception occurs
+    @Transactional
     public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
         TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
 
         validateTransactionEntry(transactionEntry);
         validateTransactionId(transactionEntry.getDrSIReferenceNum());
         
-        // transaction ID must be unique
         if (transactionEntryRepository.existsById(transactionEntry.getDrSIReferenceNum())) {
             throw new IllegalArgumentException("Transaction already exists with ID: " + transactionEntry.getDrSIReferenceNum());
         }
@@ -125,7 +124,6 @@ public class TransactionEntryService {
     public void deleteTransactionEntry(String id) {
         validateTransactionId(id);
         
-        // transaction must exist (checks by ID)
         if (!transactionEntryRepository.existsById(id)) {
             throw new IllegalArgumentException("Transaction not found with ID: " + id);
         }

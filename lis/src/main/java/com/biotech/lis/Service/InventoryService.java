@@ -194,14 +194,16 @@ public class InventoryService {
         return inventoryRepository.save(existingInventory);
     }
 
+    @Transactional
     public void deleteByInventoryId(Integer inventoryId) {
         Inventory inventory = getInventoryById(inventoryId);
 
         purchaseOrderRepository.deleteByItemCode(inventory.getItemCode());
-        transactionEntryRepository.deleteByItemCode(inventory.getItemCode());
 
         TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(inventory.getItemCode()).get();
         stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+
+        transactionEntryRepository.deleteByItemCode(inventory.getItemCode());
         
         inventoryRepository.deleteById(inventoryId);
     }

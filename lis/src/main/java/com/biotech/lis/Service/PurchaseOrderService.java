@@ -96,10 +96,10 @@ public class PurchaseOrderService {
         if (!purchaseOrderRepository.existsById(code)) {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
+        stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
+        
         transactionEntryRepository.deleteByItemCode(code);
         inventoryRepository.deleteByItemCode(code);
-
-        stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
 
         purchaseOrderRepository.deleteById(code);
     }
