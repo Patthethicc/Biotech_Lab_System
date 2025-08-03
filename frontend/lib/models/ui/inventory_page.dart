@@ -121,7 +121,7 @@ class _InventoryPageState extends State<InventoryPage> {
         _isLoading = false;
       });
       if (mounted) {
-        _showDialog('Error', 'Failed to load purchase orders: $e');
+        _showDialog('Error', 'Failed to load inventories: $e');
       }
     }
   }
@@ -225,7 +225,7 @@ class _InventoryPageState extends State<InventoryPage> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit PO: ${inventory.itemCode}'),
+          title: Text('Edit Inventory: ${inventory.itemCode}'),
           content: Form(
             key: _formKey,
             child: StatefulBuilder(
@@ -415,7 +415,7 @@ class _InventoryPageState extends State<InventoryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Purchase Orders',
+          'Inventory',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black,
