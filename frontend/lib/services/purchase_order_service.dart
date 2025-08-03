@@ -100,3 +100,13 @@ class PurchaseOrderService {
     }
   }
 }
+
+class DataParsingException implements Exception {
+  final String message;
+  final StackTrace? stackTrace;
+
+  DataParsingException(this.message, [this.stackTrace]);
+
+  @override
+  String toString() => 'DataParsingException: $message';
+}

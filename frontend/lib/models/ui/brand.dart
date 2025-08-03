@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/brand_model.dart';
 import 'package:frontend/models/api/inventory.dart';
-import 'package:frontend/models/api/item_model.dart';
+import 'package:frontend/services/brand_service.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:frontend/services/item_details_service.dart';
 import 'package:intl/intl.dart'; 
 
 class _NeumorphicNavButton extends StatefulWidget {
@@ -70,19 +70,18 @@ class _NeumorphicNavButtonState extends State<_NeumorphicNavButton> {
   }
 }
 
-class InventoryPage extends StatefulWidget {
-  const InventoryPage({super.key});
+class BrandPage extends StatefulWidget {
+  const BrandPage({super.key});
 
   @override
-  State<InventoryPage> createState() => _InventoryPageState();
+  State<BrandPage> createState() => _BrandPageState();
 }
 
-class _InventoryPageState extends State<InventoryPage> {
-  final inventoryService = InventoryService();
-  final itemDetailsService = ItemDetailsService();
+class _BrandPageState extends State<BrandPage> {
+  final brandService = BrandService();
 
-  List<Inventory> _allInventories = [];
-  List<Inventory> _displayInventories = [];
+  List<BrandModel> _allBrands = [];
+  List<BrandModel> _displayBrands = [];
   bool _isLoading = true;
   bool _isHovered = false;
 
@@ -95,54 +94,38 @@ class _InventoryPageState extends State<InventoryPage> {
   void initState() {
     super.initState();
     _fetchData();
-    _searchController.addListener(_filterInventories);
+    //_searchController.addListener(_filterInventories);
   }
 
   @override
   void dispose() {
-    _searchController.removeListener(_filterInventories);
+    //_searchController.removeListener(_filterInventories);
     _searchController.dispose();
     super.dispose();
   }
 
   void _fetchData() {
-    inventoryService.getInventories().then((value) {
+    brandService.getBrands().then((value) {
       setState(() {
-        _allInventories = value;
-        _displayInventories = List.from(_allInventories);
+        _allBrands = value;
+        _displayBrands = List.from(_allBrands);
         _isLoading = false;
       });
     });
   }
 
-  void _filterInventories() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isNotEmpty) {
-        _displayInventories = _allInventories.where((inventory) {
-          final itemCodeMatch =
-              inventory.itemCode.toLowerCase().contains(query);
-          final brandMatch = inventory.brand.toLowerCase().contains(query);
-          return itemCodeMatch || brandMatch;
-        }).toList();
-      } else {
-        _displayInventories = List.from(_allInventories);
-      }
-      _startIndex = 0; 
-    });
-  }
 
   void _resetToFullList() {
     setState(() {
       _searchController.clear();
-      _displayInventories = List.from(_allInventories);
+     _displayBrands = List.from(_allBrands);
       _startIndex = 0;
     });
   }
 
   void nextPage() {
     setState(() {
-      if (_startIndex + _rowsPerPage < _displayInventories.length) {
+      if (_startIndex + _rowsPerPage < _displayBrands.length) {
         _startIndex += _rowsPerPage;
       }
     });
@@ -156,49 +139,15 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
-  bool checkIdDuplicate(int id) {
-    for (var i in _allInventories) {
-      if (id == i.inventoryID) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-    bool checkItemCodeDuplicate(String code) {
-    for (var i in _allInventories) {
-      if (code == i.itemCode) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   // leave invID 0 if ur in write mode
-  void showAddDialogue(String mode, int invID) {
+  void showAddDialogue() {
     final formKey = GlobalKey<FormState>();
-
-    final itemCodeController = TextEditingController();
-    final brandController = TextEditingController();
-    final productDescController = TextEditingController();
-    final lotSerialNumController = TextEditingController();
-    final expiryDateController = TextEditingController();
-    final stocksManilaController = TextEditingController();
-    final stocksCebuController = TextEditingController();
-    final purchaseOrderRefController = TextEditingController();
-    final supplierPackingListController = TextEditingController();
-    final drsiReferenceNumberController = TextEditingController();
-    final addedByController = TextEditingController();
-
-    bool isWriteMode = false;
-    if(mode == "Write"){
-      isWriteMode = true;
-    }
+    final nameController = TextEditingController();
 
     showDialog(context: context, 
     builder: (context) {
       return AlertDialog(
-        title: Text(isWriteMode ? 'Add Inventory Data' : 'Edit Inventory Data'),
+        title: Text('Add Brand'),
         content: SizedBox(
           width: 500,
           child: Form(
@@ -206,177 +155,18 @@ class _InventoryPageState extends State<InventoryPage> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-
                   TextFormField(
-                    controller: itemCodeController,
+                    controller: nameController,
                     decoration: InputDecoration(
-                      labelText: "Item Code"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || checkItemCodeDuplicate(value)) {
-                        return 'Enter a valid item code';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: brandController,
-                    decoration: const InputDecoration(
-                      labelText: "Brand"
+                      labelText: "Brand Name"
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Enter a valid brand';
+                        return 'Enter a valid brand name';
                       } else {
                         return null;
                       }
                     },
-                  ),
-
-                  TextFormField(
-                    controller: productDescController,
-                    decoration: const InputDecoration(
-                      labelText: "Product Description"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Product Description';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    controller: lotSerialNumController,
-                    decoration: const InputDecoration(
-                      labelText: "Lot/Serial num"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid brand';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    readOnly: true,  // Prevent manual text entry
-                    decoration: InputDecoration(
-                      labelText: 'Expiry Date',
-                      suffixIcon: Icon(Icons.calendar_today),
-                      hintText: 'Tap to select date',
-                    ),
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        expiryDateController.text = DateFormat('yyyy-MM-dd').format(picked);
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please select a date';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: stocksManilaController,
-                    decoration: InputDecoration(
-                      labelText: isWriteMode ? "Stocks Manila" : "Quantity on hand"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || int.parse(value) < 0) {
-                        return isWriteMode ? 'Enter a valid stock number' : 'Enter a valid quantity';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: stocksCebuController,
-                    decoration: const InputDecoration(
-                      labelText: "Stocks Cebu"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty || int.parse(value) < 0) {
-                        return 'Enter a valid stock number';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    controller: purchaseOrderRefController,
-                    decoration: const InputDecoration(
-                      labelText: "Purchase Order Reference"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Reference';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  TextFormField(
-                    controller: supplierPackingListController,
-                    decoration: const InputDecoration(
-                      labelText: "Supplier Packing List"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Packing List';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
-                  ),
-
-                  isWriteMode ? SizedBox(): TextFormField(
-                    controller: addedByController,
-                    decoration: const InputDecoration(
-                      labelText: "Added by"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid String';
-                      } else {
-                        return null;
-                      }
-                    },
-                  ),
-
-                  TextFormField(
-                    controller: drsiReferenceNumberController,
-                    decoration: const InputDecoration(
-                      labelText: "drsi Reference Number"
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Enter a valid Packing List';
-                      } else {
-                        return null;
-                      }
-                    },
-                    enabled: isWriteMode,
                   ),
                 ],
               ),
@@ -390,39 +180,15 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Item newItem = Item(
-                itemCode: itemCodeController.text,
-                brand: brandController.text,
-                productDescription: productDescController.text,
-                lotSerialNumber: lotSerialNumController.text,
-                expiryDate: DateTime.parse(expiryDateController.text),
-                stocksManila: stocksManilaController.text,
-                stocksCebu: stocksCebuController.text,
-                purchaseOrderReferenceNumber: purchaseOrderRefController.text,
-                supplierPackingList: supplierPackingListController.text,
-                drsiReferenceNumber: drsiReferenceNumberController.text
-              );
-
-              Inventory updatedInventory = Inventory(
-                inventoryID: invID,
-                itemCode: itemCodeController.text,
-                brand: brandController.text,
-                quantityOnHand: int.parse(stocksManilaController.text),
-                addedBy: addedByController.text,
-                dateTimeAdded: expiryDateController.text
-              );
-
-              if(mode == "Write") {
-                await itemDetailsService.createInventory(newItem);
-              } else if(mode == "Edit") {
-                await inventoryService.updateInventory(updatedInventory);
-              }
+              final BrandModel newBrand = BrandModel(brandName: nameController.text,);
+              await brandService.createBrand(newBrand);
               Navigator.pop(context);
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                 builder: (BuildContext context) => super.widget));
-              },
+              
+            } ,
             child: const Text("Add")
           )
         ],
@@ -432,14 +198,14 @@ class _InventoryPageState extends State<InventoryPage> {
   
   @override
   Widget build(BuildContext context) {
-    final endIndex = (_startIndex + _rowsPerPage > _displayInventories.length)
-        ? _displayInventories.length
+    final endIndex = (_startIndex + _rowsPerPage > _displayBrands.length)
+        ? _displayBrands.length
         : _startIndex + _rowsPerPage;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Inventory Data',
+          'Brand Data',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black, // Set text color explicitly if background is transparent
@@ -522,7 +288,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       onEnter: (_) => setState(() => _isHovered = true),
                       onExit: (_) => setState(() => _isHovered = false),
                       child: NeumorphicButton(
-                        onPressed: () => showAddDialogue("Write", 0),
+                        onPressed: () => showAddDialogue(),
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // smaller height
                         style: NeumorphicStyle(
                           depth: _isHovered ? -4 : 4,
@@ -568,12 +334,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       : DataTable(                         
                           columns: const [
                             DataColumn(label: Text("", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("ID", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Item Code", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Brand", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("On Hand", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Added By", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Date Added", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Brand Name", style: TextStyle(color: Colors.white))),
                           ],
                           rows: _populateRows().isEmpty
                               ? []
@@ -592,28 +353,24 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   List<DataRow> _populateRows() {
-    if (_displayInventories.isEmpty) {
+    if  (_displayBrands.isEmpty) {
       return [
         const DataRow(cells: [
           DataCell(Text('')),
-          DataCell(Text('')),
           DataCell(Text('No results found')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
         ])
       ];
     }
 
      int counter = 0;
 
-    return _displayInventories.map((e) {
+    return _displayBrands.map((e) {
       return DataRow(cells: [
         DataCell(Row(
           children: [IconButton(
             icon: Icon(Icons.delete_forever),
             onPressed: () async {
-              await inventoryService.deleteInventory(e.inventoryID!.toInt());
+              await brandService.deleteBrand(e.brandId!.toInt());
               Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -624,17 +381,12 @@ class _InventoryPageState extends State<InventoryPage> {
             IconButton(
               icon: Icon(Icons.edit),
               onPressed: () {
-                showAddDialogue("Edit", e.inventoryID!.toInt());
+                //showAddDialogue("Edit", e.inventoryID!.toInt());
               },
             )
             ]
         )),
-        DataCell(Text(e.inventoryID.toString())),
-        DataCell(Text(e.itemCode)),
-        DataCell(Text(e.brand)),
-        DataCell(Text(e.quantityOnHand.toString())),
-        DataCell(Text(e.addedBy)),
-        DataCell(Text(e.dateTimeAdded.toString().split(' ')[0])),
+        DataCell(Text(e.brandName.toString())),
       ],
       color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
         final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue
@@ -663,12 +415,12 @@ class _InventoryPageState extends State<InventoryPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Text(
-              '${_displayInventories.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayInventories.length}',
+              '${_displayBrands.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayBrands.length}',
             ),
           ),
           _NeumorphicNavButton(
             icon: Icons.chevron_right,
-            enabled: endIndex < _displayInventories.length,
+            enabled: endIndex < _displayBrands.length,
             onPressed: nextPage,
             tooltip: 'Next Page',
           ),

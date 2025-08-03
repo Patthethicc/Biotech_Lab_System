@@ -4,7 +4,10 @@ package com.biotech.lis.Service;
 import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.User;
+import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
+import com.biotech.lis.Repository.TransactionEntryRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
@@ -13,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class PurchaseOrderService {
@@ -26,17 +28,26 @@ public class PurchaseOrderService {
     @Autowired
     BrandService brandService;
 
+    @Autowired
+    TransactionEntryRepository transactionEntryRepository;
+
+    @Autowired
+    InventoryRepository inventoryRepository;
+
+    @Autowired
+    StockLocatorService stockLocatorService;
+
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);
+        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
+        
+        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
+
         validatePurchaseOrderCode(purchaseOrder.getItemCode());
         if (purchaseOrderRepository.existsById(purchaseOrder.getItemCode())) {
             throw new IllegalArgumentException("Purchase order already exists with item code:" + purchaseOrder.getItemCode());
         }
-
-        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
-
-        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
 
         User user = getCurrentUser();
         setAuditFields(purchaseOrder, user);
@@ -85,6 +96,11 @@ public class PurchaseOrderService {
         if (!purchaseOrderRepository.existsById(code)) {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
+        transactionEntryRepository.deleteByItemCode(code);
+        inventoryRepository.deleteByItemCode(code);
+
+        stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
+
         purchaseOrderRepository.deleteById(code);
     }
 
@@ -96,7 +112,7 @@ public class PurchaseOrderService {
 
     private void validatePurchaseOrderCode(String code) {
         if (code == null || code.trim().isEmpty()) {
-            throw new IllegalArgumentException("Purchase Order Code cannot be null or empty");
+            throw new IllegalArgumentException("Item Code cannot be null or empty");
         }
     }
 

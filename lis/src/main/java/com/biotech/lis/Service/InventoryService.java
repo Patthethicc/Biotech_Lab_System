@@ -12,6 +12,9 @@ import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Repository.PurchaseOrderRepository;
+import com.biotech.lis.Repository.TransactionEntryRepository;
+import com.biotech.lis.Entity.PurchaseOrder;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -33,18 +36,23 @@ public class InventoryService {
     @Autowired
     StockLocatorService stockLocatorService;
 
+    @Autowired
+    PurchaseOrderService purchaseOrderService;
+
+    @Autowired
+    PurchaseOrderRepository purchaseOrderRepository;
+
+    @Autowired
+    TransactionEntryRepository transactionEntryRepository;
+
     @Transactional
     public Inventory addInventory(TransactionEntry transactionEntry) {
         Inventory inventory = new Inventory();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
-        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
-        if (brand == null) {
-            throw new EntityNotFoundException();
-        }
 
-        inventory.setItemCode(brandService.generateItemCode(brand));
+        inventory.setItemCode(transactionEntry.getItemCode());
         inventory.setBrand(transactionEntry.getBrand());
         inventory.setProductDescription(transactionEntry.getProductDescription());
         inventory.setLotSerialNumber(transactionEntry.getLotSerialNumber());
@@ -116,6 +124,27 @@ public class InventoryService {
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
 
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(inventory.getItemCode());
+        
+        purchaseOrder.setBrand(brandName);
+        purchaseOrder.setProductDescription(prodDesc);
+        purchaseOrder.setLotSerialNumber(inventory.getLotSerialNumber());
+        purchaseOrder.setOrderDate(inventory.getDateTimeAdded().toLocalDate());
+
+        purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        purchaseOrder.setDateTimeAdded(cDateTime);
+
+        purchaseOrderRepository.save(purchaseOrder);
+
+        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(inventory.getItemCode()).get();
+
+        transactionEntry.setBrand(brandName);
+        transactionEntry.setProductDescription(prodDesc);
+        transactionEntry.setLotSerialNumber(inventory.getLotSerialNumber());
+
+        transactionEntry.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        transactionEntry.setDateTimeAdded(cDateTime);
+
         return inventoryRepository.save(existingInventory);
     }
 
@@ -150,10 +179,30 @@ public class InventoryService {
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
 
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(transactionEntry.getItemCode());
+        
+        purchaseOrder.setBrand(brandName);
+        purchaseOrder.setProductDescription(prodDesc);
+        purchaseOrder.setLotSerialNumber(transactionEntry.getLotSerialNumber());
+        purchaseOrder.setOrderDate(transactionEntry.getDateTimeAdded().toLocalDate());
+        purchaseOrder.setDrSIReferenceNum(transactionEntry.getDrSIReferenceNum());
+        purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        purchaseOrder.setDateTimeAdded(cDateTime);
+
+        purchaseOrderRepository.save(purchaseOrder);
+
         return inventoryRepository.save(existingInventory);
     }
 
     public void deleteByInventoryId(Integer inventoryId) {
+        Inventory inventory = getInventoryById(inventoryId);
+
+        purchaseOrderRepository.deleteByItemCode(inventory.getItemCode());
+        transactionEntryRepository.deleteByItemCode(inventory.getItemCode());
+
+        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(inventory.getItemCode()).get();
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        
         inventoryRepository.deleteById(inventoryId);
     }
 

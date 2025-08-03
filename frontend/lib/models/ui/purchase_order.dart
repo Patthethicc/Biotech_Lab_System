@@ -6,8 +6,6 @@ import 'package:frontend/services/purchase_order_service.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:file_saver/file_saver.dart';
 
 
@@ -233,7 +231,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     Uint8List? selectedInventoryBytes;
 
     Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true, allowMultiple: false,);
       if (result != null && result.files.single.bytes != null) {
         setStateDialog(() {
           switch (fileType) {
@@ -319,9 +317,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       lotSerialNumber: lotSerialController.text,
                       drSIReferenceNum: drsiController.text,
                       orderDate: orderDate!,
-                      purchaseOrderFile: selectedPoFileBytes != null ? base64Encode(selectedPoFileBytes!) : null,
-                      suppliersPackingList: selectedPackingListFileBytes != null ? base64Encode(selectedPackingListFileBytes!) : null,
-                      inventoryOfDeliveredItems: selectedInventoryBytes != null ? base64Encode(selectedInventoryBytes!) : null);
+                      purchaseOrderFile: selectedPoFileBytes,
+                      suppliersPackingList: selectedPackingListFileBytes,
+                      inventoryOfDeliveredItems: selectedInventoryBytes);
 
                   try {
                     await _poService.addPurchaseOrder(newOrder);
@@ -448,9 +446,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                     lotSerialNumber: lotSerialController.text,
                     drSIReferenceNum: drsiController.text,
                     orderDate: orderDate!,
-                    purchaseOrderFile: selectedPoFileBytes != null ? base64Encode(selectedPoFileBytes!) : order.purchaseOrderFile,
-                    suppliersPackingList: selectedPackingListFileBytes != null ? base64Encode(selectedPackingListFileBytes!) : order.suppliersPackingList,
-                    inventoryOfDeliveredItems: selectedInventoryBytes != null ? base64Encode(selectedInventoryBytes!) : order.inventoryOfDeliveredItems
+                    purchaseOrderFile: selectedPoFileBytes ?? order.purchaseOrderFile,
+                    suppliersPackingList: selectedPackingListFileBytes ?? order.suppliersPackingList,
+                    inventoryOfDeliveredItems: selectedInventoryBytes ?? order.inventoryOfDeliveredItems
                   );
                   try {
                     await _poService.updatePurchaseOrder(updatedOrder);

@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, String> {
     public PurchaseOrder findByItemCode(String code);
+    void deleteByItemCode(String itemCode);
 }
