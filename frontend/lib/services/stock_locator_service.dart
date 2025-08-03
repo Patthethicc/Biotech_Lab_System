@@ -43,4 +43,35 @@ class StockLocatorService {
       return null;
     }
   }
+
+  Future<bool> updateStockLocator(StockLocator stockLocator) async {
+    final String? token = await storage.read(key: 'jwt_token');
+    if (token == null) {
+      print('Error: JWT token not found in secure storage');
+      return false;
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/stock-locator/update'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(stockLocator.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        print('Stock locator updated successfully');
+        return true;
+      } else {
+        print('Error updating stock locator ${response.statusCode}: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Exception during stock locator update: $e');
+      return false;
+    }
+  }
 }
