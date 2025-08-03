@@ -63,79 +63,84 @@ class LatestTransactionsTable extends StatelessWidget {
                   )
                 : latest5.isEmpty
                     ? const Center(child: Text('No recent transactions'))
-                    : Column(
-                        children: latest5.map((tx) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Item description and brand
-                                Expanded(
-                                  flex: 4,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        tx.itemDescription,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF2A4C78),
-                                        ),
+                    : ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: latest5.length,
+                      itemBuilder: (context, index) {
+                        final tx = latest5[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Item description and brand
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.itemDescription,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2A4C78),
                                       ),
-                                      Text(
-                                        tx.brand,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Reference and date
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        tx.reference,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF2A4C78),
-                                        ),
-                                      ),
-                                      Text(
-                                        dateFormatter.format(tx.transactionDate),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Quantity
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    '${tx.quantity}',
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF2A4C78),
-                                      fontWeight: FontWeight.bold,
                                     ),
+                                    Text(
+                                      tx.brand,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Reference and date
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      tx.reference,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF2A4C78),
+                                      ),
+                                    ),
+                                    Text(
+                                      dateFormatter.format(tx.transactionDate),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Quantity
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  '${tx.quantity}',
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF2A4C78),
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
           ],
         ),
       ),

@@ -9,7 +9,7 @@ import 'package:frontend/services/transaction_entry_service.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
 import 'login.dart';
-import 'inventory_bar_chart.dart';
+import 'inventory_pie_chart.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,6 +30,7 @@ class _HomePageState extends State<HomePage> {
   String selectedPeriod = 'daily';
   int dynamicCount = 0;
   int totalQuantity = 0;
+  int totalTransactions = 0;
   bool loading = true;
   bool isLoadingDynamicCount = true;
 
@@ -53,33 +54,32 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadAllStats() async {
-    final svc = DashboardStatsService();
-
     setState(() {
       isLoadingDynamicCount = true;
-      loadingTable = true; // ← You forgot this
+      loadingTable = true;
     });
 
     try {
-      final count = await svc.fetchTransactionCount(selectedPeriod);
       final entries = await TransactionEntryService().fetchTransactionEntries();
-      final result = await TransactionEntryService().fetchTransactionEntries();
+      final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
       setState(() {
-        dynamicCount = count;
-        totalQuantity = entries.fold(0, (sum, e) => sum + e.quantity);
-        transactions = result;
-        loadingTable = false; // ← This is the key fix
+        transactions = filtered;
+        totalTransactions = filtered.length;
+        totalQuantity = filtered.fold(0, (sum, e) => sum + e.quantity);
+        dynamicCount = filtered.length; // This now reflects period correctly
+        loadingTable = false;
       });
     } catch (e) {
       debugPrint('Error loading stats: $e');
       setState(() {
-        loadingTable = false; // ← Must still stop loading even on error
+        loadingTable = false;
       });
     } finally {
       setState(() => isLoadingDynamicCount = false);
     }
   }
+
 
 
   Future<void> _loadInventories() async {
@@ -104,6 +104,27 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  List<TransactionEntry> _filterTransactionsByPeriod(List<TransactionEntry> entries, String period) {
+    final now = DateTime.now();
+
+    return entries.where((entry) {
+      final date = entry.transactionDate;
+      switch (period) {
+        case 'daily':
+          return date.year == now.year && date.month == now.month && date.day == now.day;
+        case 'weekly':
+          final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+          final endOfWeek = startOfWeek.add(const Duration(days: 6));
+          return date.isAfter(startOfWeek.subtract(const Duration(days: 1))) && date.isBefore(endOfWeek.add(const Duration(days: 1)));
+        case 'monthly':
+          return date.year == now.year && date.month == now.month;
+        default:
+          return false;
+      }
+    }).toList();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,14 +136,17 @@ class _HomePageState extends State<HomePage> {
             value: selectedPeriod,
             onChanged: (v) {
               if (v != null) {
-                selectedPeriod = v;
+                setState(() {
+                  selectedPeriod = v;
+                });
                 _loadAllStats();
+                _loadInventories();
               }
             },
             items: [
               'daily',
+              'weekly',
               'monthly',
-              'yearly',
             ].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
           ),
         ],
@@ -148,9 +172,19 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                InventoryBarChart(title: 'Highest Stocks', data: top, isLoading: loadingTop),
+                InventoryPieChart(
+                  key: ValueKey('high-$selectedPeriod'),
+                  title: 'Highest Stocks',
+                  data: top,
+                  isLoading: loadingTop,
+                ),
                 const SizedBox(width: 20),
-                InventoryBarChart(title: 'Lowest Stocks', data: bottom, isLoading: loadingBottom),
+                InventoryPieChart(
+                  key: ValueKey('low-$selectedPeriod'),
+                  title: 'Lowest Stocks',
+                  data: bottom,
+                  isLoading: loadingBottom,
+                ),
                 // buildRightColumn(),
               ],
             ),
@@ -164,7 +198,7 @@ class _HomePageState extends State<HomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        summaryCard("Total Transactions", totalQuantity),
+        summaryCard("Total Transactions", totalTransactions),
         summaryCard(
           _cardLabel(),
           dynamicCount,
