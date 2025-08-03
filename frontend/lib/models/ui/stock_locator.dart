@@ -10,6 +10,7 @@ class StockLocatorPage extends StatefulWidget {
 }
 
 class _StockLocatorPageState extends State<StockLocatorPage> {
+  bool _isLoading = false;
   bool _showTable = false;
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _productController = TextEditingController();
@@ -79,9 +80,15 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
                               return;
                             }
 
+                            setState(() {
+                              _isLoading = true;  
+                              _showTable = false;
+                            });
+
                             final result = await _service.searchStockLocator(brand, product);
 
                             setState(() {
+                              _isLoading = false;
                               if (result != null) {
                                 _result = result;
                                 _showTable = true;
@@ -151,9 +158,15 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
                   ),
                 ),
 
-                if (_errorMessage != null)
+                // Loading spinner
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(50.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                if (!_isLoading && _errorMessage != null)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(35, 8, 16, 8), // <-- Increased left padding
+                    padding: const EdgeInsets.fromLTRB(35, 8, 16, 8),
                     child: Text(
                       _errorMessage!,
                       style: const TextStyle(
