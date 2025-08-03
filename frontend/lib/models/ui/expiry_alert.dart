@@ -235,7 +235,7 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
 
     return _displayAlerts.map((e) {
       return DataRow(cells: [
-        DataCell(Text(e.itemCode)),
+        DataCell(Text(e.itemCode.toString())),
         DataCell(Text(e.brand)),
         DataCell(Text(e.productDescription)),
         DataCell(Text(e.lotSerialNumber)),

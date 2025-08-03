@@ -14,7 +14,7 @@ class EditUser {
 
   factory EditUser.fromJson(Map<String, dynamic> json) {
     return EditUser(
-        userId: json['user_id'],
+        userId: json['userId'],
         firstName: json['firstName'],
         lastName: json['lastName'],
         email: json['email'],
@@ -23,7 +23,7 @@ class EditUser {
   }
 
   Map<String, dynamic> toJson() => {
-    'user_id': userId,
+    'userId': userId,
     'firstName': firstName,
     'lastName': lastName,
     'email': email,
