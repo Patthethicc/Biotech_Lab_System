@@ -1,29 +1,29 @@
 class Inventory {
   int? inventoryID = 0;
-  String itemCode = "";
+  String? itemCode;
   String brand = "";
   String productDescription = "";
   String lotSerialNumber = "";
   double cost = 0;
   String expiryDate = "";
-  int stocksManila = 0;
-  int stocksCebu = 0;
+  int? stocksManila;
+  int? stocksCebu;
   int quantityOnHand = 0;
-  String addedBy = "";
-  String dateTimeAdded = "";
+  String? addedBy;
+  String? dateTimeAdded;
 
   Inventory({
-    required this.inventoryID,
-    required this.itemCode,
+    this.inventoryID,
+    this.itemCode,
     required this.brand,
     required this.productDescription,
     required this.lotSerialNumber,
     required this.cost,
     required this.expiryDate,
-    required this.stocksManila,
-    required this.stocksCebu,
-    required this.addedBy,
-    required this.dateTimeAdded
+    this.stocksManila,
+    this.stocksCebu,
+    this.addedBy,
+    this.dateTimeAdded
   });
 
   Inventory.fromJson(Map<String, dynamic> json) {
