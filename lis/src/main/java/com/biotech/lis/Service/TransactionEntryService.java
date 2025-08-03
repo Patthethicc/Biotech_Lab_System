@@ -1,21 +1,25 @@
 package com.biotech.lis.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.biotech.lis.Entity.Brand;
+import com.biotech.lis.Entity.CombinedTrnPO;
+import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
+import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
+
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class TransactionEntryService {
@@ -29,8 +33,21 @@ public class TransactionEntryService {
     @Autowired
     UserService userService;
 
+    @Autowired
+    InventoryService inventoryService;
+
+    @Autowired
+    BrandService brandService;
+
+    @Autowired
+    InventoryRepository inventoryRepository;
+
+    @Autowired
+    PurchaseOrderRepository purchaseOrderRepository;
+
     @Transactional // rolls back automatically if any exception occurs
-    public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
+    public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
+        TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
 
         validateTransactionEntry(transactionEntry);
         validateTransactionId(transactionEntry.getDrSIReferenceNum());
@@ -42,16 +59,36 @@ public class TransactionEntryService {
 
         User user = getCurrentUser();
         setAuditFields(transactionEntry, user);
+        
+        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
+        if (brand == null) {
+            throw new EntityNotFoundException();
+        }
 
+        transactionEntry.setItemCode(brandService.generateItemCode(brand));
         TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
+        inventoryService.addInventory(savedEntry);
+
+        PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
+        purchaseOrder.setItemCode(savedEntry.getItemCode());
+        purchaseOrder.setAddedBy(savedEntry.getAddedBy());
+        purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
+
+        purchaseOrderRepository.save(purchaseOrder);
+
         return savedEntry;
     }
  
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
         validateTransactionId(id);
         return transactionEntryRepository.findById(id);
+    }
+
+    public Optional<TransactionEntry> getTransactionEntryByCode(String code) {   
+        validateTransactionId(code);
+        return transactionEntryRepository.findByItemCode(code);
     }
 
     public List<TransactionEntry> getAllTransactionEntries() {
@@ -68,10 +105,20 @@ public class TransactionEntryService {
             throw new IllegalArgumentException("Transaction not found with ID: " + transactionEntry.getDrSIReferenceNum());
         }
 
+        Integer prevQty = getTransactionEntryById(transactionEntry.getDrSIReferenceNum()).get().getQuantity();
+
         User user = getCurrentUser();
         setAuditFields(transactionEntry, user);
+        TransactionEntry updatedEntry = transactionEntryRepository.save(transactionEntry);
+        if(prevQty > transactionEntry.getQuantity()) {
+            stockLocatorService.updateStockFromTransaction(updatedEntry, true);
+        } else {
+            stockLocatorService.updateStockFromTransaction(updatedEntry, false);
+        }
 
-        return transactionEntryRepository.save(transactionEntry);
+        inventoryService.updateInventoryTrns(updatedEntry);
+
+        return updatedEntry;
     }
     
     @Transactional
@@ -82,8 +129,17 @@ public class TransactionEntryService {
         if (!transactionEntryRepository.existsById(id)) {
             throw new IllegalArgumentException("Transaction not found with ID: " + id);
         }
-        
+        TransactionEntry transactionEntry = getTransactionEntryById(id).get();
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        purchaseOrderRepository.deleteById(transactionEntry.getItemCode());
+        inventoryRepository.deleteByItemCode(transactionEntry.getItemCode());
         transactionEntryRepository.deleteById(id);
+    }
+
+    public void deleteTransactionEntryByCode(String code) {
+        TransactionEntry transactionEntry = getTransactionEntryByCode(code).get();
+        stockLocatorService.updateStockFromTransaction(transactionEntry, false);
+        transactionEntryRepository.deleteByItemCode(code);
     }
 
     public boolean existsById(String id) {
@@ -113,6 +169,9 @@ public class TransactionEntryService {
     // get the current authenticated user
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Authentication Object: " + auth);
+        System.out.println("Principal: " + auth.getPrincipal());
+        System.out.println("Name (ID): " + auth.getName());
         if (auth == null || auth.getName() == null) {
             throw new IllegalArgumentException("No authenticated user found");
         }

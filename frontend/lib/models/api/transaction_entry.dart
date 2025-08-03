@@ -1,3 +1,4 @@
+
 class TransactionEntry {
   final String reference;
   final DateTime transactionDate;
@@ -5,6 +6,7 @@ class TransactionEntry {
   final String itemDescription;
   final String lotNumber;
   final DateTime expiryDate;
+  final double cost; 
   final int quantity;
   final String stockLocation;
 
@@ -15,6 +17,7 @@ class TransactionEntry {
     required this.itemDescription,
     required this.lotNumber,
     required this.expiryDate,
+    required this.cost,
     required this.quantity,
     required this.stockLocation,
   });
@@ -27,6 +30,7 @@ class TransactionEntry {
       itemDescription: json['productDescription'],
       lotNumber: json['lotSerialNumber'].toString(),
       expiryDate: DateTime.parse(json['expiryDate']),
+      cost: json['cost'],
       quantity: json['quantity'],
       stockLocation: json['stockLocation']
     );
@@ -39,6 +43,7 @@ class TransactionEntry {
     'productDescription' : itemDescription,
     'lotSerialNumber' : lotNumber,
     'expiryDate' : expiryDate.toIso8601String(),
+    'cost' : cost,
     'quantity' : quantity,
     'stockLocation' : stockLocation
   };

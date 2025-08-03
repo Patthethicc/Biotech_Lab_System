@@ -41,6 +41,7 @@ public class UserService {
 
             User savedUser = userRepository.save(user);
             logger.info("User created successfully with email: " + user.getEmail());
+            logger.info("User created successfully with id: " + user.getUserId());
             return savedUser;
             
         } catch (UserAlreadyExistsException | InvalidUserDataException e) {
@@ -53,6 +54,7 @@ public class UserService {
     }
 
     public User getUserById(Long id) {
+        System.out.println(id);
         try {
             if (id == null || id <= 0) {
                 throw new InvalidUserDataException("Invalid user ID provided");
@@ -74,6 +76,7 @@ public class UserService {
     }
 
     public User getUserByEmail(String email) {
+        System.out.println(email);
         try {
             if (email == null || email.trim().isEmpty()) {
                 throw new InvalidUserDataException("Email cannot be null or empty");
@@ -100,11 +103,11 @@ public class UserService {
 
     public User updateUser(User user) {
         try {
-            if (user.getUser_id() == null) {
+            if (user.getUserId() == null) {
                 throw new InvalidUserDataException("User ID is required for update");
             }
             
-            User existingUser = getUserById(user.getUser_id());
+            User existingUser = getUserById(user.getUserId());
             
             validateUserData(user);
             
@@ -115,7 +118,7 @@ public class UserService {
             }
             
             User updatedUser = userRepository.save(user);
-            logger.info("User updated successfully with ID: " + user.getUser_id());
+            logger.info("User updated successfully with ID: " + user.getUserId());
             return updatedUser;
             
         } catch (UserNotFoundException | UserAlreadyExistsException | InvalidUserDataException e) {
@@ -177,9 +180,9 @@ public class UserService {
             if (BCrypt.checkpw(password, String.valueOf(stored_User.getPassword()))) {
                 request.setCheck(true);
                 request.setPassword("password");
-                
+                System.out.println(stored_User);
                 try {
-                    request.setToken(jwtService.generateToken(stored_User.getUser_id()));
+                    request.setToken(jwtService.generateToken(stored_User.getUserId()));
                 } catch (Exception e) {
                     throw new JwtTokenException("Failed to generate authentication token");
                 }

@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
 
 @RestController
 @RequestMapping("/PO/v1")
@@ -61,7 +64,7 @@ public class PurchaseOrderController {
             return ResponseEntity.badRequest().build(); // null
         }
         try {
-            Optional<PurchaseOrder> existingOrder = purchaseOrderService.getPurchaseOrderByCode(purchaseOrder.getPurchaseOrderCode());
+            Optional<PurchaseOrder> existingOrder = purchaseOrderService.getPurchaseOrderByCode(purchaseOrder.getItemCode());
             if (existingOrder.isEmpty()) {
                 return ResponseEntity.notFound().build(); // no entity
             }
@@ -90,4 +93,31 @@ public class PurchaseOrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); //server Error
         }
     }
+
+    @GetMapping("/getPO/{code}/file")
+    public ResponseEntity<byte[]> getPurchaseOrderFile(@PathVariable("code") String code) {
+        Optional<PurchaseOrder> purchaseOrderOpt = purchaseOrderService.getPurchaseOrderByCode(code);
+        if (purchaseOrderOpt.isEmpty() || purchaseOrderOpt.get().getPurchaseOrderFile() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] fileBytes = purchaseOrderOpt.get().getPurchaseOrderFile();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", "purchase-order-" + code);
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/getPO/{code}/packinglist")
+    public ResponseEntity<byte[]> getPackingListFile(@PathVariable("code") String code) {
+        Optional<PurchaseOrder> purchaseOrderOpt = purchaseOrderService.getPurchaseOrderByCode(code);
+        if (purchaseOrderOpt.isEmpty() || purchaseOrderOpt.get().getSuppliersPackingList() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] fileBytes = purchaseOrderOpt.get().getSuppliersPackingList();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", "packing-list-" + code);
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
 }

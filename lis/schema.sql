@@ -1,7 +1,7 @@
 CREATE TABLE user(
-    user_id INT PRIMARY KEY ,
-    firstname VARCHAR(45) ,
-    lastname VARCHAR(45) ,
+    userId INT PRIMARY KEY ,
+    firstName VARCHAR(45) ,
+    lastName VARCHAR(45) ,
     email VARCHAR(45) ,
     password VARCHAR(20) 
     -- i dont think position and department are needed because admin lang naman mag access eh
@@ -10,6 +10,8 @@ CREATE TABLE user(
 CREATE TABLE inventory (
     inventoryId INT PRIMARY KEY,
     itemCode VARCHAR(64),
+    brand VARCHAR(255),
+    cost DECIMAL(20,2),
     quantityOnHand INT,
     lastUpdated DATETIME,
     FOREIGN KEY (itemCode) REFERENCES itemList(itemCode)
@@ -34,12 +36,11 @@ CREATE TABLE purchaseOrder (
     orderDate DATE,
     expectedDeliveryDate DATE,
     -- Items_Purchased VARCHAR(255),  (i feel like this column is not needed bcs we have itemPurchased table)
-    cost DECIMAL(20,2)
+    cost DECIMAL(20,2),
     addedBy INT,
     timeAdded DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (addedBy) REFERENCES user(user_id)
 );
-
 
 CREATE TABLE itemPurchased (
     purchaseOrderCode VARCHAR(64),
@@ -49,25 +50,19 @@ CREATE TABLE itemPurchased (
     FOREIGN KEY (itemCode) REFERENCES itemList(itemCode)
 );
 
-CREATE TABLE itemCodeDetails (
-    itemCode VARCHAR(64) PRIMARY KEY,
-    Brand VARCHAR(255),
-    productDescription VARCHAR(255),
-    lotSerialNumber VARCHAR(64),
-    purchaseOrderRef VARCHAR(64),
-    suppliersPackingList BLOB,
-    drSIReferenceNum VARCHAR(64),
-    FOREIGN KEY (drSIReferenceNum) REFERENCES transactionEntry(drSIReferenceNum)
-);
-
 CREATE TABLE itemList (
     itemCode VARCHAR(64) PRIMARY KEY,
     brand VARCHAR(255),
     productDescription VARCHAR(255),
     lotSerialNumber VARCHAR(64),
+    cost DECIMAL(20,2),
     expiryDate DATE,
     stocksManila INT,
-    stocksCebu INT
+    stocksCebu INT,
+    purchaseOrderRef VARCHAR(64),
+    suppliersPackingList BLOB,
+    drSIReferenceNum VARCHAR(64),
+    FOREIGN KEY (drSIReferenceNum) REFERENCES transactionEntry(drSIReferenceNum)
 ); 
 
 CREATE TABLE stockLocator (
@@ -83,14 +78,4 @@ CREATE TABLE stockLocator (
     cebu INT,
     PRIMARY KEY (itemCode),
     FOREIGN KEY (itemCode) REFERENCES itemList(itemCode)
-);
-
-CREATE TABLE salesOrder (
-    salesOrderCode VARCHAR(64) PRIMARY KEY,
-    quantityOnSalesOrder INT,
-    orderDate DATE,
-    expectedDeliveryDate DATE,
-    -- itemPurchased VARCHAR(255),  same comment as the one in purchase order
-    cost DECIMAL(20,2),
-    Status ENUM('Pending', 'Shipped', 'Delivered') NOT NULL
 );

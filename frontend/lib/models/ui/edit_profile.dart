@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/services/edit_profile_user_service.dart';
+import 'package:frontend/services/edit_profile_service.dart';
+import 'package:frontend/models/api/edit_user_model.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class EditProfilePage extends StatelessWidget {
   const EditProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final usernameController = TextEditingController(text: 'juan');
-    final roleController = TextEditingController(text: 'Lab Technician');
-    final fullNameController = TextEditingController(text: 'Juan Dela Cruz');
-    final emailController = TextEditingController(text: 'juan@biotech.com');
-    final departmentController = TextEditingController(text: 'Admin');
-    final employeeIdController = TextEditingController(text: 'A123456');
+    final usernameController = TextEditingController();
+    final lastNameController = TextEditingController();
+    final firstNameController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
@@ -59,10 +60,10 @@ class EditProfilePage extends StatelessWidget {
                       SizedBox(
                         width: 400,
                         child: TextField(
-                          controller: roleController,
+                          controller: firstNameController,
                           decoration: const InputDecoration(
-                            labelText: 'Role',
-                            hintText: 'Enter your role',
+                            labelText: 'First Name',
+                            hintText: 'Enter your First Name',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -72,23 +73,10 @@ class EditProfilePage extends StatelessWidget {
                       SizedBox(
                         width: 400,
                         child: TextField(
-                          controller: fullNameController,
+                          controller: lastNameController,
                           decoration: const InputDecoration(
-                            labelText: 'Full Name',
-                            hintText: 'Enter your full name',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      SizedBox(
-                        width: 400,
-                        child: TextField(
-                          controller: emailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email Address',
-                            hintText: 'Enter your email address',
+                            labelText: 'Last Name',
+                            hintText: 'Enter your Last Name',
                             border: OutlineInputBorder(),
                           ),
                           keyboardType: TextInputType.emailAddress,
@@ -98,35 +86,45 @@ class EditProfilePage extends StatelessWidget {
 
                       SizedBox(
                         width: 400,
-                        child: TextField(
-                          controller: departmentController,
-                          decoration: const InputDecoration(
-                            labelText: 'Department',
-                            hintText: 'Enter your department',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      SizedBox(
-                        width: 400,
-                        child: TextField(
-                          controller: employeeIdController,
-                          decoration: const InputDecoration(
-                            labelText: 'Employee ID',
-                            hintText: 'Enter your employee ID',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-
-                      SizedBox(
-                        width: 400,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
+                          onPressed: () async {
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+                            final currentUser = await ExistingEditUserService().getUser();
+
+                            String username = usernameController.text.trim();
+                            String firstName = firstNameController.text.trim();
+                            String lastName = lastNameController.text.trim();
+
+                            if (username.isEmpty || firstName.isEmpty || lastName.isEmpty) {
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(content: Text('Please fill in all the fields.')),
+                              );
+                              return;
+                            }
+
+                              final userDetails = EditUser(
+                                  userId: currentUser.userId,
+                                  firstName: firstName,
+                                  lastName: lastName,
+                                  email: username,
+                                  password: currentUser.password
+                              );
+
+                              final result = await EditProfileService().editUser(userDetails);
+
+                              if (result != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('User Details updated successfully')),
+                                );
+
+                                usernameController.clear();
+                                firstNameController.clear();
+                                lastNameController.clear();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update User Details')),
+                                );
+                              }
                           },
                           child: const Text('Save'),
                         ),
@@ -173,6 +171,57 @@ class EditProfilePage extends StatelessWidget {
                             border: OutlineInputBorder(),
                           ),
                           obscureText: true,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: 300,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final currentUser = await ExistingEditUserService().getUser();
+
+                            String newPassword = newPasswordController.text.trim();
+                            String confirmPassword = confirmPasswordController.text.trim();
+
+                            final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                            if (newPassword.isEmpty || confirmPassword.isEmpty) {
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(content: Text('Please fill in all password fields.')),
+                              );
+                              return;
+                            } else if (newPassword != confirmPassword) {
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(content: Text('The passwords do not match.')),
+                              );
+                              return;
+                            }
+                            String hashed = BCrypt.hashpw(newPassword, BCrypt.gensalt(logRounds: 10));
+
+                            final userDetails = EditUser(
+                                  userId: currentUser.userId,
+                                  firstName: currentUser.firstName,
+                                  lastName: currentUser.lastName,
+                                  email: currentUser.email,
+                                  password: hashed
+                              );
+
+                              final result = await EditProfileService().editUser(userDetails);
+
+                              if (result != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Password updated successfully')),
+                                );
+
+                                newPasswordController.clear();
+                                confirmPasswordController.clear();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to update password')),
+                                );
+                              }
+                          },
+                          child: const Text('Save'),
                         ),
                       ),
                     ],

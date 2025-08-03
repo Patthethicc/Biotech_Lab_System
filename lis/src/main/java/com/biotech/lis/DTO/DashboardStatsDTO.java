@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DashboardStatsDTO {
     private int totalTransactions;
-    private int totalOrders;
-    private double totalOrderValue;
+    private double totalTransactionValue;
     private int totalQuantityTransacted;
     private String period; // "daily", "monthly", "yearly"
     private String dateRange; // e.g., "2024-07-16" or "2024-07" or "2024"

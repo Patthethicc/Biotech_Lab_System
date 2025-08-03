@@ -6,9 +6,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.biotech.lis.Entity.User;
-import com.biotech.lis.Service.UserService;
-
 import java.io.IOException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -39,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
             if(jwtService.validateToken(token)) {
                 String username = jwtService.extractId(token);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }

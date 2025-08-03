@@ -1,5 +1,4 @@
 import '../services/transaction_entry_service.dart';
-import '../models/api/transaction_entry.dart';
 
 class DashboardStats {
   final int totalTransactions;

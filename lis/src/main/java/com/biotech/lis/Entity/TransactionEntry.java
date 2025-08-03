@@ -1,6 +1,5 @@
 package com.biotech.lis.Entity;
 
-import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -37,12 +36,19 @@ public class TransactionEntry {
     
     @Column(name = "expiryDate")
     private LocalDate expiryDate;
+
+    @Column(name = "cost")
+    private Double cost;
     
     @Column(name = "quantity")
     private Integer quantity;
     
     @Column(name = "stockLocation")
     private String stockLocation;
+
+    //not to be shown in transaction table
+    @Column(name="itemCode")
+    private String itemCode;
 
     @Column(name = "addedBy")
     private String addedBy;

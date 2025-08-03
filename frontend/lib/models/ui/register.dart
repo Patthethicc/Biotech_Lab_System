@@ -58,7 +58,6 @@ class _RegisterPageState extends State<RegisterPage>{
       password: passwordInput.text
     );
 
-    try {
       final response = await NewUserService.createUser(newUser);
       setState(() {
         user = response;
@@ -66,11 +65,6 @@ class _RegisterPageState extends State<RegisterPage>{
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('User registered successfully!')),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e, User registration unsuccessful')),
-      );
-    }
   }
 
   @override

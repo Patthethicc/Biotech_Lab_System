@@ -1,9 +1,72 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:frontend/models/ui/item_details.dart';
-import 'package:frontend/services/inventory_service.dart';
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
-import 'package:frontend/models/api/item_model.dart';
+import 'package:frontend/services/inventory_service.dart';
+import 'package:intl/intl.dart'; 
+
+class _NeumorphicNavButton extends StatefulWidget {
+  const _NeumorphicNavButton({
+    Key? key,
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+    required this.tooltip,
+  }) : super(key: key);
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  @override
+  State<_NeumorphicNavButton> createState() => _NeumorphicNavButtonState();
+}
+
+class _NeumorphicNavButtonState extends State<_NeumorphicNavButton> {
+  bool _isHovered = false;
+  bool _lastEnabled = false;
+
+  @override
+  void didUpdateWidget(covariant _NeumorphicNavButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled != widget.enabled) {
+      _isHovered = false;
+      _lastEnabled = widget.enabled;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = widget.enabled;
+    _lastEnabled = isEnabled;
+
+    return MouseRegion(
+      onEnter: (_) {
+        if (isEnabled) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (isEnabled) setState(() => _isHovered = false);
+      },
+      child: NeumorphicButton(
+        onPressed: isEnabled ? widget.onPressed : null,
+        style: NeumorphicStyle(
+          depth: _isHovered && isEnabled ? -3 : 3,  // Depth reset when not hovered
+          intensity: 0.8,
+          surfaceIntensity: 0.5,
+          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(50)),
+          lightSource: LightSource.topLeft,
+          color: Colors.transparent,
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          widget.icon,
+          color: isEnabled ? Colors.lightBlue[400] : Colors.grey[700],
+          size: 24,
+        ),
+      ),
+    );
+  }
+}
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -13,279 +76,356 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-  List<String> headers = [];
-  List<Inventory> rows = [];
-  bool isLoading = true;
-  bool hasError = false;
-  int currentPage = 0;
-  final int rowsPerPage = 10;
+  final inventoryService = InventoryService();
+
+  List<Inventory> _allInventories = [];
+  List<Inventory> _displayInventories = [];
+  bool _isLoading = true;
+  bool _isHovered = false;
+
+  int _startIndex = 0;
+  final int _rowsPerPage = 5;
+
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    loadInventoryData();
+    _fetchData();
+    _searchController.addListener(_filterInventories);
   }
 
-  Future<void> loadInventoryData() async {
-    setState(() {
-      isLoading = true;
-      hasError = false; // Reset error state
-    });
-    try {
-      final List<Inventory> data = await InventoryService().getInventories(); // Assuming getInventories() now returns List<Inventory>
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterInventories);
+    _searchController.dispose();
+    super.dispose();
+  }
 
+  void _fetchData() {
+    inventoryService.getInventories().then((value) {
       setState(() {
-        // Headers should match the order and names of the data you want to display
-        headers = ['ID', 'Item Code', 'Brand', 'Quantity', 'Added By', 'Last Updated'];
-        rows = data; // Assign the list of Inventory objects directly
+        _allInventories = value;
+        _displayInventories = List.from(_allInventories);
+        _isLoading = false;
       });
-    } catch (e) {
-      print('Error loading inventory: $e'); // Log the error for debugging
-      setState(() => hasError = true);
-    } finally {
-      setState(() => isLoading = false);
-    }
+    });
   }
 
-  void _goToPage(int delta) {
+  void _filterInventories() {
+    final query = _searchController.text.toLowerCase();
     setState(() {
-      currentPage += delta;
-      if (currentPage < 0) currentPage = 0;
-      if (rows.isEmpty) {
-        currentPage = 0;
-      } else if (currentPage > (rows.length - 1) ~/ rowsPerPage) {
-        currentPage = (rows.length - 1) ~/ rowsPerPage;
+      if (query.isNotEmpty) {
+        _displayInventories = _allInventories.where((inventory) {
+          final itemCodeMatch =
+              inventory.itemCode.toLowerCase().contains(query);
+          final brandMatch = inventory.brand.toLowerCase().contains(query);
+          final productDescription = inventory.productDescription.toLowerCase().trim().contains(query);
+          final lotSerialNumber = inventory.lotSerialNumber.toLowerCase().contains(query);
+          return itemCodeMatch || brandMatch || productDescription || lotSerialNumber;
+        }).toList();
+      } else {
+        _displayInventories = List.from(_allInventories);
+      }
+      _startIndex = 0; 
+    });
+  }
+
+  void _resetToFullList() {
+    setState(() {
+      _searchController.clear();
+      _displayInventories = List.from(_allInventories);
+      _startIndex = 0;
+    });
+  }
+
+  void nextPage() {
+    setState(() {
+      if (_startIndex + _rowsPerPage < _displayInventories.length) {
+        _startIndex += _rowsPerPage;
       }
     });
   }
 
+  void prevPage() {
+    setState(() {
+      if (_startIndex - _rowsPerPage >= 0) {
+        _startIndex -= _rowsPerPage;
+      }
+    });
+  }
+
+  bool checkIdDuplicate(int id) {
+    for (var i in _allInventories) {
+      if (id == i.inventoryID) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+    bool checkItemCodeDuplicate(String code) {
+    for (var i in _allInventories) {
+      if (code == i.itemCode) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   @override
   Widget build(BuildContext context) {
-    if (isLoading) return const Center(child: CircularProgressIndicator());
-    if (hasError) return const Center(child: Text('Failed to load inventory. Please try again.'));
-
-    final hasData = rows.isNotEmpty;
-
-    final start = currentPage * rowsPerPage;
-    final end = (start + rowsPerPage).clamp(0, rows.length);
-    final List<Inventory> currentRows = rows.sublist(start, end); // currentRows is also List<Inventory>
+    final endIndex = (_startIndex + _rowsPerPage > _displayInventories.length)
+        ? _displayInventories.length
+        : _startIndex + _rowsPerPage;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inventory'),
+        title: const Text(
+          'Inventory Data',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black, // Set text color explicitly if background is transparent
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0, // Remove drop shadow
+        foregroundColor: Colors.black, // For icon and text colors
         actions: [
-          // Image.asset('Assets/Icons/bellicon.png', height: 60.0, width: 60.0),
+          IconButton(
+            onPressed: _resetToFullList,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reset List',
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ItemDetails(
-                item: Item( // Default/empty Item object for new entry
-                  itemCode: '', brand: '', productDescription: '',
-                  lotSerialNumber: '', expiryDate: null,
-                  stocksManila: '', stocksCebu: '',
-                  purchaseOrderReferenceNumber: '', supplierPackingList: '',
-                  drsiReferenceNumber: '',
-                ),
-                headers: headers,
-              ),
-            ),
-          ).then((changed) {
-            if (changed == true) {
-              loadInventoryData(); // Reload data if ItemDetails indicates a change
-            }
-          });
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: Container(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: [
-            // --- Search and Filter Bars (fixed `spacing` issue) ---
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10.0), // Add some spacing below the search row
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 250,
-                    height: 50,
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        alignment: Alignment.centerLeft,
-                        child: const Text(
-                          'Search',
-                          style: TextStyle(color: Color.fromRGBO(225, 225, 225, 1)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10), // Explicit spacing
-                  SizedBox(
-                    width: 250,
-                    height: 50,
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        alignment: Alignment.centerLeft,
-                        child: const Text(
-                          '2025-05-25 : 2025-05-25',
-                          style: TextStyle(color: Color.fromRGBO(225, 225, 225, 1)),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10), // Explicit spacing
-                  SizedBox(
-                    width: 250,
-                    height: 50,
-                    child: Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        alignment: Alignment.centerLeft,
-                        child: const Text(
-                          'Filter By Qt. On Hold',
-                          style: TextStyle(color: Color.fromRGBO(225, 225, 225, 1)),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // --- End Search and Filter Bars ---
 
-            if (!hasData)
-              const Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text("No inventory items available."),
-              )
-            else
-              Expanded(
-                child: Container(
-                  // Remove fixed height if Expanded is used, it will fill available space
-                  // height: 600,
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 240, 240, 240),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromARGB(200, 255, 255, 255),
-                        offset: Offset(-6, 6),
-                        blurRadius: 12,
-                      ),
-                      BoxShadow(
-                        color: Color.fromARGB(50, 0, 0, 0),
-                        offset: Offset(6, -6),
-                        blurRadius: 12,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.white),
-                        border: TableBorder(
-                          horizontalInside: BorderSide(
-                            color: Color.fromARGB(128, 128, 128, 128),
-                            width: 2,
-                          ),
-                          verticalInside: BorderSide(
-                            color: Color.fromARGB(128, 128, 128, 128),
-                            width: 0.5,
-                          ),
-                        ),
-                        columns: headers.map((h) {
-                          // Adjust column widths as needed based on header content
-                          double width = (h == 'Item Code') ? 150 : (h == 'Product Description') ? 250 : 120;
-                          return DataColumn(
-                            label: SizedBox(
-                              width: width,
-                              child: Text(h, style: const TextStyle(fontWeight: FontWeight.bold)),
+      body: Container( 
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('Assets/Images/bg.png'),
+            fit: BoxFit.cover,
+          )
+        ),
+        child:Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0, left: 500, right: 500),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Adjust as needed
+                  children: [
+                    // Search field
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 10.0),
+                        child: SizedBox(
+                          width: 700,
+                          height: 40,
+                          child: Neumorphic(
+                            style: NeumorphicStyle(
+                              depth: -4,
+                              color: Colors.white,
+                              boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
                             ),
-                          );
-                        }).toList(),
-                        rows: currentRows.map((inv) { // **`inv` is now an Inventory object!**
-                          return DataRow(
-                            onSelectChanged: (_) {
-                              // When selecting a row, you can now pass the full Inventory object
-                              // or build an Item object with more complete data from `inv`.
-                              final item = Item(
-                                itemCode: inv.itemCode ?? '', // Use null-aware operator for safety
-                                brand: inv.brand ?? '',
-                                productDescription: '', // This needs to come from your Item model or a DTO
-                                lotSerialNumber: '', // This needs to come from your Item model or a DTO
-                                expiryDate: null, // This needs to come from your Item model or a DTO
-                                stocksManila: '', // This needs to come from your Item model or a DTO
-                                stocksCebu: '', // This needs to come from your Item model or a DTO
-                                purchaseOrderReferenceNumber: '', // This needs to come from your Item model or a DTO
-                                supplierPackingList: '', // This needs to come from your Item model or a DTO
-                                drsiReferenceNumber: '', // This needs to come from your Item model or a DTO
-                              );
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ItemDetails(
-                                    item: item,
-                                    headers: headers,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.search, color: Color(0xFF01579B)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchController,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Search by Item Code, Brand, Description or Lot field',
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                    ),
+                                    style: const TextStyle(fontSize: 12),
                                   ),
                                 ),
-                              ).then((changed) {
-                                if (changed == true) loadInventoryData();
-                              });
-                            },
-                            cells: [
-                              DataCell(SizedBox(width: 120, child: Text(inv.inventoryID?.toString() ?? 'N/A'))),
-                              DataCell(SizedBox(width: 150, child: Text(inv.itemCode ?? 'N/A'))),
-                              DataCell(SizedBox(width: 120, child: Text(inv.brand ?? 'N/A'))),
-                              DataCell(SizedBox(width: 120, child: Text(inv.quantityOnHand?.toString() ?? 'N/A'))),
-                              DataCell(SizedBox(width: 120, child: Text(inv.addedBy ?? 'N/A'))), // Assuming 'addedBy' exists in Inventory model
-                              DataCell(SizedBox(width: 120, child: Text(inv.dateTimeAdded?.toString().split('.')[0] ?? 'N/A'))),
-                            ],
-                          );
-                        }).toList(),
+                                if (_searchController.text.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      _searchController.clear();
+                                    },
+                                    child: const Icon(Icons.clear, color: Colors.grey),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+
+                    // Add Data button
+                    MouseRegion(
+                      onEnter: (_) => setState(() => _isHovered = true),
+                      onExit: (_) => setState(() => _isHovered = false),
+                      child: NeumorphicButton(
+                        //onPressed: () => showAddDialogue("Write", 0),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // smaller height
+                        style: NeumorphicStyle(
+                          depth: _isHovered ? -4 : 4,
+                          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                          lightSource: LightSource.topLeft,
+                          color: Colors.white,
+                        ),
+                        child: const Text(
+                          'Add Data',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF01579B), // dark blue text
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ),
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                clipBehavior: Clip.antiAlias,
+                child: Neumorphic(
+                    style: NeumorphicStyle(
+                      depth: -5,
+                      intensity: 0.7,
+                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
+                      lightSource: LightSource.topLeft,
+                      shadowDarkColorEmboss: const Color.fromARGB(197, 93, 126, 153),
+                      // shadowLightColorEmboss: const Color.fromARGB(197, 228, 237, 244),
+                      color: Colors.blue[400],
+                    ),
+                  child: _isLoading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(50.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : DataTable(                         
+                          columns: const [
+                            DataColumn(label: Text("", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("ID", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Item Code", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Brand", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Product Description", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Lot Serial Number", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Cost", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Expiry Date", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Stocks Manila", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Stocks Cebu", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Added By", style: TextStyle(color: Colors.white))),
+                            DataColumn(label: Text("Date Added", style: TextStyle(color: Colors.white))),
+                          ],
+                          rows: _populateRows().isEmpty
+                              ? []
+                              : _populateRows().sublist(_startIndex, endIndex),
+                        ),
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: currentPage > 0 ? () => _goToPage(-1) : null,
-                    child: const Text("Prev"),
-                  ),
-                  const SizedBox(width: 20),
-                  Text("Page ${currentPage + 1} of ${rows.isEmpty ? 1 : (rows.length / rowsPerPage).ceil()}"),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: end < rows.length ? () => _goToPage(1) : null,
-                    child: const Text("Next"),
-                  ),
-                ],
-              ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              if (!_isLoading) _buildPaginationControls(endIndex),
+            ],
+          ),
         ),
+      ),
+      )
+    );
+  }
+
+  List<DataRow> _populateRows() {
+    if (_displayInventories.isEmpty) {
+      return [
+        const DataRow(cells: [
+          DataCell(Text('')),
+          DataCell(Text('')),
+          DataCell(Text('No results found')),
+          DataCell(Text('')),
+          DataCell(Text('')),
+          DataCell(Text('')),
+        ])
+      ];
+    }
+
+     int counter = 0;
+
+    return _displayInventories.map((e) {
+      return DataRow(cells: [
+        DataCell(Row(
+          children: [IconButton(
+            icon: Icon(Icons.delete_forever),
+            onPressed: () async {
+              await inventoryService.deleteInventory(e.inventoryID!.toInt());
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                  builder: (BuildContext context) => super.widget));
+            },
+            ),
+
+            IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () {
+                //showAddDialogue("Edit", e.inventoryID!.toInt());
+              },
+            )
+            ]
+        )),
+        DataCell(Text(e.inventoryID.toString())),
+        DataCell(Text(e.itemCode)),
+        DataCell(Text(e.brand)),
+        DataCell(Text(e.productDescription)),
+        DataCell(Text(e.lotSerialNumber)),
+        DataCell(Text(e.cost.toString())),
+        DataCell(Text(e.expiryDate.toString().split(' ')[0])),
+        DataCell(Text(e.stocksManila.toString())),
+        DataCell(Text(e.stocksCebu.toString())),
+        DataCell(Text(e.addedBy)),
+        DataCell(Text(e.dateTimeAdded.toString().split(' ')[0])),
+      ],
+      color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+        final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue
+        final subtleBlueTint2 = Color.fromRGBO(230, 240, 255, 1); // Even lighter blue
+
+        final color = counter.isEven ? subtleBlueTint1 : subtleBlueTint2;
+        counter++;
+        return color;
+      }));
+    }).toList();
+  }
+
+  Padding _buildPaginationControls(int endIndex) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _NeumorphicNavButton(
+            icon: Icons.chevron_left,
+            enabled: _startIndex > 0,
+            onPressed: prevPage,
+            tooltip: 'Previous Page',
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              '${_displayInventories.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayInventories.length}',
+            ),
+          ),
+          _NeumorphicNavButton(
+            icon: Icons.chevron_right,
+            enabled: endIndex < _displayInventories.length,
+            onPressed: nextPage,
+            tooltip: 'Next Page',
+          ),
+        ],
       ),
     );
   }

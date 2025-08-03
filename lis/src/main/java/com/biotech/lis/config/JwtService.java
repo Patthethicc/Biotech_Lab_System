@@ -1,7 +1,6 @@
 package com.biotech.lis.config;
 
 import java.util.Date;
-import java.util.*;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,6 +30,8 @@ public class JwtService {
 
     //generates user token
     public String generateToken(Long userId) {
+        System.out.println("balls");
+        System.out.println(userId);
         getSignInKey();
         return Jwts.builder()
                    .subject(userId.toString())

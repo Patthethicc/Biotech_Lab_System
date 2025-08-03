@@ -1,8 +1,10 @@
 package com.biotech.lis.Entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,9 +13,13 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Supplier {
+@Table(name = "`brand`")
+public class Brand {
     @Id
     @GeneratedValue
-    private Integer supplier_id;
-    private String supplier_name;
+    private Integer brandId;
+    @Column(unique = true)
+    private String brandName;
+    private String abbreviation;
+    private Integer latestSequence;
 }

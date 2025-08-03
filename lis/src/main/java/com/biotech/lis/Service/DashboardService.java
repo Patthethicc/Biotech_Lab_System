@@ -4,9 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.DTO.DashboardStatsDTO;
-import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
-import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 
 import java.time.LocalDate;
@@ -19,9 +17,6 @@ public class DashboardService {
     
     @Autowired
     private TransactionEntryRepository transactionRepository;
-    
-    @Autowired
-    private PurchaseOrderRepository purchaseOrderRepository;
     
     public DashboardStatsDTO getDashboardStats(String period, String date) {
         LocalDate startDate;
@@ -73,7 +68,6 @@ public class DashboardService {
         
         // Get all data and filter manually (simpler approach)
         List<TransactionEntry> allTransactions = transactionRepository.findAll();
-        List<PurchaseOrder> allOrders = purchaseOrderRepository.findAll();
         
         // Count transactions in date range
         int totalTransactions = (int) allTransactions.stream()
@@ -88,23 +82,16 @@ public class DashboardService {
             .mapToInt(t -> t.getQuantity() != null ? t.getQuantity() : 0)
             .sum();
             
-        // Count orders in date range
-        int totalOrders = (int) allOrders.stream()
-            .filter(o -> o.getOrderDate() != null)
-            .filter(o -> !o.getOrderDate().isBefore(startDate) && !o.getOrderDate().isAfter(endDate))
-            .count();
-            
         // Sum order values in date range
-        double totalOrderValue = allOrders.stream()
-            .filter(o -> o.getOrderDate() != null)
-            .filter(o -> !o.getOrderDate().isBefore(startDate) && !o.getOrderDate().isAfter(endDate))
-            .mapToDouble(o -> o.getCost())
+        double totalTransactionValue = allTransactions.stream()
+            .filter(t -> t.getTransactionDate() != null)
+            .filter(t -> !t.getTransactionDate().isBefore(startDate) && !t.getTransactionDate().isAfter(endDate))
+            .mapToDouble(t -> t.getCost())
             .sum();
         
         return new DashboardStatsDTO(
             totalTransactions,
-            totalOrders,
-            totalOrderValue,
+            totalTransactionValue,
             totalQuantityTransacted,
             period,
             dateRange

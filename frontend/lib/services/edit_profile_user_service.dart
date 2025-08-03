@@ -1,18 +1,18 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:frontend/models/api/existing_user.dart';
+import 'package:frontend/models/api/edit_user_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
-class ExistingUserService {
+class ExistingEditUserService {
   static final String baseUrl = dotenv.env['API_URL']!;
   final storage = FlutterSecureStorage();
 
-  Future<ExistingUser> getUser() async {
+  Future<EditUser> getUser() async {
     try {
       final String? token = await storage.read(key: 'jwt_token');
-      
+
       if (token == null || token.isEmpty) {
         throw Exception('No authentication token found');
       }
@@ -30,8 +30,8 @@ class ExistingUserService {
       }
 
       final responseData = json.decode(response.body)['user'];
-      return ExistingUser.fromJson(responseData);
-      
+      return EditUser.fromJson(responseData);
+
     } on FormatException catch (e) {
       throw Exception('Invalid JSON format: ${e.message}');
     } on http.ClientException catch (e) {
