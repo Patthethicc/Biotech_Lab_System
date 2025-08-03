@@ -2,7 +2,9 @@ package com.biotech.lis.Service;
 
 
 import com.biotech.lis.Entity.Brand;
+import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.PurchaseOrder;
+import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
@@ -86,6 +88,17 @@ public class PurchaseOrderService {
         User user = getCurrentUser();
         setAuditFields(existingPurchaseOrder, user);
 
+        Inventory inventory = inventoryRepository.findByItemCodeIgnoreCase(existingPurchaseOrder.getItemCode()).get();
+        inventory.setBrand(existingPurchaseOrder.getBrand());
+        inventory.setProductDescription(existingPurchaseOrder.getProductDescription());
+        inventory.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
+
+        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(existingPurchaseOrder.getItemCode()).get();
+        transactionEntry.setBrand(existingPurchaseOrder.getBrand());
+        transactionEntry.setProductDescription(existingPurchaseOrder.getProductDescription());
+        transactionEntry.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
+        transactionEntry.setTransactionDate(existingPurchaseOrder.getOrderDate());
+
         return purchaseOrderRepository.save(existingPurchaseOrder);
     }
 
@@ -97,7 +110,7 @@ public class PurchaseOrderService {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
         stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
-        
+
         transactionEntryRepository.deleteByItemCode(code);
         inventoryRepository.deleteByItemCode(code);
 

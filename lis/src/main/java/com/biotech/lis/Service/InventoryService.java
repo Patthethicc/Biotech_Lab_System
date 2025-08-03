@@ -124,23 +124,23 @@ public class InventoryService {
         existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         existingInventory.setDateTimeAdded(cDateTime);
 
-        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(inventory.getItemCode());
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(existingInventory.getItemCode());
         
         purchaseOrder.setBrand(brandName);
         purchaseOrder.setProductDescription(prodDesc);
-        purchaseOrder.setLotSerialNumber(inventory.getLotSerialNumber());
-        purchaseOrder.setOrderDate(inventory.getDateTimeAdded().toLocalDate());
+        purchaseOrder.setLotSerialNumber(existingInventory.getLotSerialNumber());
+        purchaseOrder.setOrderDate(existingInventory.getDateTimeAdded().toLocalDate());
 
         purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         purchaseOrder.setDateTimeAdded(cDateTime);
 
         purchaseOrderRepository.save(purchaseOrder);
 
-        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(inventory.getItemCode()).get();
+        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(existingInventory.getItemCode()).get();
 
         transactionEntry.setBrand(brandName);
         transactionEntry.setProductDescription(prodDesc);
-        transactionEntry.setLotSerialNumber(inventory.getLotSerialNumber());
+        transactionEntry.setLotSerialNumber(existingInventory.getLotSerialNumber());
 
         transactionEntry.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
         transactionEntry.setDateTimeAdded(cDateTime);
