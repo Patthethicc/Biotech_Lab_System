@@ -2007,7 +2007,7 @@ class _TransactionEntryPageState extends State<TransactionEntryPage> {
           DataCell(SizedBox(
             width: costWidth,
             child: Text(
-              data.quantity.toString(),
+              data.cost.toString(),
               softWrap: true,
               style: TextStyle(
                 height: 1.2,
