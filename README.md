@@ -40,5 +40,9 @@ flutter run -t lib/models/ui/main.dart
 ```
 
 ## Resources
+```bash
+https://www.youtube.com/watch?v=7nonQ2dYgiE
+https://www.youtube.com/watch?v=3kaGC_DrUnw&t=14157s&pp=ygUOZmx1dHRlciBiYXNpY3M%3D
+```
 
 
