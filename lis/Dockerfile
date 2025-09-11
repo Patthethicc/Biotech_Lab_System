@@ -15,7 +15,7 @@ RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline
 
 # Copy the rest of the application source code
-COPY ./src ./src
+COPY src ./src
 
 # Build the application, skipping tests
 RUN ./mvnw clean install -DskipTests
@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
 RUN addgroup --system spring && adduser --system --ingroup spring spring
 
 # Copy the executable JAR from the build stage and set ownership
-COPY --from=build --chown=spring:spring /app/target/arw-0.0.1-SNAPSHOT.jar /app/app.jar
+COPY --from=build --chown=spring:spring /app/target/lis-0.0.1-SNAPSHOT.jar /app/app.jar
 
 # Switch to the non-root user
 USER spring
