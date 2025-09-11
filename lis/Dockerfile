@@ -15,7 +15,7 @@ RUN chmod +x mvnw
 RUN ./mvnw dependency:go-offline
 
 # Copy the rest of the application source code
-COPY src ./src
+COPY ./src ./src
 
 # Build the application, skipping tests
 RUN ./mvnw clean install -DskipTests
@@ -39,10 +39,6 @@ USER spring
 
 # Expose the application port
 EXPOSE 8080
-
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # Set the entrypoint to run the application
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
