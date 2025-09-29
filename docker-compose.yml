@@ -1,0 +1,25 @@
+
+services:
+  lis:
+    build:
+      context: ./lis
+      dockerfile: Dockerfile
+    container_name: lis
+    env_file:
+      - ./lis/.env
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:80"
+    depends_on:
+      - lis
+    restart: unless-stopped
