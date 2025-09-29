@@ -33,6 +33,12 @@ cd frontend
 flutter run
 ```
 
+## Build and Run (Docker)
+1. Build and run image using `docker-compose.yml`
+```bash
+docker compose up --build
+```
+
 ## Flutter Commands
 - Run Flutter with specific entry:
 ```bash
@@ -47,6 +53,7 @@ https://drive.google.com/drive/folders/1W0sP0YdR454hv4nsqipaMKyO52hqEK7J?usp=dri
 https://lucid.app/lucidchart/6cc17253-19c1-4c40-8893-64e84a1d9a3b/edit?invitationId=inv_93818139-5500-4f1b-8a6e-3166dd1f8d3a&page=0_0#
 https://docs.google.com/spreadsheets/d/15X2McNcovSPpS45wowcVZQdcDHbHZriupN4zbjuCZko/edit?gid=0#gid=0
 ```
+
 
 
 
