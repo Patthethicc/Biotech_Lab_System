@@ -40,5 +40,8 @@ USER spring
 # Expose the application port
 EXPOSE 8080
 
+ENV DB_PORT=4000 \
+    DB_DATABASE=dblabsys
+
 # Set the entrypoint to run the application
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
