@@ -1,0 +1,54 @@
+name: Flutter Setup Lint Test Scan
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+    branches: [main, dev, staging]
+  pull_request:
+    paths:
+      - "frontend/**"
+    branches: [main, dev, staging]
+
+jobs:
+  setup-lint-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.27.0"
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: Format code
+        run: dart format --fix .
+        working-directory: frontend
+
+      - name: Run linter
+        run: flutter analyze
+        working-directory: frontend
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk
+        working-directory: frontend
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+
+      - name: Run Semgrep scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+          output: semgrep.sarif
+        continue-on-error: true
