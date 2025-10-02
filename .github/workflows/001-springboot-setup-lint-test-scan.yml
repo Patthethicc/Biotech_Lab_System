@@ -4,11 +4,11 @@ on:
   push:
     paths:
       - "lis/**"
-    branches: [main, dev, staging]
+    branches: ["main", "dev", "staging"]
   pull_request:
     paths:
       - "lis/**"
-    branches: [main, dev, staging]
+    branches: ["main", "dev", "staging"]
 
 jobs:
   setup-lint-test:
@@ -17,15 +17,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up JDK
         uses: actions/setup-java@v4
-          with:
-            distribution: temurin
-            java-version: 17
-            cache: maven
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: "maven"
 
-      - name: Check code formatting 
+      - name: Check code formatting
         run: mvn spotless:check
         working-directory: lis
 
@@ -34,7 +34,7 @@ jobs:
         working-directory: lis
 
       - name: Run tests
-        run: mvn tests
+        run: mvn test
         working-directory: lis
 
       - name: Perform CodeQL analysis
