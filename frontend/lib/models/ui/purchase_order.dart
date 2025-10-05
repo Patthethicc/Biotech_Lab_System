@@ -147,7 +147,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     });
 
     try {
-      final fetched = await _poService.fetchPurchaseOrders() ?? <PurchaseOrder>[];
+      final fetched = await _poService.fetchPurchaseOrders();
 
       final orders = List<PurchaseOrder>.from(fetched);
 
@@ -422,29 +422,69 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
-                  final newOrder = PurchaseOrder(
-                    itemCode: itemController.text,
-                    brand: selectedBrand ?? '',
-                    productDescription: descriptionController.text,
-                    packSize: num.tryParse(packSizeController.text) ?? 0,
-                    quantity: num.tryParse(quantityController.text) ?? 0,
-                    unitCost: num.tryParse(unitCostController.text) ?? 0,
-                    poPIreference: popiRefController.text,
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Purchase Order'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Brand: ${selectedBrand ?? ''}'),
+                            Text('Item Code: ${itemController.text}'),
+                            Text('Description: ${descriptionController.text}'),
+                            Text('Pack Size: ${packSizeController.text}'),
+                            Text('Quantity: ${quantityController.text}'),
+                            Text('Unit Cost: ${unitCostController.text}'),
+                            Text('PO/PI Ref: ${popiRefController.text}'),
+                            const SizedBox(height: 20),
+                            const Text('Are you sure all information is correct?', 
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Confirm'),
+                          ),
+                        ],
+                      );
+                    },
                   );
 
-                  try {
-                    await _poService.addPurchaseOrder(newOrder);
-                    if (mounted) {
+                  if (confirmed == true) {
+                    final newOrder = PurchaseOrder(
+                      itemCode: itemController.text,
+                      brand: selectedBrand ?? '',
+                      productDescription: descriptionController.text,
+                      packSize: num.tryParse(packSizeController.text) ?? 0,
+                      quantity: num.tryParse(quantityController.text) ?? 0,
+                      unitCost: num.tryParse(unitCostController.text) ?? 0,
+                      poPIreference: popiRefController.text,
+                    );
+                    try {
+                      await _poService.addPurchaseOrder(newOrder);
+                      if (!context.mounted) return;
                       Navigator.of(context).pop();
                       _showDialog('Success', 'Purchase Order added!');
                       _fetchPurchaseOrders();
+                    } catch (e) {
+                      if (!mounted) return;
+                      _showDialog('Error', 'Failed to add purchase order: $e');
                     }
-                  } catch (e) {
-                    _showDialog('Error', 'Failed to add purchase order: $e');
                   }
                 }
               },
@@ -605,25 +645,62 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  final updatedOrder = PurchaseOrder(
-                    itemCode: itemController.text,
-                    brand: selectedBrand ?? '',
-                    productDescription: descriptionController.text,
-                    packSize: num.tryParse(packSizeController.text) ?? 0,
-                    quantity: num.tryParse(quantityController.text) ?? 0,
-                    unitCost: num.tryParse(unitCostController.text) ?? 0,
-                    poPIreference: popiRefController.text,
+                if(formKey.currentState!.validate()) {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Purchase Order'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Item Code: ${itemController.text}'),
+                            Text('Description: ${descriptionController.text}'),
+                            Text('Pack Size: ${packSizeController.text}'),
+                            Text('Quantity: ${quantityController.text}'),
+                            Text('Unit Cost: ${unitCostController.text}'),
+                            Text('PO/PI Ref: ${popiRefController.text}'),
+                            const SizedBox(height: 20),
+                            const Text('Are you sure all information is correct?', 
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                           TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Confirm'),
+                          ),
+                        ],
+                      );
+                    },
                   );
-                  try {
-                    await _poService.updatePurchaseOrder(updatedOrder);
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _showDialog('Success', 'Purchase Order updated.');
+
+                  if(confirmed == true) {
+                    final updatedOrder = PurchaseOrder(
+                      itemCode: itemController.text, 
+                      brand: selectedBrand ?? '', 
+                      productDescription: descriptionController.text, 
+                      packSize: num.tryParse(packSizeController.text) ?? 0, 
+                      quantity: num.tryParse(quantityController.text) ?? 0, 
+                      unitCost: num.tryParse(unitCostController.text) ?? 0, 
+                      poPIreference: popiRefController.text,
+                    );
+                    try {
+                      await _poService.updatePurchaseOrder(updatedOrder);
+                      if(!context.mounted) return;
+                      Navigator.of(context).pop();
+                      _showDialog('Success', 'Purchase Order Updated!');
                       _fetchPurchaseOrders();
+                    } catch (e) {
+                      if(!mounted) return;
+                      _showDialog('Error', 'Failed to update purchase order: $e');
                     }
-                  } catch (e) {
-                    _showDialog('Error', 'Failed to update: $e');
                   }
                 }
               },
@@ -1233,7 +1310,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                   fontSize: isSmallScreen ? 12 : 14,
                                 ),
                               ),
-                              Container(
+                              SizedBox(
                                 height: isSmallScreen ? 30 : 35,
                                 child: NeumorphicButton(
                                   padding: EdgeInsets.symmetric(
