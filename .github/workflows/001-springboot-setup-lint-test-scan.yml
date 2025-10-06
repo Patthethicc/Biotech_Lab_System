@@ -6,8 +6,6 @@ on:
       - "lis/**"
     branches: ["**"]
   pull_request:
-    paths:
-      - "lis/**"
     branches: ["**"]
 
 jobs:
