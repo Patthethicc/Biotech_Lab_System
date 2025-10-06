@@ -4,11 +4,11 @@ on:
   push:
     paths:
       - "frontend/**"
-    branches: [main, dev, staging]
+    branches: ["**"]
   pull_request:
     paths:
       - "frontend/**"
-    branches: [main, dev, staging]
+    branches: ["**"]
 
 jobs:
   setup-lint-test:
