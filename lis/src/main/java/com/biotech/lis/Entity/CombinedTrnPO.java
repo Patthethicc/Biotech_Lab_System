@@ -9,13 +9,20 @@ import lombok.Data;
 public class CombinedTrnPO {
     private String drSIReferenceNum;
     private LocalDate transactionDate;
+    private String itemCode;
     private String brand;
     private String productDescription;
     private String lotSerialNumber;
     private LocalDate expiryDate;
     private Double cost;
+    private Double packSize;
     private Integer quantity;
+    private Double unitCost;
+    private Double totalCost;
+    private String poPIreference;
     private String stockLocation;
+
+
     private String purchaseOrderFileName;
     private String suppliersPackingListName;
     private String inventoryOfDeliveredItemsName;
@@ -46,17 +53,23 @@ public class CombinedTrnPO {
         purchaseOrder.setItemCode("error");
         purchaseOrder.setBrand(brand);
         purchaseOrder.setProductDescription(productDescription);
-        purchaseOrder.setLotSerialNumber(lotSerialNumber);
-        purchaseOrder.setPurchaseOrderFileName(purchaseOrderFileName);
-        purchaseOrder.setPurchaseOrderFile(purchaseOrderFile);
-        purchaseOrder.setSuppliersPackingListName(suppliersPackingListName);
-        purchaseOrder.setSuppliersPackingList(suppliersPackingList);
-        purchaseOrder.setInventoryOfDeliveredItemsName(inventoryOfDeliveredItemsName);
-        purchaseOrder.setInventoryOfDeliveredItems(inventoryOfDeliveredItems);
-        purchaseOrder.setOrderDate(transactionDate);
-        purchaseOrder.setDrSIReferenceNum(drSIReferenceNum);
-        purchaseOrder.setAddedBy("error");
-        purchaseOrder.setDateTimeAdded(LocalDateTime.now());
+        purchaseOrder.setPackSize(packSize);
+        purchaseOrder.setQuantity(quantity);
+        purchaseOrder.setUnitCost(unitCost);
+        purchaseOrder.setTotalCost(totalCost);
+        purchaseOrder.setPoPIreference(poPIreference);
+
+        // purchaseOrder.setLotSerialNumber(lotSerialNumber);
+        // purchaseOrder.setPurchaseOrderFileName(purchaseOrderFileName);
+        // purchaseOrder.setPurchaseOrderFile(purchaseOrderFile);
+        // purchaseOrder.setSuppliersPackingListName(suppliersPackingListName);
+        // purchaseOrder.setSuppliersPackingList(suppliersPackingList);
+        // purchaseOrder.setInventoryOfDeliveredItemsName(inventoryOfDeliveredItemsName);
+        // purchaseOrder.setInventoryOfDeliveredItems(inventoryOfDeliveredItems);
+        // purchaseOrder.setOrderDate(transactionDate);
+        // purchaseOrder.setDrSIReferenceNum(drSIReferenceNum);
+        // purchaseOrder.setAddedBy("error");
+        // purchaseOrder.setDateTimeAdded(LocalDateTime.now());
         
         return purchaseOrder;
     }

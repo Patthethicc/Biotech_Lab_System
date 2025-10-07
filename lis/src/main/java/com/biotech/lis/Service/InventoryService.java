@@ -128,11 +128,11 @@ public class InventoryService {
         
         purchaseOrder.setBrand(brandName);
         purchaseOrder.setProductDescription(prodDesc);
-        purchaseOrder.setLotSerialNumber(existingInventory.getLotSerialNumber());
-        purchaseOrder.setOrderDate(existingInventory.getDateTimeAdded().toLocalDate());
+        // purchaseOrder.setLotSerialNumber(existingInventory.getLotSerialNumber());
+        // purchaseOrder.setOrderDate(existingInventory.getDateTimeAdded().toLocalDate());
 
-        purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
-        purchaseOrder.setDateTimeAdded(cDateTime);
+        // purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        // purchaseOrder.setDateTimeAdded(cDateTime);
 
         purchaseOrderRepository.save(purchaseOrder);
 
@@ -183,12 +183,12 @@ public class InventoryService {
         
         purchaseOrder.setBrand(brandName);
         purchaseOrder.setProductDescription(prodDesc);
-        purchaseOrder.setLotSerialNumber(transactionEntry.getLotSerialNumber());
-        purchaseOrder.setOrderDate(transactionEntry.getDateTimeAdded().toLocalDate());
-        purchaseOrder.setDrSIReferenceNum(transactionEntry.getDrSIReferenceNum());
-        purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
-        purchaseOrder.setDateTimeAdded(cDateTime);
-
+        // purchaseOrder.setLotSerialNumber(transactionEntry.getLotSerialNumber());
+        // purchaseOrder.setOrderDate(transactionEntry.getDateTimeAdded().toLocalDate());
+        // purchaseOrder.setDrSIReferenceNum(transactionEntry.getDrSIReferenceNum());
+        // purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        // purchaseOrder.setDateTimeAdded(cDateTime);
+// 
         purchaseOrderRepository.save(purchaseOrder);
 
         return inventoryRepository.save(existingInventory);

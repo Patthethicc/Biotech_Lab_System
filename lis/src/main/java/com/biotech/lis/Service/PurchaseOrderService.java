@@ -78,30 +78,40 @@ public class PurchaseOrderService {
 
         existingPurchaseOrder.setBrand(purchaseOrder.getBrand());
         existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
-        existingPurchaseOrder.setLotSerialNumber(purchaseOrder.getLotSerialNumber());
-        existingPurchaseOrder.setPurchaseOrderFile(purchaseOrder.getPurchaseOrderFile());
-        existingPurchaseOrder.setSuppliersPackingList(purchaseOrder.getSuppliersPackingList());
-        existingPurchaseOrder.setInventoryOfDeliveredItems(purchaseOrder.getInventoryOfDeliveredItems());
-        existingPurchaseOrder.setOrderDate(purchaseOrder.getOrderDate());
-        existingPurchaseOrder.setDrSIReferenceNum(purchaseOrder.getDrSIReferenceNum());
+        existingPurchaseOrder.setBrand(purchaseOrder.getBrand());
+        existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
+        existingPurchaseOrder.setPackSize(purchaseOrder.getPackSize());
+        existingPurchaseOrder.setQuantity(purchaseOrder.getQuantity());
+        existingPurchaseOrder.setUnitCost(purchaseOrder.getUnitCost());
+        existingPurchaseOrder.setTotalCost(purchaseOrder.getTotalCost());
+        existingPurchaseOrder.setPoPIreference(purchaseOrder.getPoPIreference());
 
-        User user = getCurrentUser();
-        setAuditFields(existingPurchaseOrder, user);
+        // existingPurchaseOrder.setPurchaseOrderFile(purchaseOrder.getPurchaseOrderFile());
+        // existingPurchaseOrder.setSuppliersPackingList(purchaseOrder.getSuppliersPackingList());
+        // existingPurchaseOrder.setInventoryOfDeliveredItems(purchaseOrder.getInventoryOfDeliveredItems());
+        // existingPurchaseOrder.setOrderDate(purchaseOrder.getOrderDate());
+        // existingPurchaseOrder.setDrSIReferenceNum(purchaseOrder.getDrSIReferenceNum());
+        // existingPurchaseOrder.setLotSerialNumber(purchaseOrder.getLotSerialNumber());
 
-        Inventory inventory = inventoryRepository.findByItemCodeIgnoreCase(existingPurchaseOrder.getItemCode()).get();
-        inventory.setBrand(existingPurchaseOrder.getBrand());
-        inventory.setProductDescription(existingPurchaseOrder.getProductDescription());
-        inventory.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
+        // User user = getCurrentUser();
+        // setAuditFields(existingPurchaseOrder, user);
 
-        inventoryRepository.save(inventory);
+        // Inventory inventory = inventoryRepository.findByItemCodeIgnoreCase(existingPurchaseOrder.getItemCode()).get();
+        // inventory.setBrand(existingPurchaseOrder.getBrand());
+        // inventory.setProductDescription(existingPurchaseOrder.getProductDescription());
 
-        TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(existingPurchaseOrder.getItemCode()).get();
-        transactionEntry.setBrand(existingPurchaseOrder.getBrand());
-        transactionEntry.setProductDescription(existingPurchaseOrder.getProductDescription());
-        transactionEntry.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
-        transactionEntry.setTransactionDate(existingPurchaseOrder.getOrderDate());
+        // inventory.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
 
-        transactionEntryRepository.save(transactionEntry);
+        // inventoryRepository.save(inventory);
+
+        // TransactionEntry transactionEntry = transactionEntryRepository.findByItemCode(existingPurchaseOrder.getItemCode()).get();
+        // transactionEntry.setBrand(existingPurchaseOrder.getBrand());
+        // transactionEntry.setProductDescription(existingPurchaseOrder.getProductDescription());
+        
+        // transactionEntry.setLotSerialNumber(existingPurchaseOrder.getLotSerialNumber());
+        // transactionEntry.setTransactionDate(existingPurchaseOrder.getOrderDate());
+
+        // transactionEntryRepository.save(transactionEntry);
 
         return purchaseOrderRepository.save(existingPurchaseOrder);
     }
@@ -113,10 +123,10 @@ public class PurchaseOrderService {
         if (!purchaseOrderRepository.existsById(code)) {
             throw new IllegalArgumentException("Purchase order not found with code: " + code);
         }
-        stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
+        // stockLocatorService.updateStockFromTransaction(transactionEntryRepository.findByItemCode(code).get(), false);
 
-        transactionEntryRepository.deleteByItemCode(code);
-        inventoryRepository.deleteByItemCode(code);
+        // transactionEntryRepository.deleteByItemCode(code);
+        // inventoryRepository.deleteByItemCode(code);
 
         purchaseOrderRepository.deleteById(code);
     }
@@ -153,8 +163,8 @@ public class PurchaseOrderService {
 
     private void setAuditFields(PurchaseOrder purchaseOrder, User user) {
         LocalDateTime currentDateTime = LocalDateTime.now();
-        purchaseOrder.setAddedBy(user.getFirstName() + " " + user.getLastName());
-        purchaseOrder.setDateTimeAdded(currentDateTime);
+        // purchaseOrder.setAddedBy(user.getFirstName() + " " + user.getLastName());
+        // purchaseOrder.setDateTimeAdded(currentDateTime);
     }
 }
 
