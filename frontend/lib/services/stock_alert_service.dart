@@ -9,10 +9,10 @@ class StockAlertService {
   static final String baseUrl = dotenv.env['API_URL']!;
   final storage = FlutterSecureStorage();
 
-  Future<List<Inventory>> getStockAlerts() async {
+  Future<List<Inventory>> getStockAlerts(int amount) async {
     String? token = await storage.read(key: 'jwt_token');
     final response = await http.get(
-      Uri.parse('$baseUrl/inv/v1/stockAlert/10'),
+      Uri.parse('$baseUrl/inv/v1/stockAlert/$amount'),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -28,8 +28,7 @@ class StockAlertService {
         inventoryItems.add(Inventory.fromJson(inventoryJson));
       }
     } else {
-      print(response.body);
-      print("error 404");
+      throw Exception('Failed to load stock alerts: ${response.statusCode}');
     }
     return inventoryItems;
   }

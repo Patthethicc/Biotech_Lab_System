@@ -83,20 +83,34 @@ class _StockAlertState extends State<StockAlert> {
   int _rowsPerPage = 5;
   final List<int> _rowsPerPageOptions = [5, 10, 25, 50];
   final int _showAllValue = -1;
+  final TextEditingController _stockAmountController = TextEditingController();
+  int _stockAlertAmount = 10; // Default value
 
   @override
   void initState() {
     super.initState();
+    _stockAmountController.text = _stockAlertAmount.toString();
     _fetchStockAlerts();
   }
 
+  @override
+  void dispose() {
+    _stockAmountController.dispose();
+    super.dispose();
+  }
+
   void _fetchStockAlerts() {
+    final amount = int.tryParse(_stockAmountController.text);
+    if (amount == null) return; // Or show an error
+
     final stockAlertService = StockAlertService();
-    stockAlertService.getStockAlerts().then((value) {
+    setState(() => _isLoading = true);
+    stockAlertService.getStockAlerts(amount).then((value) {
       setState(() {
         _allStockAlerts = value;
         _displayStockAlerts = List.from(_allStockAlerts);
         _isLoading = false;
+        _stockAlertAmount = amount;
       });
     });
   }
@@ -148,11 +162,6 @@ class _StockAlertState extends State<StockAlert> {
         elevation: 0,
         foregroundColor: Colors.black,
         actions: [
-          IconButton(
-            onPressed: _fetchStockAlerts,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Alerts',
-          ),
         ],
       ),
       body: Container(
@@ -169,6 +178,49 @@ class _StockAlertState extends State<StockAlert> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 200,
+                              child: Neumorphic(
+                                style: NeumorphicStyle(
+                                  depth: -4,
+                                  intensity: 0.6,
+                                  color: Colors.white,
+                                  boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(40)),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                                child: TextField(
+                                  controller: _stockAmountController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Stock Alert Threshold',
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            NeumorphicButton(
+                              onPressed: _fetchStockAlerts,
+                              style: NeumorphicStyle(
+                                depth: 3,
+                                intensity: 0.8,
+                                boxShape: NeumorphicBoxShape.circle(),
+                                color: Colors.white,
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: Icon(
+                                Icons.search,
+                                color: Colors.lightBlue[400],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       if (_displayStockAlerts.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(20.0),

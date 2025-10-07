@@ -209,7 +209,7 @@ public class InventoryService {
     }
 
     public List<Inventory> getStockAlerts(Integer amount) {
-        return inventoryRepository.findByQuantityOnHandLessThan(amount);
+        return inventoryRepository.findByQuantityOnHandLessThanEqual(amount);
     }
 
     public Integer inventoryExists(Inventory inventory) {

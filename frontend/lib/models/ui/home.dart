@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
       final entries = await TransactionEntryService().fetchTransactionEntries();
       final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
-      final alerts = await StockAlertService().getStockAlerts();
+      final alerts = await StockAlertService().getStockAlerts(1);
       final outOfStockItems = alerts.where((item) => item.quantityOnHand == 0).length;
 
       setState(() {
