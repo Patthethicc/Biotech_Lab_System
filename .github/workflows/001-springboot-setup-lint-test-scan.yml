@@ -1,0 +1,49 @@
+name: Springboot Setup Lint Test Scan
+
+on:
+  push:
+    paths:
+      - "lis/**"
+    branches: ["main", "dev", "staging"]
+  pull_request:
+    paths:
+      - "lis/**"
+    branches: ["main", "dev", "staging"]
+
+jobs:
+  setup-lint-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: "maven"
+
+      - name: Check code formatting
+        run: mvn spotless:check
+        working-directory: lis
+
+      - name: Run linter
+        run: mvn validate
+        working-directory: lis
+
+      - name: Run tests
+        run: mvn test
+        working-directory: lis
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+
+      - name: Run Semgrep scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+          output: semgrep.sarif
+        continue-on-error: true
