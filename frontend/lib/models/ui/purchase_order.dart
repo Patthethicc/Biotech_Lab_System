@@ -155,7 +155,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       orders.sort((a, b) {
         final brandCmp = a.brand.toLowerCase().compareTo(b.brand.toLowerCase());
         if (brandCmp != 0) return brandCmp;
-        return a.itemCode.toLowerCase().compareTo(b.itemCode.toLowerCase());
+        final codeA = a.itemCode?.toLowerCase() ?? '';
+        final codeB = b.itemCode?.toLowerCase() ?? '';
+        return codeA.compareTo(codeB);
       });
 
       if (!mounted) return;
@@ -186,7 +188,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     setState(() {
       if (query.isNotEmpty) {
         _displayOrders = _allOrders.where((order) {
-          return order.itemCode.toLowerCase().contains(query);
+          final ref = order.poPIreference.toLowerCase();
+          return ref.contains(query);
         }).toList();
       } else {
         _displayOrders = List.from(_allOrders);
@@ -300,16 +303,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextFormField(
-                          controller: itemController,
-                          decoration: const InputDecoration(
-                            labelText: 'Item Code',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-
                         DropdownButtonFormField<String>(
                           initialValue: selectedBrand,
                           decoration: const InputDecoration(
@@ -439,7 +432,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Brand: ${selectedBrand ?? ''}'),
-                            Text('Item Code: ${itemController.text}'),
                             Text('Description: ${descriptionController.text}'),
                             Text('Pack Size: ${packSizeController.text}'),
                             Text('Quantity: ${quantityController.text}'),
@@ -552,16 +544,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         const SizedBox(height: 16),
 
                         TextFormField(
-                          controller: itemController,
-                          decoration: const InputDecoration(
-                            labelText: 'Item Code',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                        ),
-                        const SizedBox(height:16),
-
-                        TextFormField(
                           controller: descriptionController,
                           decoration: const InputDecoration(
                             labelText: 'Product Description',
@@ -655,7 +637,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Item Code: ${itemController.text}'),
                             Text('Description: ${descriptionController.text}'),
                             Text('Pack Size: ${packSizeController.text}'),
                             Text('Quantity: ${quantityController.text}'),
@@ -770,11 +751,18 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       List<String> errors = [];
 
       for (PurchaseOrder order in ordersToDelete) {
+        final code = order.itemCode;
+
+        if (code == null || code.isEmpty) {
+          errors.add('Skipping an order with no item code.');
+          continue;
+        }
+
         try {
-          await _poService.deletePurchaseOrder(order.itemCode);
+          await _poService.deletePurchaseOrder(code);
           successCount++;
         } catch (e) {
-          errors.add('Error deleting ${order.itemCode}: $e');
+          errors.add('Error deleting $code: $e');
         }
       }
 
@@ -1239,9 +1227,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
+                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                                     DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                   ])
@@ -1397,7 +1384,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         onSelectChanged: (bool? selected) => _toggleOrderSelection(order),
         color: WidgetStateProperty.all(rowColor),
         cells: [
-          DataCell(Text(order.itemCode)),
+          DataCell(Text(order.itemCode ?? '')),
           DataCell(Text(order.brand)),
           DataCell(Text(order.productDescription, overflow: TextOverflow.ellipsis)),
           DataCell(Text(order.packSize.toString())),

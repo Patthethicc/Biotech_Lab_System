@@ -1,5 +1,5 @@
 class PurchaseOrder {
-  String itemCode;
+  String? itemCode;
   String brand;
   String productDescription;
   num packSize;
@@ -9,7 +9,7 @@ class PurchaseOrder {
   String poPIreference;
 
   PurchaseOrder({
-    required this.itemCode,
+    this.itemCode,
     required this.brand,
     required this.productDescription,
     required this.packSize,
@@ -22,7 +22,7 @@ class PurchaseOrder {
     final qty = json['quantity'] ?? 0;
     final cost = json['unitCost'] ?? 0;
     return PurchaseOrder(
-      itemCode: json['itemCode'] ?? 'Unknown Code',
+      itemCode: json['itemCode'],
       brand: json['brand'] ?? 'No Brand',
       productDescription: json['productDescription'] ?? 'No Description',
       packSize: json['packSize'] ?? 0,
