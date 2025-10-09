@@ -13,13 +13,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @TestPropertySource(properties = {
-    "spring.sql.init.mode=never",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.hibernate.ddl-auto=none",
     "spring.jpa.show-sql=true",
-    "spring.jpa.properties.hibernate.format_sql=true",
-    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false",
-    "spring.jpa.properties.hibernate.globally_quoted_identifiers=true"
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+    "spring.sql.init.mode=embedded",
+    "spring.sql.init.schema-locations=classpath:schema.sql"
 })
 public class PurchaseOrderRepositoryTest {
 
