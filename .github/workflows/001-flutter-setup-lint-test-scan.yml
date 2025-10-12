@@ -27,7 +27,7 @@ jobs:
         working-directory: frontend
 
       - name: Format code
-        run: dart format --fix .
+        run: dart format --set-exit-if-changed .
         working-directory: frontend
 
       - name: Run linter
@@ -36,6 +36,7 @@ jobs:
 
       - name: Run tests
         run: flutter test
+        working-directory: frontend
 
       - name: Build APK
         run: flutter build apk
