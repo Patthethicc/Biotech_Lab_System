@@ -1,38 +1,38 @@
 package com.biotech.lis.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "`purchaseOrder`")
+@Table(name = "purchase_order")
 public class PurchaseOrder {
     @Id
+    @Column(name = "item_code")
     private String itemCode;
+    
+    @Column(name = "brand")
     private String brand;
+    
+    @Column(name = "product_description")
     private String productDescription;
-    private String lotSerialNumber;
-    private String purchaseOrderFileName;
-    @Lob
-    private byte[] purchaseOrderFile;
-    private String suppliersPackingListName;
-    @Lob
-    private byte[] suppliersPackingList;
-    private String inventoryOfDeliveredItemsName;
-    @Lob
-    private byte[] inventoryOfDeliveredItems;
-    private LocalDate orderDate;
-    private String addedBy;
-    private LocalDateTime dateTimeAdded;
-    private String drSIReferenceNum;
+    
+    @Column(name = "pack_size")
+    private Double packSize;
+    
+    @Column(name = "quantity")
+    private Integer quantity;
+    
+    @Column(name = "unit_cost")
+    private Double unitCost;
+    
+    @Column(name = "total_cost")
+    private Double totalCost;
+    
+    @Column(name = "po_PIreference")
+    private String poPIreference;
 }

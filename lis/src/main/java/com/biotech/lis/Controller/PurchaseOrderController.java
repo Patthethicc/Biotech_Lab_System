@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 
 @RestController
@@ -94,6 +95,7 @@ public class PurchaseOrderController {
         }
     }
 
+    /*
     @GetMapping("/getPO/{code}/file")
     public ResponseEntity<byte[]> getPurchaseOrderFile(@PathVariable("code") String code) {
         Optional<PurchaseOrder> purchaseOrderOpt = purchaseOrderService.getPurchaseOrderByCode(code);
@@ -119,5 +121,10 @@ public class PurchaseOrderController {
         headers.setContentDispositionFormData("attachment", "packing-list-" + code);
         return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
     }
+    */ 
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body("Invalid JSON request");
+    }
 }

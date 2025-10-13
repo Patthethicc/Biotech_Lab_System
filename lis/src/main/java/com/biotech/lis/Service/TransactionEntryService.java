@@ -72,8 +72,8 @@ public class TransactionEntryService {
 
         PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
         purchaseOrder.setItemCode(savedEntry.getItemCode());
-        purchaseOrder.setAddedBy(savedEntry.getAddedBy());
-        purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
+        // purchaseOrder.setAddedBy(savedEntry.getAddedBy());
+        // purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
 
         purchaseOrderRepository.save(purchaseOrder);
 
