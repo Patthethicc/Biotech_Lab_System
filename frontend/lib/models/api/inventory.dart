@@ -1,59 +1,75 @@
+import 'package:frontend/models/api/location_stock.dart';
+
 class Inventory {
-  int? inventoryID = 0;
-  String? itemCode;
-  String brand = "";
-  String productDescription = "";
-  String lotSerialNumber = "";
-  double cost = 0;
-  String expiryDate = "";
-  int? stocksManila;
-  int? stocksCebu;
-  int quantityOnHand = 0;
-  String? addedBy;
-  String? dateTimeAdded;
+  String poPIreference;
+  String invoiceNum;
+  String itemCode;
+  String itemDescription;
+  String brand;
+  num packSize;
+  int lotNumber;
+  String expiryDate;
+  double costOfSale;
+  List<LocationStock> locations;
+  String? note;
+  String addedBy;
+  String dateTimeAdded;
+  int get quantity => locations.fold(0, (sum, loc) => sum + loc.quantity);
 
   Inventory({
-    this.inventoryID,
-    this.itemCode,
+    required this.poPIreference,
+    required this.invoiceNum,
+    required this.itemCode,
+    required this.itemDescription,
     required this.brand,
-    required this.productDescription,
-    required this.lotSerialNumber,
-    required this.cost,
+    required this.packSize,
+    required this.lotNumber,
     required this.expiryDate,
-    this.stocksManila,
-    this.stocksCebu,
-    this.addedBy,
-    this.dateTimeAdded
+    required this.costOfSale,
+    required this.locations,
+    this.note,
+    required this.addedBy,
+    required this.dateTimeAdded,
   });
 
-  Inventory.fromJson(Map<String, dynamic> json) {
-    inventoryID = json["inventoryId"];
-    itemCode = json["itemCode"];
-    brand = json["brand"];
-    productDescription = json["productDescription"];
-    lotSerialNumber = json["lotSerialNumber"];
-    cost = json["cost"];
-    expiryDate = json["expiryDate"];
-    stocksManila = json["stocksManila"];
-    stocksCebu = json["stocksCebu"];
-    quantityOnHand = json["quantityOnHand"];
-    addedBy = json["addedBy"];
-    dateTimeAdded = json["dateTimeAdded"];
+  factory Inventory.fromJson(Map<String, dynamic> json) {
+    return Inventory(
+      poPIreference: json["poPIreference"],
+      invoiceNum: json["invoiceNum"],
+      itemCode: json["itemCode"],
+      itemDescription: json["itemDescription"],
+      brand: json["brand"],
+      packSize: json["packSize"],
+      lotNumber: json["lotNumber"],
+      expiryDate: json["expiryDate"],
+      costOfSale: (json["costOfSale"] is int)
+        ? (json["costOfSale"] as int).toDouble()
+        : json["costOfSale"],
+      locations: (json["location"] as List<dynamic>?)
+        ?.map((e) => LocationStock.fromJson(e))
+        .toList() ?? [],
+      note: json["note"],
+      addedBy: json["addedBy"],
+      dateTimeAdded: json["dateTimeAdded"],
+    );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'inventoryId': inventoryID,
-      'itemCode': itemCode,
-      'brand' : brand,
-      'productDescription' : productDescription,
-      'lotSerialNumber' : lotSerialNumber,
-      'cost': cost,
-      'expiryDate': expiryDate,
-      'stocksManila': stocksManila,
-      'stocksCebu': stocksCebu,
-      'addedBy': addedBy,
-      'dateTimeAdded': dateTimeAdded
+      "poPIreference": poPIreference,
+      "invoiceNum": invoiceNum,
+      "itemCode": itemCode,
+      "itemDescription": itemDescription,
+      "brand": brand,
+      "packSize": packSize,
+      "lotNumber": lotNumber,
+      "expiryDate": expiryDate,
+      "quantity": quantity,
+      "costOfSale": costOfSale,
+      "locations": locations.map((e) => e.toJson()).toList(),
+      "note": note,
+      "addedBy": addedBy,
+      "dateTimeAdded": dateTimeAdded,
     };
   }
 }

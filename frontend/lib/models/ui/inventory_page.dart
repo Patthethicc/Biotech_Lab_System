@@ -1,8 +1,13 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
+import 'package:frontend/models/api/purchase_order.dart';
+import 'package:frontend/models/api/location_stock.dart';
 import 'package:frontend/services/inventory_service.dart';
+import 'package:frontend/services/purchase_order_service.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
+import 'package:frontend/models/api/location.dart';
 
 
 class _NeumorphicNavButton extends StatefulWidget {
@@ -76,10 +81,12 @@ class InventoryPage extends StatefulWidget {
 class _InventoryPageState extends State<InventoryPage> {
   final InventoryService _inventoryService = InventoryService();
   final TextEditingController _searchController = TextEditingController();
+  final PurchaseOrderService _poService = PurchaseOrderService();
   List<Inventory> _allInventories = [];
   List<Inventory> _displayInventories = [];
   Set<Inventory> _selectedInventories = {};
   Inventory? _selectedInventoryForEdit;
+  List<PurchaseOrder> _availablePOs = [];
 
   bool _isLoading = true;
   bool _selectAll = false;
@@ -90,10 +97,19 @@ class _InventoryPageState extends State<InventoryPage> {
   final List<int> _rowsPerPageOptions = [10, 25, 50, 100];
   final int _showAllValue = -1;
 
+  final List<Location> _availableLocations = [
+    Location(id: 1, name: 'Storage 1'),
+    Location(id: 2, name: 'Storage 2'),
+    Location(id: 3, name: 'Storage 3'),
+    Location(id: 4, name: 'Storage 4'),
+    Location(id: 5, name: 'Storage 5'),
+  ];
+
   @override
   void initState() {
     super.initState();
     _fetchInventories();
+    _fetchAvailablePOs();
     _searchController.addListener(_filterInventories);
   }
 
@@ -131,7 +147,7 @@ class _InventoryPageState extends State<InventoryPage> {
     setState(() {
       if (query.isNotEmpty) {
         _displayInventories = _allInventories.where((inventory) {
-          return inventory.itemCode!.toLowerCase().contains(query);
+          return inventory.itemCode.toLowerCase().contains(query);
         }).toList();
       } else {
         _displayInventories = List.from(_allInventories);
@@ -139,6 +155,17 @@ class _InventoryPageState extends State<InventoryPage> {
       _clearSelection();
       _startIndex = 0;
     });
+  }
+
+  Future<void> _fetchAvailablePOs() async {
+    try {
+      final pos = await _poService.fetchPurchaseOrders();
+      setState(() {
+        _availablePOs = pos;
+      });
+    } catch (e) {
+      debugPrint('Error fetching POs: $e');
+    }
   }
   
   void _clearSelection() {
@@ -209,25 +236,286 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
-  
-  void _showEditDialog(Inventory inventory) {
-    final _formKey = GlobalKey<FormState>();
-    final inventoryIdController = TextEditingController(text: inventory.inventoryID.toString());
-    final itemController = TextEditingController(text: inventory.itemCode);
-    final brandController = TextEditingController(text: inventory.brand);
-    final descriptionController = TextEditingController(text: inventory.productDescription);
-    final lotSerialController = TextEditingController(text: inventory.lotSerialNumber);
-    final costController = TextEditingController(text: inventory.cost.toString());
-    final expirationDate = TextEditingController(text: inventory.expiryDate);
+  Future<PurchaseOrder?> selectPODialog(List<PurchaseOrder> purchaseOrders) {
+    return showDialog<PurchaseOrder>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Purchase Order'),
+          content: SizedBox(
+            width: 600,
+            height: 400,
+            child: ListView.builder(
+              itemCount: purchaseOrders.length,
+              itemBuilder: (context, index) {
+                final po = purchaseOrders[index];
+                bool isHovered = false;
+
+                return StatefulBuilder(
+                  builder: (context, setState) {
+                    return MouseRegion(
+                      onEnter: (_) => setState(() => isHovered = true),
+                      onExit: (_) => setState(() => isHovered = false),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 100),
+                        margin: const EdgeInsets.symmetric(vertical: 4.0),
+                        decoration: BoxDecoration(
+                          color: isHovered
+                              ? Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.08)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(6.0),
+                          border: Border.all(
+                            color: isHovered
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.4)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: ListTile(
+                          title: Text('${po.brand} (${po.itemCode}) - ${po.productDescription}'),
+                          subtitle: Text(
+                            'PO Ref: ${po.poPIreference} | Pack Size: ${po.packSize}',
+                          ),
+                          onTap: () => Navigator.pop(context, po),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6.0),
+                          ),
+                          hoverColor: Colors.transparent,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<List<LocationStock>?> addLocationDialog(
+    List<Location> availableLocations,
+    List<LocationStock> existingStocks,
+  ) {
+    final selectedStocks = List<LocationStock>.from(existingStocks);
+    final quantityController = TextEditingController();
+    Location? selectedLocation;
+
+    void addLocation(StateSetter setState) {
+      if (selectedLocation != null && quantityController.text.isNotEmpty) {
+        final qty = int.tryParse(quantityController.text) ?? 0;
+        final existing = selectedStocks.indexWhere((s) => s.locationId == selectedLocation!.id);
+
+        if (existing >= 0) {
+          selectedStocks[existing].quantity += qty;
+        } else {
+          selectedStocks.add(
+            LocationStock(
+              locationId: selectedLocation!.id,
+              locationName: selectedLocation!.name,
+              quantity: qty,
+            ),
+          );
+        }
+        setState(() {
+          quantityController.clear();
+          selectedLocation = null;
+        });
+      }
+    }
+
+    return showDialog<List<LocationStock>>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Assign Locations & Quantities'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              final totalQty = selectedStocks.fold<int>(0, (sum, s) => sum + s.quantity);
+              return SizedBox(
+                width: 500,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<Location>(
+                      initialValue: selectedLocation,
+                      hint: const Text('Select Location'),
+                      items: availableLocations.map((loc) {
+                        return DropdownMenuItem<Location>(
+                          value: loc,
+                          child: Text(loc.name),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => selectedLocation = val),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Location',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Quantity',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add'),
+                        onPressed: () => addLocation(setState),
+                      ),
+                    ),
+                    const Divider(),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: selectedStocks.length,
+                        itemBuilder: (context, index) {
+                          final stock = selectedStocks[index];
+                          return ListTile(
+                            title: Text('${stock.locationName}'),
+                            trailing: Text('Qty: ${stock.quantity}'),
+                            leading: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () {
+                                setState(() => selectedStocks.removeAt(index));
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Total Quantity: $totalQty',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, selectedStocks),
+              child: const Text('Done'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Future<bool> confirmAddDialog({
+  //   required String brand,
+  //   required String description,
+  //   required String packSize,
+  //   required String poReference,
+  //   required num totalQuantity,
+  //   required num unitCost,
+  //   required num totalCost,
+  // }) async {
+  //   return await showDialog<bool>(
+  //     context: context,
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         title: const Text('Confirm Details'),
+  //         content: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text('Brand: $brand'),
+  //             Text('Description: $description'),
+  //             Text('Pack Size: $packSize'),
+  //             Text('PO Ref: $poReference'),
+  //             Text('Total Quantity: $totalQuantity'),
+  //             Text('Unit Cost: $unitCost'),
+  //             const Divider(),
+  //             Text('Total Cost: ₱${totalCost.toStringAsFixed(2)}',
+  //               style: const TextStyle(fontWeight: FontWeight.bold)),
+  //             const SizedBox(height: 16),
+  //             const Text('Are you sure you want to proceed?',
+  //                 style: TextStyle(fontWeight: FontWeight.bold)),
+  //           ],
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(context, false),
+  //             child: const Text('Cancel'),
+  //           ),
+  //           ElevatedButton(
+  //             onPressed: () => Navigator.pop(context, true),
+  //             child: const Text('Confirm'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   ) ?? false;
+  // }
+
+  void _showAddDialog() {
+    final formKey = GlobalKey<FormState>();
+
+    final drsiController = TextEditingController();
+    final lotNumController = TextEditingController();
+    final expiryDateController = TextEditingController();
+    final costOfSaleController = TextEditingController();
+    final noteController = TextEditingController();
+
+    PurchaseOrder? selectedPO;
+    List<LocationStock> locationStocks = [];
+    num totalQuantity = 0;
+
+    void recalculateTotalQuantity(StateSetter setStateDialog) {
+      setStateDialog(() {
+        totalQuantity = locationStocks.fold(0, (sum, loc) => sum + loc.quantity);
+      });
+    }
+
+    void selectPurchaseOrder(StateSetter setStateDialog) async {
+      final po = await selectPODialog(_availablePOs);
+      if (po != null) {
+        setStateDialog(() => selectedPO = po);
+      }
+    }
+
+    void addLocation(StateSetter setStateDialog) async {
+      final updated = await addLocationDialog(_availableLocations, locationStocks);
+      if (updated != null) {
+        setStateDialog(() {
+          locationStocks = List<LocationStock>.from(updated);
+          recalculateTotalQuantity(setStateDialog);
+        });
+      }
+    }
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit Inventory: ${inventory.itemCode}'),
+          title: const Text('Add Inventory Item'),
           content: Form(
-            key: _formKey,
+            key: formKey,
             child: StatefulBuilder(
               builder: (BuildContext context, StateSetter setStateDialog) {
                 return SingleChildScrollView(
@@ -237,24 +525,155 @@ class _InventoryPageState extends State<InventoryPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextFormField(controller: itemController, readOnly: true, decoration: const InputDecoration(labelText: 'Item Code', filled: true)),
+                        const Text(
+                          'Purchase Order Details',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         const SizedBox(height: 16),
-                        TextFormField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+
+                        _buildReadOnlyField(
+                          label: 'PO/PI Reference',
+                          value: selectedPO?.poPIreference ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
                         const SizedBox(height: 16),
-                        TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Product Description', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        _buildReadOnlyField(
+                          label: 'Item Code',
+                          value: selectedPO?.itemCode ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
                         const SizedBox(height: 16),
-                        TextFormField(controller: lotSerialController, decoration: const InputDecoration(labelText: 'Lot/Serial Number', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        _buildReadOnlyField(
+                          label: 'Brand',
+                          value: selectedPO?.brand ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
                         const SizedBox(height: 16),
-                        TextFormField(controller: costController, decoration: const InputDecoration(labelText: 'Cost', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+                        _buildReadOnlyField(
+                          label: 'Description',
+                          value: selectedPO?.productDescription ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
                         const SizedBox(height: 16),
-                        InkWell(
+                        _buildReadOnlyField(
+                          label: 'Pack Size',
+                          value: selectedPO?.packSize.toString() ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
+                        const SizedBox(height: 8),
+                        const Divider(height: 24),
+
+                        const Text(
+                          'Inventory Details',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: drsiController,
+                          decoration: const InputDecoration(
+                            labelText: 'DR/SI Number',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: lotNumController,
+                          decoration: const InputDecoration(
+                            labelText: 'Lot Number',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: expiryDateController,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Expiry Date',
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.calendar_today),
+                          ),
                           onTap: () async {
-                            final picked = await showDatePicker(context: context, initialDate: DateTime.parse(expirationDate.text) ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
-                            if (picked != null) setStateDialog(() => expirationDate.text = picked.toString());
+                            final date = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2100),
+                              initialDate: DateTime.now(),
+                            );
+                            if (date != null) {
+                              setStateDialog(() {
+                                expiryDateController.text =
+                                    date.toIso8601String().split('T').first;
+                              });
+                            }
                           },
-                          child: InputDecorator(
-                            decoration: InputDecoration(labelText: 'Expiry Date', prefixIcon: const Icon(Icons.calendar_today), border: const OutlineInputBorder(), errorText: expirationDate == null ? 'Required' : null),
-                            child: Text(expirationDate != null ? DateFormat('yyyy-MM-dd').format(DateTime.parse(expirationDate.text)) : 'Select Expiry Date'),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: costOfSaleController,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,}$'))
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Cost of Sale',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: noteController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            labelText: 'Note',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const Divider(height: 24),
+
+                        const Text(
+                          'Stock Locations',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+
+                        ElevatedButton.icon(
+                          onPressed: () => addLocation(setStateDialog),
+                          label: const Text('Add Location'),
+                        ),
+                        const SizedBox(height: 12),
+
+                        if (locationStocks.isNotEmpty)
+                          Column(
+                            children: locationStocks
+                                .map(
+                                  (loc) => ListTile(
+                                    dense: true,
+                                    title: Text(loc.locationName),
+                                    trailing: Text('Qty: ${loc.quantity}'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        const SizedBox(height: 12),
+
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Total Quantity',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(
+                            totalQuantity.toString(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -265,23 +684,288 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
-                if (_formKey.currentState!.validate() && expirationDate != null) {
+                if (formKey.currentState!.validate() && selectedPO != null) {
+                  // final confirmed = await confirmAddDialog(selectedPO!, totalQuantity);
+                  // if (confirmed == true) {
+                    final newInventory = Inventory(
+                      poPIreference: selectedPO!.poPIreference,
+                      invoiceNum: drsiController.text,
+                      itemCode: selectedPO?.itemCode ?? '',
+                      itemDescription: selectedPO!.productDescription,
+                      brand: selectedPO!.brand,
+                      packSize: selectedPO!.packSize,
+                      lotNumber: int.tryParse(lotNumController.text) ?? 0,
+                      expiryDate: expiryDateController.text,
+                      costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
+                      note: noteController.text,
+                      addedBy: 'Sample User',
+                      dateTimeAdded: DateTime.now().toIso8601String(),
+                      locations: locationStocks,
+                    );
+
+                    try {
+                      await _inventoryService.createInventory(newInventory);
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop();
+                      _showDialog('Success', 'Inventory item added!');
+                      _fetchInventories();
+                    } catch (e) {
+                      _showDialog('Error', 'Failed to add inventory: $e');
+                    }
+                  // }
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  } 
+  
+  void _showEditDialog(Inventory inventory) {
+    final formKey = GlobalKey<FormState>();
+
+    final drsiController = TextEditingController(text: inventory.invoiceNum);
+    final lotNumController = TextEditingController(text: inventory.lotNumber.toString());
+    final expiryDateController = TextEditingController(text: inventory.expiryDate);
+    final costOfSaleController = TextEditingController(text: inventory.costOfSale.toString());
+    final noteController = TextEditingController(text: inventory.note ?? '');
+
+    PurchaseOrder? selectedPO;
+    List<LocationStock> locationStocks = List.from(inventory.locations);
+    num totalQuantity = locationStocks.fold(0, (sum, loc) => sum + loc.quantity);
+
+    void recalculateTotalQuantity(StateSetter setStateDialog) {
+      setStateDialog(() {
+        totalQuantity = locationStocks.fold(0, (sum, loc) => sum + loc.quantity);
+      });
+    }
+
+    void selectPurchaseOrder(StateSetter setStateDialog) async {
+      final po = await selectPODialog(_availablePOs);
+      if (po != null) {
+        setStateDialog(() => selectedPO = po);
+      }
+    }
+
+    void addLocation(StateSetter setStateDialog) async {
+      final updated = await addLocationDialog(_availableLocations, locationStocks);
+      if (updated != null) {
+        setStateDialog(() {
+          locationStocks = List<LocationStock>.from(updated);
+          recalculateTotalQuantity(setStateDialog);
+        });
+      }
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit Inventory: ${inventory.itemCode}'),
+          content: Form(
+            key: formKey,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateDialog) {
+                return SingleChildScrollView(
+                  child: SizedBox(
+                    width: 500,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Purchase Order Details',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+
+                        _buildReadOnlyField(
+                          label: 'PO/PI Reference',
+                          value: selectedPO?.poPIreference ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
+                        _buildReadOnlyField(
+                          label: 'Item Code',
+                          value: selectedPO?.itemCode ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
+                        _buildReadOnlyField(
+                          label: 'Brand',
+                          value: selectedPO?.brand ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
+                        _buildReadOnlyField(
+                          label: 'Description',
+                          value: selectedPO?.productDescription ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
+                        _buildReadOnlyField(
+                          label: 'Pack Size',
+                          value: selectedPO?.packSize.toString() ?? '',
+                          onTap: () => selectPurchaseOrder(setStateDialog),
+                        ),
+                        const Divider(height: 24),
+
+                        const Text(
+                          'Inventory Details',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: drsiController,
+                          decoration: const InputDecoration(
+                            labelText: 'DR/SI/CI Number',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: lotNumController,
+                          decoration: const InputDecoration(
+                            labelText: 'Lot Number',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: expiryDateController,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Expiry Date',
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.calendar_today),
+                          ),
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              initialDate: DateTime.tryParse(expiryDateController.text) ??
+                                  DateTime.now(),
+                            );
+                            if (date != null) {
+                              setStateDialog(() {
+                                expiryDateController.text =
+                                    date.toIso8601String().split('T').first;
+                              });
+                            }
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: costOfSaleController,
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,}$'))
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Cost of Sale',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: noteController,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            labelText: 'Note',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const Divider(height: 24),
+
+                        const Text(
+                          'Stock Locations',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+
+                        ElevatedButton.icon(
+                          onPressed: () => addLocation(setStateDialog),
+                          icon: const Icon(Icons.add_location_alt),
+                          label: const Text('Add Location'),
+                        ),
+                        const SizedBox(height: 12),
+
+                        if (locationStocks.isNotEmpty)
+                          Column(
+                            children: locationStocks
+                                .map(
+                                  (loc) => ListTile(
+                                    dense: true,
+                                    title: Text(loc.locationName),
+                                    trailing: Text('Qty: ${loc.quantity}'),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        const SizedBox(height: 12),
+
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Total Quantity',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(
+                            totalQuantity.toString(),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate() && selectedPO != null) {
                   final updatedInventory = Inventory(
-                    itemCode: itemController.text,
-                    brand: brandController.text,
-                    productDescription: descriptionController.text,
-                    lotSerialNumber: lotSerialController.text,
-                    cost: double.parse(costController.text),
-                    expiryDate: expirationDate.text,
+                    poPIreference: selectedPO!.poPIreference,
+                      invoiceNum: drsiController.text,
+                      itemCode: selectedPO!.itemCode ?? '',
+                      itemDescription: selectedPO!.productDescription,
+                      brand: selectedPO!.brand,
+                      packSize: selectedPO!.packSize,
+                      lotNumber: int.tryParse(lotNumController.text) ?? 0,
+                      expiryDate: expiryDateController.text,
+                      costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
+                      note: noteController.text,
+                      addedBy: 'Sample User',
+                      dateTimeAdded: DateTime.now().toString(),
+                      locations: locationStocks,
                   );
+
                   try {
                     await _inventoryService.updateInventory(updatedInventory);
                     if (mounted) {
                       Navigator.pop(context);
-                      _showDialog('Success', 'Inventory updated.');
+                      _showDialog('Success', 'Inventory updated successfully.');
                       _fetchInventories();
                     }
                   } catch (e) {
@@ -292,6 +976,50 @@ class _InventoryPageState extends State<InventoryPage> {
               child: const Text('Save Changes'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildReadOnlyField({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    bool isHovered = false;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => isHovered = true),
+          onExit: (_) => setState(() => isHovered = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              color: isHovered ? Colors.blue.withValues(alpha: 0.05) : null,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: GestureDetector(
+              onTap: onTap,
+              child: AbsorbPointer(
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: label,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: Icon(
+                      Icons.search,
+                      color: isHovered ? Colors.blueAccent : null,
+                    ),
+                  ),
+                  controller: TextEditingController(text: value),
+                  readOnly: true,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Required' : null,
+                ),
+              ),
+            ),
+          ),
         );
       },
     );
@@ -356,7 +1084,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
       for (Inventory inventory in inventoriesToDelete) {
         try {
-          await _inventoryService.deleteInventory(inventory.inventoryID!.toInt());
+          await _inventoryService.deleteInventory(inventory.itemCode);
           successCount++;
         } catch (e) {
           errors.add('Error deleting ${inventory.itemCode}: $e');
@@ -515,6 +1243,13 @@ class _InventoryPageState extends State<InventoryPage> {
                                   alignment: WrapAlignment.center,
                                   children: [
                                     _buildResponsiveButton(
+                                      'Add',
+                                      Icons.add,
+                                      _showAddDialog,
+                                      isHovered: _isHovered,
+                                      isSmall: true,
+                                    ),
+                                    _buildResponsiveButton(
                                       _selectAll ? 'Deselect' : 'Select All',
                                       _selectAll ? Icons.deselect : Icons.select_all,
                                       _toggleSelectAll,
@@ -585,6 +1320,31 @@ class _InventoryPageState extends State<InventoryPage> {
                                               ),
                                           ],
                                         ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                MouseRegion(
+                                  onEnter: (_) => setState(() => _isHovered = true),
+                                  onExit: (_) => setState(() => _isHovered = false),
+                                  child: NeumorphicButton(
+                                    onPressed: _showAddDialog,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isMediumScreen ? 16 : 24, 
+                                      vertical: 10,
+                                    ),
+                                    style: NeumorphicStyle(
+                                      depth: _isHovered ? -4 : 4,
+                                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                                      lightSource: LightSource.topLeft,
+                                      color: Colors.white,
+                                    ),
+                                    child: Text(
+                                      isMediumScreen ? 'Add' : 'Add Inventory',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF01579B),
+                                        fontSize: isMediumScreen ? 13 : 15,
                                       ),
                                     ),
                                   ),
@@ -746,6 +1506,10 @@ class _InventoryPageState extends State<InventoryPage> {
                                                     DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
+                                                    DataCell(Text('')),
+                                                    DataCell(Text('')),
+                                                    DataCell(Text('')),
+                                                    DataCell(Text('')),
                                                   ])
                                                 ]
                                               : _buildDataRows(formatter, endIndex, constraints.maxWidth),
@@ -776,7 +1540,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                   fontSize: isSmallScreen ? 12 : 14,
                                 ),
                               ),
-                              Container(
+                              SizedBox(
                                 height: isSmallScreen ? 30 : 35,
                                 child: NeumorphicButton(
                                   padding: EdgeInsets.symmetric(
@@ -838,17 +1602,19 @@ class _InventoryPageState extends State<InventoryPage> {
     final headerStyle = TextStyle(fontWeight: FontWeight.bold, color: Colors.white);
 
     return <DataColumn>[
-      DataColumn(label: Text('Inventory ID', style: headerStyle)), // inventoryID
-      DataColumn(label: Text('Item Code', style: headerStyle)), // itemCode
-      DataColumn(label: Text('Brand', style: headerStyle)), // brand
-      DataColumn(label: Text('Description', style: headerStyle)), // productDescription
-      DataColumn(label: Text('Lot Number', style: headerStyle)), // lotSerialNumber
-      DataColumn(label: Text('Expiry Date', style: headerStyle)), // expiryDate
-      DataColumn(label: Text('Stocks Manila', style: headerStyle,)), // stocksManila
-      DataColumn(label: Text('Stocks Cebu', style: headerStyle)), // stocksCebu
-      DataColumn(label: Text('Quantity on Hand', style: headerStyle)), // quantityOnHand
-      DataColumn(label: Text('Added By', style: headerStyle)), // addedBy
-      DataColumn(label: Text('Date & Time Added', style: headerStyle)) // dateTimeAdded
+      DataColumn(label: Text('PO/PI Ref', style: headerStyle)),
+      DataColumn(label: Text('DR/CI/SI No.', style: headerStyle)),
+      DataColumn(label: Text('Item Code', style: headerStyle)),
+      DataColumn(label: Text('Description', style: headerStyle)),
+      DataColumn(label: Text('Pack Size', style: headerStyle)),
+      DataColumn(label: Text('Lot No.', style: headerStyle)),
+      DataColumn(label: Text('Expiry', style: headerStyle,)),
+      DataColumn(label: Text('Quantity', style: headerStyle)),
+      DataColumn(label: Text('Cost of Sale', style: headerStyle)),
+      DataColumn(label: Text('Location', style: headerStyle)),
+      DataColumn(label: Text('Note', style: headerStyle)),
+      DataColumn(label: Text('Added By', style: headerStyle)),
+      DataColumn(label: Text('Date & Time Added', style: headerStyle))
     ];
   }
     List<DataRow> _buildDataRows(DateFormat formatter, int endIndex, double screenWidth) {
@@ -866,16 +1632,54 @@ class _InventoryPageState extends State<InventoryPage> {
         onSelectChanged: (bool? selected) => _toggleOrderSelection(inventory),
         color: WidgetStateProperty.all(rowColor),
         cells: [
-          DataCell(Text(inventory.inventoryID.toString())),
-          DataCell(Text(inventory.itemCode.toString())),
-          DataCell(Text(inventory.brand)),
-          DataCell(Text(inventory.productDescription)),
-          DataCell(Text(inventory.lotSerialNumber)),
+          DataCell(Text(inventory.poPIreference)),
+          DataCell(Text(inventory.invoiceNum)),
+          DataCell(Text(inventory.itemCode)),
+          DataCell(Text(inventory.itemDescription)),
+          DataCell(Text(inventory.packSize.toString())),
+          DataCell(Text(inventory.lotNumber.toString())),
           DataCell(Text(inventory.expiryDate)),
-          DataCell(Text(inventory.stocksManila.toString())),
-          DataCell(Text(inventory.stocksCebu.toString())),
-          DataCell(Text(inventory.quantityOnHand.toString())),
-          DataCell(Text(inventory.addedBy.toString())),
+          DataCell(Text(inventory.quantity.toString())),
+          DataCell(Text(inventory.costOfSale.toStringAsFixed(2))),
+          DataCell(
+            InkWell(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Locations'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: inventory.locations.isNotEmpty
+                          ? inventory.locations.map((loc) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Text('${loc.locationName}: ${loc.quantity}'),
+                              );
+                            }).toList()
+                          : [const Text('No location data')],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: const Text(
+                'Locations list',
+                style: TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ),
+          DataCell(Text(inventory.note ?? '')),
+          DataCell(Text(inventory.addedBy)),
           DataCell(Text(inventory.dateTimeAdded.toString())),
         ],
       );
