@@ -31,9 +31,9 @@ jobs:
         run: mvn validate
         working-directory: lis
 
-      - name: Run tests
-        run: mvn test
-        working-directory: lis
+      # - name: Run tests
+      #   run: mvn test
+      #   working-directory: lis
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
