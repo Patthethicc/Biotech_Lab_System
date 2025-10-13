@@ -82,7 +82,7 @@ class InventoryService {
     return Inventory.fromJson(json.decode(res.body));
   }
 
-  Future<void> deleteInventory(int id) async {
+  Future<void> deleteInventory(String id) async {
     String? token = await storage.read(key: 'jwt_token');
     final res = await http.delete(Uri.parse('$baseUrl/inv/v1/deleteInv/$id'),
                       headers:{'Authorization': 'Bearer $token'} );

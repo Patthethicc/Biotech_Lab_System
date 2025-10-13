@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/stock_alert_service.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
@@ -214,7 +214,7 @@ class _StockAlertState extends State<StockAlert> {
                                         ),
                                         const SizedBox(height: 4), // Reduced SizedBox height
                                         Text(
-                                          "Quantity on Hand: ${alert.quantityOnHand}",
+                                          "Quantity on Hand: ${alert.quantity}",
                                           style: TextStyle(
                                             // Reduced font size
                                             fontSize: 14,
@@ -223,7 +223,7 @@ class _StockAlertState extends State<StockAlert> {
                                         ),
                                         const SizedBox(height: 2), // Reduced SizedBox height
                                         Text(
-                                          "Inventory ID: ${alert.inventoryID}",
+                                          "Item Code: ${alert.itemCode}",
                                           style: TextStyle(
                                             // Reduced font size
                                             fontSize: 12,

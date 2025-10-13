@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/ui/latest_transaction_table.dart';
@@ -63,7 +63,8 @@ class _HomePageState extends State<HomePage> {
       final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
       final alerts = await StockAlertService().getStockAlerts();
-      final outOfStockItems = alerts.where((item) => item.quantityOnHand == 0).length;
+      final outOfStockItems = alerts.where((item) =>
+        item.locations.fold<int>(0, (sum, loc) => sum + loc.quantity) == 0).length;
 
       setState(() {
         transactions = filtered;
