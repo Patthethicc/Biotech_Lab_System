@@ -8,6 +8,32 @@ class StockLocatorService {
   static final String baseUrl = dotenv.env['API_URL']!;
   final storage = const FlutterSecureStorage();
 
+  // New method to fetch all records for pagination
+  Future<List<StockLocator>> getAllStockLocators() async {
+    final String? token = await storage.read(key: 'jwt_token');
+    if (token == null) {
+      throw Exception('JWT token not found in secure storage');
+    }
+
+    final uri = Uri.parse('$baseUrl/stock-locator/all');
+    
+    final response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonBody = json.decode(response.body);
+      return jsonBody.map((json) => StockLocator.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load stock locators: ${response.statusCode} ${response.body}');
+    }
+  }
+
   Future<StockLocator?> searchStockLocator(String brand, String productDescription) async {
     final String? token = await storage.read(key: 'jwt_token');
     if (token == null) {

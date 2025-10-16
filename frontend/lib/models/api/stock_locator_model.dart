@@ -36,6 +36,15 @@ class StockLocator {
     cebu = json["cebu"];
   }
 
+  int get totalStock =>
+      lazcanoRef1 +
+      lazcanoRef2 +
+      gandiaColdStorage +
+      gandiaRef1 +
+      gandiaRef2 +
+      limbaga +
+      cebu;
+
   Map<String, dynamic> toJson() {
     return {
       'itemCode': itemCode,
@@ -49,5 +58,20 @@ class StockLocator {
       'limbaga': limbaga,
       'cebu': cebu,
     };
+  }
+
+  StockLocator copyWith({Map<String, int>? newValues}) {
+    return StockLocator(
+      itemCode: itemCode,
+      brand: brand,
+      productDescription: productDescription,
+      lazcanoRef1: newValues?['lazcanoRef1'] ?? lazcanoRef1,
+      lazcanoRef2: newValues?['lazcanoRef2'] ?? lazcanoRef2,
+      gandiaColdStorage: newValues?['gandiaColdStorage'] ?? gandiaColdStorage,
+      gandiaRef1: newValues?['gandiaRef1'] ?? gandiaRef1,
+      gandiaRef2: newValues?['gandiaRef2'] ?? gandiaRef2,
+      limbaga: newValues?['limbaga'] ?? limbaga,
+      cebu: newValues?['cebu'] ?? cebu,
+    );
   }
 }
