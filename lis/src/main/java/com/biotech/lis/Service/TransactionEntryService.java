@@ -68,7 +68,7 @@ public class TransactionEntryService {
         TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
-        inventoryService.addInventory(savedEntry);
+        // inventoryService.addInventory(savedEntry);
 
         PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
         purchaseOrder.setItemCode(savedEntry.getItemCode());
@@ -115,7 +115,7 @@ public class TransactionEntryService {
             stockLocatorService.updateStockFromTransaction(updatedEntry, false);
         }
 
-        inventoryService.updateInventoryTrns(updatedEntry);
+        // inventoryService.updateInventoryTrns(updatedEntry);
 
         return updatedEntry;
     }

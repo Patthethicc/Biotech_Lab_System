@@ -20,11 +20,11 @@ public class InventoryController {
 
     //For future reference
 
-    /*@PostMapping("/addInv")
+    @PostMapping("/addInv")
     public ResponseEntity<Inventory> addInventory(@RequestBody Inventory inventory) {
         Inventory savedInventory = inventoryService.addInventory(inventory);
         return ResponseEntity.ok(savedInventory);
-    }*/
+    }
 
     @GetMapping("/getInv/{id}")
     public ResponseEntity<Inventory> getInvById(@PathVariable("id") Integer invId) {
@@ -50,11 +50,11 @@ public class InventoryController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/stockAlert/{amt}")
-    public ResponseEntity<List<Inventory>> getStockAlerts(@PathVariable("amt") Integer amount) {
-        final List<Inventory> stockAlerts = inventoryService.getStockAlerts(amount);
-        return ResponseEntity.ok(stockAlerts);
-    }
+    // @GetMapping("/stockAlert/{amt}")
+    // public ResponseEntity<List<Inventory>> getStockAlerts(@PathVariable("amt") Integer amount) {
+    //     final List<Inventory> stockAlerts = inventoryService.getStockAlerts(amount);
+    //     return ResponseEntity.ok(stockAlerts);
+    // }
 
     @GetMapping("/getTopStock")
     public ResponseEntity<List<Inventory>> getTopStock() {
