@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -18,7 +17,6 @@ import lombok.NoArgsConstructor;
 @Table(name = "`inventory`")
 public class Inventory {
     @Id
-    @GeneratedValue
     private Integer inventoryId;
     private String itemCode;
     private String brand;
