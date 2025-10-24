@@ -19,10 +19,10 @@ public class PurchaseOrder {
     private Double packSize;
     private Integer quantity;
     private Double unitCost;
-    private Double totalCost;
-    private String poPIreference;
-    private String addedBy;
+    private String poPireference;
+    private Integer addedBy;
     private LocalDateTime dateTimeAdded;
+    private String productDescription;
 
     // private String lotSerialNumber;
     // private String purchaseOrderFileName;
