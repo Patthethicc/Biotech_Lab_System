@@ -13,17 +13,18 @@ import 'models/ui/transaction_entry_page.dart';
 import 'models/ui/inventory_page.dart';
 import 'models/ui/stock_locator.dart';
 
-void main() async{
+void main() async {
   await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget{ 
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       routes: {
         '/login': (context) => LoginPage(),

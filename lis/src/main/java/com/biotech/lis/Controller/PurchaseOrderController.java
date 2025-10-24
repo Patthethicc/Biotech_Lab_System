@@ -94,6 +94,7 @@ public class PurchaseOrderController {
         }
     }
 
+    /*
     @GetMapping("/getPO/{code}/file")
     public ResponseEntity<byte[]> getPurchaseOrderFile(@PathVariable("code") String code) {
         Optional<PurchaseOrder> purchaseOrderOpt = purchaseOrderService.getPurchaseOrderByCode(code);
@@ -119,5 +120,6 @@ public class PurchaseOrderController {
         headers.setContentDispositionFormData("attachment", "packing-list-" + code);
         return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
     }
+    */ 
 
 }

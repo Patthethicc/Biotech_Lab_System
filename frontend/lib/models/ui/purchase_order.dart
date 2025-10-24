@@ -3,10 +3,12 @@ import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/services/purchase_order_service.dart';
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
-import 'package:file_saver/file_saver.dart';
+import 'package:frontend/services/brand_service.dart';
+import 'package:flutter/services.dart';
+// import 'dart:convert';
+// import 'dart:typed_data';
+// import 'package:file_picker/file_picker.dart';
+// import 'package:file_saver/file_saver.dart';
 
 
 class _NeumorphicNavButton extends StatefulWidget {
@@ -80,10 +82,13 @@ class PurchaseOrderPage extends StatefulWidget {
 class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   final PurchaseOrderService _poService = PurchaseOrderService();
   final TextEditingController _searchController = TextEditingController();
+  final BrandService _brandService = BrandService();
   List<PurchaseOrder> _allOrders = [];
   List<PurchaseOrder> _displayOrders = [];
   Set<PurchaseOrder> _selectedOrders = {};
   PurchaseOrder? _selectedOrderForEdit;
+  List<String> _availableBrands = [];
+  String? selectedbrand;
 
   bool _isLoading = true;
   bool _selectAll = false;
@@ -99,6 +104,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     super.initState();
     _fetchPurchaseOrders();
     _searchController.addListener(_filterOrders);
+    _fetchBrands();
   }
 
   @override
@@ -108,27 +114,73 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     super.dispose();
   }
 
+  Future<void> _fetchBrands() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final brands = await _brandService.getBrands();
+
+      final brandNames = brands.map((b) => b.brandName).toList();
+
+      if(!mounted) return;
+      setState(() {
+        _availableBrands = brandNames;
+      });
+    } catch (e) {
+      if(mounted){
+        _showDialog('Error', 'Failed to load brands: $e');
+      }
+    } finally {
+      if(mounted){
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> _fetchPurchaseOrders() async {
     setState(() {
       _isLoading = true;
     });
+
     try {
-      final fetchedOrders = await _poService.fetchPurchaseOrders();
+      final fetched = await _poService.fetchPurchaseOrders();
+
+      final orders = List<PurchaseOrder>.from(fetched);
+
+      // Sort by brand first, then itemCode (both case-insensitive).
+      orders.sort((a, b) {
+        final brandCmp = a.brand.toLowerCase().compareTo(b.brand.toLowerCase());
+        if (brandCmp != 0) return brandCmp;
+        final codeA = a.itemCode?.toLowerCase() ?? '';
+        final codeB = b.itemCode?.toLowerCase() ?? '';
+        return codeA.compareTo(codeB);
+      });
+
+      if (!mounted) return;
       setState(() {
-        _allOrders = fetchedOrders
-          ..sort((a, b) => b.orderDate.compareTo(a.orderDate));
+        _allOrders = orders;
         _displayOrders = List.from(_allOrders);
-        _isLoading = false;
         _clearSelection();
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
         _showDialog('Error', 'Failed to load purchase orders: $e');
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  double get _grandTotalCost {
+    return _displayOrders.fold(0.0, (sum, order) => sum + order.totalCost);
   }
 
   void _filterOrders() {
@@ -136,7 +188,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     setState(() {
       if (query.isNotEmpty) {
         _displayOrders = _allOrders.where((order) {
-          return order.itemCode.toLowerCase().contains(query);
+          final ref = order.poPIreference.toLowerCase();
+          return ref.contains(query);
         }).toList();
       } else {
         _displayOrders = List.from(_allOrders);
@@ -215,43 +268,24 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   }
 
   void _showAddDialog() {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
+
     final itemController = TextEditingController();
-    final brandController = TextEditingController();
     final descriptionController = TextEditingController();
-    final lotSerialController = TextEditingController();
-    final drsiController = TextEditingController();
-    DateTime? orderDate;
+    final packSizeController = TextEditingController();
+    final quantityController = TextEditingController();
+    final unitCostController = TextEditingController();
+    final popiRefController = TextEditingController();
 
-    String? selectedPoFileName;
-    Uint8List? selectedPoFileBytes;
-    String? selectedPackingListFileName;
-    Uint8List? selectedPackingListFileBytes;
-    String? selectedInventoryName;
-    Uint8List? selectedInventoryBytes;
+    String? selectedBrand;
+    num computedTotalCost = 0;
 
-    Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true, allowMultiple: false,);
-      if (result != null && result.files.single.bytes != null) {
-        setStateDialog(() {
-          switch (fileType) {
-            case 'po':
-              selectedPoFileName = result.files.single.name;
-              selectedPoFileBytes = result.files.single.bytes;
-              break;
-            case 'packingList':
-              selectedPackingListFileName = result.files.single.name;
-              selectedPackingListFileBytes = result.files.single.bytes;
-              break;
-            case 'inventory':
-              selectedInventoryName = result.files.single.name;
-              selectedInventoryBytes = result.files.single.bytes;
-              break;
-          }
-        });
-      }
+    void recalculateTotal() {
+      final qty = num.tryParse(quantityController.text) ?? 0;
+      final cost = num.tryParse(unitCostController.text) ?? 0;
+      computedTotalCost = qty * cost;
     }
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -259,7 +293,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         return AlertDialog(
           title: const Text('Add Purchase Order'),
           content: Form(
-            key: _formKey,
+            key: formKey,
             child: StatefulBuilder(
               builder: (BuildContext context, StateSetter setStateDialog) {
                 return SingleChildScrollView(
@@ -269,35 +303,110 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextFormField(controller: itemController, decoration: const InputDecoration(labelText: 'Item Code', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Product Description', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: lotSerialController, decoration: const InputDecoration(labelText: 'Lot/Serial Number', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: drsiController, decoration: const InputDecoration(labelText: 'DR/SI Reference No.', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(context: context, initialDate: orderDate ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
-                            if (picked != null) setStateDialog(() => orderDate = picked);
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedBrand,
+                          decoration: const InputDecoration(
+                            labelText: 'Brand',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _availableBrands.isEmpty
+                            ? [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  enabled: false,
+                                  child: Text(
+                                    'No brands available',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              ]
+                            : _availableBrands.map((brand) {
+                                return DropdownMenuItem<String>(
+                                  value: brand,
+                                  child: Text(brand),
+                                );
+                              }).toList(),
+                          onChanged: (value) {
+                            setStateDialog(() => selectedBrand = value);
                           },
-                          child: InputDecorator(
-                            decoration: InputDecoration(labelText: 'Order Date', prefixIcon: const Icon(Icons.calendar_today), border: const OutlineInputBorder(), errorText: orderDate == null ? 'Required' : null),
-                            child: Text(orderDate != null ? DateFormat('yyyy-MM-dd').format(orderDate!) : 'Select Order Date'),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Product Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: packSizeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Pack Size',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: const InputDecoration(
+                            labelText: 'Quantity',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (_) {
+                            setStateDialog(() {
+                              recalculateTotal();
+                            });
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: unitCostController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,}$'))],
+                          decoration: const InputDecoration(
+                            labelText: 'Unit Cost',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (_) {
+                            setStateDialog(() {
+                              recalculateTotal();
+                            });
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Total Cost',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(
+                            computedTotalCost.toStringAsFixed(2),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        const Text("Purchase Order File (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Row(children: [ Expanded(child: Text(selectedPoFileName ?? 'No file selected', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('po', setStateDialog), child: const Text('Select File'))]),
                         const SizedBox(height: 16),
-                        const Text("Supplier's Packing List (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Row(children: [ Expanded(child: Text(selectedPackingListFileName ?? 'No file selected', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('packingList', setStateDialog), child: const Text('Select File'))]),
-                        const SizedBox(height: 16),
-                        const Text("Inventory of Delivered Items (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Row(children: [ Expanded(child: Text(selectedInventoryName ?? 'No file selected', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('inventory', setStateDialog), child: const Text('Select File'))]),
+
+                        TextFormField(
+                          controller: popiRefController,
+                          decoration: const InputDecoration(
+                            labelText: 'PO/PI Reference',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
                       ],
                     ),
                   ),
@@ -306,30 +415,68 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
-                if (_formKey.currentState!.validate() && orderDate != null) {
-                  final newOrder = PurchaseOrder(
-                      itemCode: itemController.text,
-                      brand: brandController.text,
-                      productDescription: descriptionController.text,
-                      lotSerialNumber: lotSerialController.text,
-                      drSIReferenceNum: drsiController.text,
-                      orderDate: orderDate!,
-                      purchaseOrderFile: selectedPoFileBytes,
-                      suppliersPackingList: selectedPackingListFileBytes,
-                      inventoryOfDeliveredItems: selectedInventoryBytes);
+                if (formKey.currentState!.validate()) {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Purchase Order'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Brand: ${selectedBrand ?? ''}'),
+                            Text('Description: ${descriptionController.text}'),
+                            Text('Pack Size: ${packSizeController.text}'),
+                            Text('Quantity: ${quantityController.text}'),
+                            Text('Unit Cost: ${unitCostController.text}'),
+                            Text('PO/PI Ref: ${popiRefController.text}'),
+                            const SizedBox(height: 20),
+                            const Text('Are you sure all information is correct?', 
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Confirm'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
 
-                  try {
-                    await _poService.addPurchaseOrder(newOrder);
-                    if (mounted) {
+                  if (confirmed == true) {
+                    final newOrder = PurchaseOrder(
+                      itemCode: itemController.text,
+                      brand: selectedBrand ?? '',
+                      productDescription: descriptionController.text,
+                      packSize: num.tryParse(packSizeController.text) ?? 0,
+                      quantity: num.tryParse(quantityController.text) ?? 0,
+                      unitCost: num.tryParse(unitCostController.text) ?? 0,
+                      poPIreference: popiRefController.text,
+                    );
+                    try {
+                      await _poService.addPurchaseOrder(newOrder);
+                      if (!context.mounted) return;
                       Navigator.of(context).pop();
                       _showDialog('Success', 'Purchase Order added!');
                       _fetchPurchaseOrders();
+                    } catch (e) {
+                      if (!mounted) return;
+                      _showDialog('Error', 'Failed to add purchase order: $e');
                     }
-                  } catch (e) {
-                    _showDialog('Error', 'Failed to add purchase order: $e');
                   }
                 }
               },
@@ -340,42 +487,24 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       },
     );
   }
+
   void _showEditDialog(PurchaseOrder order) {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
+
     final itemController = TextEditingController(text: order.itemCode);
-    final brandController = TextEditingController(text: order.brand);
     final descriptionController = TextEditingController(text: order.productDescription);
-    final lotSerialController = TextEditingController(text: order.lotSerialNumber);
-    final drsiController = TextEditingController(text: order.drSIReferenceNum);
-    DateTime? orderDate = order.orderDate;
+    final packSizeController = TextEditingController(text: order.packSize.toString());
+    final quantityController = TextEditingController(text: order.quantity.toString());
+    final unitCostController = TextEditingController(text: order.unitCost.toString());
+    final popiRefController = TextEditingController(text: order.poPIreference);
 
-    String? selectedPoFileName;
-    Uint8List? selectedPoFileBytes;
-    String? selectedPackingListFileName;
-    Uint8List? selectedPackingListFileBytes;
-    String? selectedInventoryName;
-    Uint8List? selectedInventoryBytes;
+    String? selectedBrand = order.brand;
+    num computedTotalCost = order.totalCost;
 
-    Future<void> _pickFileFor(String fileType, StateSetter setStateDialog) async {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
-      if (result != null && result.files.single.bytes != null) {
-        setStateDialog(() {
-          switch (fileType) {
-            case 'po':
-              selectedPoFileName = result.files.single.name;
-              selectedPoFileBytes = result.files.single.bytes;
-              break;
-            case 'packingList':
-              selectedPackingListFileName = result.files.single.name;
-              selectedPackingListFileBytes = result.files.single.bytes;
-              break;
-            case 'inventory':
-              selectedInventoryName = result.files.single.name;
-              selectedInventoryBytes = result.files.single.bytes;
-              break;
-          }
-        });
-      }
+    void recalculateTotal(){
+      final qty = num.tryParse(quantityController.text) ?? 0;
+      final cost = num.tryParse(unitCostController.text) ?? 0;
+      computedTotalCost = qty * cost;
     }
 
     showDialog(
@@ -385,7 +514,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         return AlertDialog(
           title: Text('Edit PO: ${order.itemCode}'),
           content: Form(
-            key: _formKey,
+            key: formKey,
             child: StatefulBuilder(
               builder: (BuildContext context, StateSetter setStateDialog) {
                 return SingleChildScrollView(
@@ -395,38 +524,98 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextFormField(controller: itemController, readOnly: true, decoration: const InputDecoration(labelText: 'Item Code', filled: true)),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: brandController, decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Product Description', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: lotSerialController, decoration: const InputDecoration(labelText: 'Lot/Serial Number', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        TextFormField(controller: drsiController, decoration: const InputDecoration(labelText: 'DR/SI Reference No.', border: OutlineInputBorder()), validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(context: context, initialDate: orderDate ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2100));
-                            if (picked != null) setStateDialog(() => orderDate = picked);
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedBrand,
+                          decoration: const InputDecoration(
+                            labelText: 'Brand',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _availableBrands.map((brand) {
+                            return DropdownMenuItem<String>(
+                              value: brand,
+                              child: Text(brand),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setStateDialog(() => selectedBrand = value);
                           },
-                          child: InputDecorator(
-                            decoration: InputDecoration(labelText: 'Order Date', prefixIcon: const Icon(Icons.calendar_today), border: const OutlineInputBorder(), errorText: orderDate == null ? 'Required' : null),
-                            child: Text(orderDate != null ? DateFormat('yyyy-MM-dd').format(orderDate!) : 'Select Order Date'),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Product Description',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: packSizeController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Pack Size',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: quantityController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Quantity',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            setStateDialog(() {
+                              recalculateTotal();
+                            });
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: unitCostController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Unit Cost',
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            setStateDialog(() {
+                              recalculateTotal();
+                            });
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Total Cost',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(
+                            computedTotalCost.toStringAsFixed(2),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        Text("Replace Purchase Order File (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Current: ${order.hasPurchaseOrderFile ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic)),
-                        Row(children: [ Expanded(child: Text(selectedPoFileName ?? 'Select new file...', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('po', setStateDialog), child: const Text('Select'))]),
                         const SizedBox(height: 16),
-                        Text("Replace Packing List (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Current: ${order.hasSuppliersPackingList ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic)),
-                        Row(children: [ Expanded(child: Text(selectedPackingListFileName ?? 'Select new file...', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('packingList', setStateDialog), child: const Text('Select'))]),
-                        const SizedBox(height: 16),
-                        Text("Replace Inventory of Delivered Items (Optional)", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Current: ${order.hasInventoryOfDeliveredItems ? "File exists" : "No file"}', style: TextStyle(fontStyle: FontStyle.italic)),
-                        Row(children: [ Expanded(child: Text(selectedInventoryName ?? 'Select new file...', overflow: TextOverflow.ellipsis)), ElevatedButton(onPressed: () => _pickFileFor('inventory', setStateDialog), child: const Text('Select'))]),
+
+                        TextFormField(
+                          controller: popiRefController,
+                          decoration: const InputDecoration(
+                            labelText: 'POPI Reference',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
                       ],
                     ),
                   ),
@@ -438,27 +627,61 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
             ElevatedButton(
               onPressed: () async {
-                if (_formKey.currentState!.validate() && orderDate != null) {
-                  final updatedOrder = PurchaseOrder(
-                    itemCode: itemController.text,
-                    brand: brandController.text,
-                    productDescription: descriptionController.text,
-                    lotSerialNumber: lotSerialController.text,
-                    drSIReferenceNum: drsiController.text,
-                    orderDate: orderDate!,
-                    purchaseOrderFile: selectedPoFileBytes ?? order.purchaseOrderFile,
-                    suppliersPackingList: selectedPackingListFileBytes ?? order.suppliersPackingList,
-                    inventoryOfDeliveredItems: selectedInventoryBytes ?? order.inventoryOfDeliveredItems
+                if(formKey.currentState!.validate()) {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Confirm Purchase Order'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Description: ${descriptionController.text}'),
+                            Text('Pack Size: ${packSizeController.text}'),
+                            Text('Quantity: ${quantityController.text}'),
+                            Text('Unit Cost: ${unitCostController.text}'),
+                            Text('PO/PI Ref: ${popiRefController.text}'),
+                            const SizedBox(height: 20),
+                            const Text('Are you sure all information is correct?', 
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                           TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Confirm'),
+                          ),
+                        ],
+                      );
+                    },
                   );
-                  try {
-                    await _poService.updatePurchaseOrder(updatedOrder);
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _showDialog('Success', 'Purchase Order updated.');
+
+                  if(confirmed == true) {
+                    final updatedOrder = PurchaseOrder(
+                      itemCode: itemController.text, 
+                      brand: selectedBrand ?? '', 
+                      productDescription: descriptionController.text, 
+                      packSize: num.tryParse(packSizeController.text) ?? 0, 
+                      quantity: num.tryParse(quantityController.text) ?? 0, 
+                      unitCost: num.tryParse(unitCostController.text) ?? 0, 
+                      poPIreference: popiRefController.text,
+                    );
+                    try {
+                      await _poService.updatePurchaseOrder(updatedOrder);
+                      if(!context.mounted) return;
+                      Navigator.of(context).pop();
+                      _showDialog('Success', 'Purchase Order Updated!');
                       _fetchPurchaseOrders();
+                    } catch (e) {
+                      if(!mounted) return;
+                      _showDialog('Error', 'Failed to update purchase order: $e');
                     }
-                  } catch (e) {
-                    _showDialog('Error', 'Failed to update: $e');
                   }
                 }
               },
@@ -528,11 +751,18 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       List<String> errors = [];
 
       for (PurchaseOrder order in ordersToDelete) {
+        final code = order.itemCode;
+
+        if (code == null || code.isEmpty) {
+          errors.add('Skipping an order with no item code.');
+          continue;
+        }
+
         try {
-          await _poService.deletePurchaseOrder(order.itemCode);
+          await _poService.deletePurchaseOrder(code);
           successCount++;
         } catch (e) {
-          errors.add('Error deleting ${order.itemCode}: $e');
+          errors.add('Error deleting $code: $e');
         }
       }
 
@@ -574,56 +804,56 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     );
   }
 
-  Future<void> _downloadAndOpenFile(String itemCode, String fileName, {required String fileType}) async {
-    String endpointPath;
+  // Future<void> _downloadAndOpenFile(String itemCode, String fileName, {required String fileType}) async {
+  //   String endpointPath;
 
-    switch (fileType) {
-      case 'packinglist':
-        endpointPath = '/PO/v1/getPO/$itemCode/packinglist';
-        break;
-      case 'inventory':
-        endpointPath = '/PO/v1/getPO/$itemCode/inventory'; 
-        break;
-      case 'file':
-      default:
-        endpointPath = '/PO/v1/getPO/$itemCode/file';
-        break;
-    }
+  //   switch (fileType) {
+  //     case 'packinglist':
+  //       endpointPath = '/PO/v1/getPO/$itemCode/packinglist';
+  //       break;
+  //     case 'inventory':
+  //       endpointPath = '/PO/v1/getPO/$itemCode/inventory'; 
+  //       break;
+  //     case 'file':
+  //     default:
+  //       endpointPath = '/PO/v1/getPO/$itemCode/file';
+  //       break;
+  //   }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => const AlertDialog(
-        title: Text('Downloading...'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Please wait while the file is being downloaded.'),
-          ],
-        ),
-      ),
-    );
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder: (BuildContext context) => const AlertDialog(
+  //       title: Text('Downloading...'),
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           CircularProgressIndicator(),
+  //           SizedBox(height: 16),
+  //           Text('Please wait while the file is being downloaded.'),
+  //         ],
+  //       ),
+  //     ),
+  //   );
 
-    try {
-      final Uint8List fileBytes = await _poService.downloadFile(endpointPath);
+  //   try {
+  //     final Uint8List fileBytes = await _poService.downloadFile(endpointPath);
 
-      if (mounted) Navigator.of(context).pop();
+  //     if (mounted) Navigator.of(context).pop();
 
-      await FileSaver.instance.saveFile(
-        name: fileName,
-        bytes: fileBytes,
-      );
+  //     await FileSaver.instance.saveFile(
+  //       name: fileName,
+  //       bytes: fileBytes,
+  //     );
       
-      if (mounted) {
-        _showDialog('Success', 'File saved successfully.');
-      }
-    } catch (e) {
-      if (mounted) Navigator.of(context).pop();
-      _showDialog('Error', 'An error occurred: $e');
-    }
-  }
+  //     if (mounted) {
+  //       _showDialog('Success', 'File saved successfully.');
+  //     }
+  //   } catch (e) {
+  //     if (mounted) Navigator.of(context).pop();
+  //     _showDialog('Error', 'An error occurred: $e');
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -997,9 +1227,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
+                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                                     DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                   ])
@@ -1014,6 +1243,42 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    if (_searchController.text.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12.0),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Neumorphic(
+                            style: NeumorphicStyle(
+                              depth: 3,
+                              color: Colors.white,
+                              boxShape: NeumorphicBoxShape.roundRect(
+                                BorderRadius.circular(25),
+                              ),
+                              lightSource: LightSource.topLeft,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min, // 👈 prevents full width
+                                children: [
+                                  Text(
+                                    'Grand Total Cost (${_searchController.text}): ₱${_grandTotalCost.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Color(0xFF01579B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+
                     if (!_isLoading)
                       LayoutBuilder(
                         builder: (context, constraints) {
@@ -1032,7 +1297,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                   fontSize: isSmallScreen ? 12 : 14,
                                 ),
                               ),
-                              Container(
+                              SizedBox(
                                 height: isSmallScreen ? 30 : 35,
                                 child: NeumorphicButton(
                                   padding: EdgeInsets.symmetric(
@@ -1097,12 +1362,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       DataColumn(label: Text('Item Code', style: headerStyle)), // itemCode
       DataColumn(label: Text('Brand', style: headerStyle)), // brand
       DataColumn(label: Text('Description', style: headerStyle)), // productDescription
-      DataColumn(label: Text('Lot Number', style: headerStyle)), // lotSerialNumber
-      DataColumn(label: Text('Order Date', style: headerStyle)), // orderDate
-      DataColumn(label: Text('DRSI Number', style: headerStyle,)), // drSIReferenceNum
-      DataColumn(label: Text('Purchase Order File', style: headerStyle)), // purchaseOrderFile
-      DataColumn(label: Text('Packing List', style: headerStyle)), // suppliersPackingList
-      DataColumn(label: Text('Inventory File', style: headerStyle)) // inventoryOfDeliveredItems
+      DataColumn(label: Text('Pack Size', style: headerStyle)), // lotSerialNumber
+      DataColumn(label: Text('Quantity', style: headerStyle)), // orderDate
+      DataColumn(label: Text('Unit Cost', style: headerStyle,)), // drSIReferenceNum
+      DataColumn(label: Text('Total Cost', style: headerStyle)), // purchaseOrderFile
+      DataColumn(label: Text('PO/PI Reference', style: headerStyle)), // suppliersPackingList
     ];
   }
     List<DataRow> _buildDataRows(DateFormat formatter, int endIndex, double screenWidth) {
@@ -1120,33 +1384,14 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         onSelectChanged: (bool? selected) => _toggleOrderSelection(order),
         color: WidgetStateProperty.all(rowColor),
         cells: [
-          DataCell(Text(order.itemCode)),
+          DataCell(Text(order.itemCode ?? '')),
           DataCell(Text(order.brand)),
           DataCell(Text(order.productDescription, overflow: TextOverflow.ellipsis)),
-          DataCell(Text(order.lotSerialNumber)),
-          DataCell(Text(formatter.format(order.orderDate))),
-          DataCell(Text(order.drSIReferenceNum)),
-          DataCell(
-            (order.hasPurchaseOrderFile)
-                ? InkWell(
-                    onTap: () => _downloadAndOpenFile(order.itemCode, '${order.itemCode}-PO', fileType: 'file'),
-                    child: const Text('View', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)))
-                : const Text('N/A'),
-          ),
-          DataCell(
-            (order.hasSuppliersPackingList)
-                ? InkWell(
-                    onTap: () => _downloadAndOpenFile(order.itemCode, '${order.itemCode}-PackingList', fileType: 'packinglist'),
-                    child: const Text('View', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)))
-                : const Text('N/A'),
-          ),
-          DataCell(
-            (order.hasInventoryOfDeliveredItems)
-                ? InkWell(
-                    onTap: () => _downloadAndOpenFile(order.itemCode, '${order.itemCode}-Inventory', fileType: 'inventory'),
-                    child: const Text('View', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)))
-                : const Text('N/A'),
-          ),
+          DataCell(Text(order.packSize.toString())),
+          DataCell(Text(order.quantity.toString())),
+          DataCell(Text(order.unitCost.toStringAsFixed(2))),
+          DataCell(Text(order.totalCost.toStringAsFixed(2))),
+          DataCell(Text(order.poPIreference)),
         ],
       );
     }).toList();
