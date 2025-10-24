@@ -10,16 +10,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.biotech.lis.Entity.Brand;
-import com.biotech.lis.Entity.CombinedTrnPO;
-import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
-
-import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class TransactionEntryService {
@@ -45,40 +40,40 @@ public class TransactionEntryService {
     @Autowired
     PurchaseOrderRepository purchaseOrderRepository;
 
-    @Transactional
-    public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
-        TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
+    // @Transactional
+    // public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
+    //     TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
 
-        validateTransactionEntry(transactionEntry);
-        validateTransactionId(transactionEntry.getDrSIReferenceNum());
+    //     validateTransactionEntry(transactionEntry);
+    //     validateTransactionId(transactionEntry.getDrSIReferenceNum());
         
-        if (transactionEntryRepository.existsById(transactionEntry.getDrSIReferenceNum())) {
-            throw new IllegalArgumentException("Transaction already exists with ID: " + transactionEntry.getDrSIReferenceNum());
-        }
+    //     if (transactionEntryRepository.existsById(transactionEntry.getDrSIReferenceNum())) {
+    //         throw new IllegalArgumentException("Transaction already exists with ID: " + transactionEntry.getDrSIReferenceNum());
+    //     }
 
-        User user = getCurrentUser();
-        setAuditFields(transactionEntry, user);
+    //     User user = getCurrentUser();
+    //     setAuditFields(transactionEntry, user);
         
-        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
-        if (brand == null) {
-            throw new EntityNotFoundException();
-        }
+    //     Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
+    //     if (brand == null) {
+    //         throw new EntityNotFoundException();
+    //     }
 
-        transactionEntry.setItemCode(brandService.generateItemCode(brand));
-        TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
-        stockLocatorService.updateStockFromTransaction(savedEntry, true);
+    //     transactionEntry.setItemCode(brandService.generateItemCode(brand));
+    //     TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
+    //     stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
-        // inventoryService.addInventory(savedEntry);
+    //     inventoryService.addInventory(savedEntry);
 
-        PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
-        purchaseOrder.setItemCode(savedEntry.getItemCode());
-        // purchaseOrder.setAddedBy(savedEntry.getAddedBy());
-        // purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
+    //     PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
+    //     purchaseOrder.setItemCode(savedEntry.getItemCode());
+    //     // purchaseOrder.setAddedBy(savedEntry.getAddedBy());
+    //     // purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
 
-        purchaseOrderRepository.save(purchaseOrder);
+    //     purchaseOrderRepository.save(purchaseOrder);
 
-        return savedEntry;
-    }
+    //     return savedEntry;
+    // }
  
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
         validateTransactionId(id);

@@ -1,47 +1,62 @@
 class PurchaseOrder {
   String? itemCode;
-  String brand;
+  int brandId;
+  String? brandName;
   String productDescription;
   num packSize;
   num quantity;
   num unitCost;
   num totalCost;
-  String poPIreference;
+  String poPireference;
+  int addedBy;
+  DateTime? dateTimeAdded;
 
   PurchaseOrder({
     this.itemCode,
-    required this.brand,
+    required this.brandId,
+    this.brandName,
     required this.productDescription,
     required this.packSize,
     required this.quantity,
     required this.unitCost,
-    required this.poPIreference,
-  }) : totalCost = quantity * unitCost; // compute automatically
+    required this.poPireference,
+    required this.addedBy,
+    this.dateTimeAdded,
+  }) : totalCost = quantity * unitCost;
 
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
     final qty = json['quantity'] ?? 0;
     final cost = json['unitCost'] ?? 0;
     return PurchaseOrder(
       itemCode: json['itemCode'],
-      brand: json['brand'] ?? 'No Brand',
+      brandId: json['brandId'],
+      brandName: json['brandName'],
       productDescription: json['productDescription'] ?? 'No Description',
       packSize: json['packSize'] ?? 0,
       quantity: qty,
       unitCost: cost,
-      poPIreference: json['poPIreference'] ?? 'N/A',
+      poPireference: json['poPireference'] ?? 'N/A',
+      addedBy: json['addedBy'],
+      dateTimeAdded: json['dateTimeAdded'] != null
+        ? DateTime.parse(json['dateTimeAdded'])
+        : null,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson({bool includeDate = false}) {
+    final data = {
       'itemCode': itemCode,
-      'brand': brand,
-      'productDescription': productDescription,
+      'brandId': brandId,
       'packSize': packSize,
       'quantity': quantity,
       'unitCost': unitCost,
-      'totalCost': totalCost,
-      'poPIreference': poPIreference,
+      'poPireference': poPireference,
+      'addedBy': addedBy,
+      'productDescription': productDescription
     };
+    if (includeDate && dateTimeAdded != null) {
+      data['dateTimeAdded'] = dateTimeAdded!.toIso8601String();
+    }
+    return data;
   }
 }
