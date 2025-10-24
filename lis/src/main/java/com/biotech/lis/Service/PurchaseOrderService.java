@@ -42,7 +42,7 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);
-        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
+        Brand brand = brandService.getBrandById(purchaseOrder.getBrandId());
         
         purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
 
@@ -75,11 +75,8 @@ public class PurchaseOrderService {
         }
 
         PurchaseOrder existingPurchaseOrder = getPurchaseOrderByCode(purchaseOrder.getItemCode()).get();
-
-        existingPurchaseOrder.setBrand(purchaseOrder.getBrand());
-        existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
-        existingPurchaseOrder.setBrand(purchaseOrder.getBrand());
-        existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
+        
+        existingPurchaseOrder.setBrandId(purchaseOrder.getBrandId());
         existingPurchaseOrder.setPackSize(purchaseOrder.getPackSize());
         existingPurchaseOrder.setQuantity(purchaseOrder.getQuantity());
         existingPurchaseOrder.setUnitCost(purchaseOrder.getUnitCost());
@@ -93,8 +90,8 @@ public class PurchaseOrderService {
         // existingPurchaseOrder.setDrSIReferenceNum(purchaseOrder.getDrSIReferenceNum());
         // existingPurchaseOrder.setLotSerialNumber(purchaseOrder.getLotSerialNumber());
 
-        // User user = getCurrentUser();
-        // setAuditFields(existingPurchaseOrder, user);
+        User user = getCurrentUser();
+        setAuditFields(existingPurchaseOrder, user);
 
         // Inventory inventory = inventoryRepository.findByItemCodeIgnoreCase(existingPurchaseOrder.getItemCode()).get();
         // inventory.setBrand(existingPurchaseOrder.getBrand());
@@ -163,8 +160,8 @@ public class PurchaseOrderService {
 
     private void setAuditFields(PurchaseOrder purchaseOrder, User user) {
         LocalDateTime currentDateTime = LocalDateTime.now();
-        // purchaseOrder.setAddedBy(user.getFirstName() + " " + user.getLastName());
-        // purchaseOrder.setDateTimeAdded(currentDateTime);
+        purchaseOrder.setAddedBy(user.getFirstName() + " " + user.getLastName());
+        purchaseOrder.setDateTimeAdded(currentDateTime);
     }
 }
 

@@ -1,12 +1,9 @@
 package com.biotech.lis.Entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,17 +12,17 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "`purchaseOrder`")
 public class PurchaseOrder {
     @Id
     private String itemCode;
-    private String brand;
-    private String productDescription;
+    private Integer brandId;
     private Double packSize;
     private Integer quantity;
     private Double unitCost;
     private Double totalCost;
     private String poPIreference;
+    private String addedBy;
+    private LocalDateTime dateTimeAdded;
 
     // private String lotSerialNumber;
     // private String purchaseOrderFileName;
