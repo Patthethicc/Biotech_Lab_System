@@ -36,13 +36,12 @@ public class PurchaseOrderControllerTest {
     private PurchaseOrder createSamplePurchaseOrder() {
         PurchaseOrder po = new PurchaseOrder();
         po.setItemCode("ITEM001");
-        po.setBrand("TestBrand");
+        po.setBrandId(1);
         po.setProductDescription("Test Description");
         po.setPackSize(10.0);
         po.setQuantity(5);
         po.setUnitCost(100.0);
-        po.setTotalCost(500.0);
-        po.setPoPIreference("REF123");
+        po.setPoPireference("REF123");
         return po;
     }
 

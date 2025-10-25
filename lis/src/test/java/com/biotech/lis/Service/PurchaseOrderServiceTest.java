@@ -44,13 +44,12 @@ public class PurchaseOrderServiceTest {
     void setUp() {
         samplePurchaseOrder = new PurchaseOrder();
         samplePurchaseOrder.setItemCode("ITEM001");
-        samplePurchaseOrder.setBrand("TestBrand");
+        samplePurchaseOrder.setBrandId(1);
         samplePurchaseOrder.setProductDescription("Test Description");
         samplePurchaseOrder.setPackSize(10.0);
         samplePurchaseOrder.setQuantity(5);
         samplePurchaseOrder.setUnitCost(100.0);
-        samplePurchaseOrder.setTotalCost(500.0);
-        samplePurchaseOrder.setPoPIreference("REF123");
+        samplePurchaseOrder.setPoPireference("REF123");
     }
 
     @Test
@@ -67,7 +66,7 @@ public class PurchaseOrderServiceTest {
         // Update this mock to return a PO with the expected generated code
         PurchaseOrder savedMockPO = new PurchaseOrder();
         savedMockPO.setItemCode("TST0001"); // The code that will be generated
-        savedMockPO.setBrand("TestBrand");
+        savedMockPO.setBrandId(1);
         savedMockPO.setProductDescription("Test Description");
         when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedMockPO);
         
@@ -80,7 +79,7 @@ public class PurchaseOrderServiceTest {
         // Verify
         assertNotNull(savedPO);
         assertEquals("TST0001", savedPO.getItemCode()); // Updated expectation
-        assertEquals("TestBrand", savedPO.getBrand());
+        assertEquals(1, savedPO.getBrandId());
         verify(purchaseOrderRepository, times(1)).save(any(PurchaseOrder.class));
     }
 
@@ -136,7 +135,7 @@ public class PurchaseOrderServiceTest {
         // Setup
         PurchaseOrder updatedPO = new PurchaseOrder();
         updatedPO.setItemCode("ITEM001");
-        updatedPO.setBrand("UpdatedBrand");
+        updatedPO.setBrandId(2);
         updatedPO.setProductDescription("Updated Description");
         updatedPO.setPackSize(20.0);
         
@@ -151,7 +150,7 @@ public class PurchaseOrderServiceTest {
         // Verify
         assertNotNull(result);
         assertEquals("ITEM001", result.getItemCode());
-        assertEquals("UpdatedBrand", result.getBrand());
+        assertEquals(1, result.getBrandId());
         assertEquals("Updated Description", result.getProductDescription());
         assertEquals(20.0, result.getPackSize());
         verify(purchaseOrderRepository, times(1)).existsById("ITEM001");
