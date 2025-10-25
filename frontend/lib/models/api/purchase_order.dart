@@ -3,8 +3,8 @@ class PurchaseOrder {
   int brandId;
   String? brandName;
   String productDescription;
-  num packSize;
-  num quantity;
+  int packSize;
+  int quantity;
   num unitCost;
   num totalCost;
   String poPireference;
