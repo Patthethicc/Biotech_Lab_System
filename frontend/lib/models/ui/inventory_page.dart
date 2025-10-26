@@ -2,7 +2,8 @@
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/purchase_order.dart';
-import 'package:frontend/models/api/location_stock.dart';
+import 'package:frontend/models/api/item_loc.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/purchase_order_service.dart';
 import 'package:intl/intl.dart';
@@ -82,10 +83,10 @@ class _InventoryPageState extends State<InventoryPage> {
   final InventoryService _inventoryService = InventoryService();
   final TextEditingController _searchController = TextEditingController();
   final PurchaseOrderService _poService = PurchaseOrderService();
-  List<Inventory> _allInventories = [];
-  List<Inventory> _displayInventories = [];
-  Set<Inventory> _selectedInventories = {};
-  Inventory? _selectedInventoryForEdit;
+  List<InventoryPayload> _allInventories = [];
+  List<InventoryPayload> _displayInventories = [];
+  Set<InventoryPayload> _selectedInventories = {};
+  InventoryPayload? _selectedInventoryForEdit;
   List<PurchaseOrder> _availablePOs = [];
 
   bool _isLoading = true;
@@ -146,8 +147,8 @@ class _InventoryPageState extends State<InventoryPage> {
     final query = _searchController.text.toLowerCase();
     setState(() {
       if (query.isNotEmpty) {
-        _displayInventories = _allInventories.where((inventory) {
-          return inventory.itemCode.toLowerCase().contains(query);
+        _displayInventories = _allInventories.where((payload) {
+          return payload.inventory.itemCode.toLowerCase().contains(query);
         }).toList();
       } else {
         _displayInventories = List.from(_allInventories);
@@ -213,16 +214,16 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
-  void _toggleOrderSelection(Inventory inventory) {
+  void _toggleOrderSelection(InventoryPayload payload) {
     setState(() {
-      if (_selectedInventories.contains(inventory)) {
-        _selectedInventories.remove(inventory);
-        if (_selectedInventoryForEdit == inventory) {
+      if (_selectedInventories.contains(payload)) {
+        _selectedInventories.remove(payload);
+        if (_selectedInventoryForEdit == payload) {
           _selectedInventoryForEdit = _selectedInventories.isNotEmpty ? _selectedInventories.first : null;
         }
       } else {
-        _selectedInventories.add(inventory);
-        _selectedInventoryForEdit = inventory;
+        _selectedInventories.add(payload);
+        _selectedInventoryForEdit = payload;
       }
       _selectAll = _selectedInventories.length == _displayInventories.length && _displayInventories.isNotEmpty;
     });
@@ -277,9 +278,9 @@ class _InventoryPageState extends State<InventoryPage> {
                           ),
                         ),
                         child: ListTile(
-                          title: Text('${po.brand} (${po.itemCode}) - ${po.productDescription}'),
+                          title: Text('${po.brandName} (${po.itemCode}) - ${po.productDescription}'),
                           subtitle: Text(
-                            'PO Ref: ${po.poPIreference} | Pack Size: ${po.packSize}',
+                            'PO Ref: ${po.poPireference} | Pack Size: ${po.packSize}',
                           ),
                           onTap: () => Navigator.pop(context, po),
                           shape: RoundedRectangleBorder(
@@ -305,24 +306,24 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  Future<List<LocationStock>?> addLocationDialog(
+  Future<List<ItemLoc>?> addLocationDialog(
     List<Location> availableLocations,
-    List<LocationStock> existingStocks,
+    List<ItemLoc> existingLocs,
   ) {
-    final selectedStocks = List<LocationStock>.from(existingStocks);
+    final selectedLocs = List<ItemLoc>.from(existingLocs);
     final quantityController = TextEditingController();
     Location? selectedLocation;
 
     void addLocation(StateSetter setState) {
       if (selectedLocation != null && quantityController.text.isNotEmpty) {
         final qty = int.tryParse(quantityController.text) ?? 0;
-        final existing = selectedStocks.indexWhere((s) => s.locationId == selectedLocation!.id);
+        final existing = selectedLocs.indexWhere((s) => s.locationId == selectedLocation!.id);
 
         if (existing >= 0) {
-          selectedStocks[existing].quantity += qty;
+          selectedLocs[existing].quantity += qty;
         } else {
-          selectedStocks.add(
-            LocationStock(
+          selectedLocs.add(
+            ItemLoc(
               locationId: selectedLocation!.id,
               locationName: selectedLocation!.name,
               quantity: qty,
@@ -336,14 +337,14 @@ class _InventoryPageState extends State<InventoryPage> {
       }
     }
 
-    return showDialog<List<LocationStock>>(
+    return showDialog<List<ItemLoc>>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Assign Locations & Quantities'),
           content: StatefulBuilder(
             builder: (context, setState) {
-              final totalQty = selectedStocks.fold<int>(0, (sum, s) => sum + s.quantity);
+              final totalQty = selectedLocs.fold<int>(0, (sum, s) => sum + s.quantity);
               return SizedBox(
                 width: 500,
                 child: Column(
@@ -386,16 +387,16 @@ class _InventoryPageState extends State<InventoryPage> {
                     Flexible(
                       child: ListView.builder(
                         shrinkWrap: true,
-                        itemCount: selectedStocks.length,
+                        itemCount: selectedLocs.length,
                         itemBuilder: (context, index) {
-                          final stock = selectedStocks[index];
+                          final loc = selectedLocs[index];
                           return ListTile(
-                            title: Text('${stock.locationName}'),
-                            trailing: Text('Qty: ${stock.quantity}'),
+                            title: Text('${loc.locationName}'),
+                            trailing: Text('Qty: ${loc.quantity}'),
                             leading: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
-                                setState(() => selectedStocks.removeAt(index));
+                                setState(() => selectedLocs.removeAt(index));
                               },
                             ),
                           );
@@ -416,7 +417,7 @@ class _InventoryPageState extends State<InventoryPage> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, selectedStocks),
+              onPressed: () => Navigator.pop(context, selectedLocs),
               child: const Text('Done'),
             ),
           ],
@@ -482,12 +483,12 @@ class _InventoryPageState extends State<InventoryPage> {
     final noteController = TextEditingController();
 
     PurchaseOrder? selectedPO;
-    List<LocationStock> locationStocks = [];
+    List<ItemLoc> itemLocs = [];
     num totalQuantity = 0;
 
     void recalculateTotalQuantity(StateSetter setStateDialog) {
       setStateDialog(() {
-        totalQuantity = locationStocks.fold(0, (sum, loc) => sum + loc.quantity);
+        totalQuantity = itemLocs.fold(0, (sum, loc) => sum + loc.quantity);
       });
     }
 
@@ -499,10 +500,10 @@ class _InventoryPageState extends State<InventoryPage> {
     }
 
     void addLocation(StateSetter setStateDialog) async {
-      final updated = await addLocationDialog(_availableLocations, locationStocks);
+      final updated = await addLocationDialog(_availableLocations, itemLocs);
       if (updated != null) {
         setStateDialog(() {
-          locationStocks = List<LocationStock>.from(updated);
+          itemLocs = List<ItemLoc>.from(updated);
           recalculateTotalQuantity(setStateDialog);
         });
       }
@@ -533,7 +534,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
                         _buildReadOnlyField(
                           label: 'PO/PI Reference',
-                          value: selectedPO?.poPIreference ?? '',
+                          value: selectedPO?.poPireference ?? '',
                           onTap: () => selectPurchaseOrder(setStateDialog),
                         ),
                         const SizedBox(height: 16),
@@ -545,7 +546,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Brand',
-                          value: selectedPO?.brand ?? '',
+                          value: selectedPO?.brandName ?? '',
                           onTap: () => selectPurchaseOrder(setStateDialog),
                         ),
                         const SizedBox(height: 16),
@@ -652,13 +653,13 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                         const SizedBox(height: 12),
 
-                        if (locationStocks.isNotEmpty)
+                        if (itemLocs.isNotEmpty)
                           Column(
-                            children: locationStocks
+                            children: itemLocs
                                 .map(
                                   (loc) => ListTile(
                                     dense: true,
-                                    title: Text(loc.locationName),
+                                    title: Text(loc.locationName ?? 'N/A'),
                                     trailing: Text('Qty: ${loc.quantity}'),
                                   ),
                                 )
@@ -694,23 +695,28 @@ class _InventoryPageState extends State<InventoryPage> {
                   // final confirmed = await confirmAddDialog(selectedPO!, totalQuantity);
                   // if (confirmed == true) {
                     final newInventory = Inventory(
-                      poPIreference: selectedPO!.poPIreference,
+                      poPireference: selectedPO!.poPireference,
                       invoiceNum: drsiController.text,
                       itemCode: selectedPO?.itemCode ?? '',
                       itemDescription: selectedPO!.productDescription,
-                      brand: selectedPO!.brand,
+                      brandId: selectedPO!.brandId,
                       packSize: selectedPO!.packSize,
-                      lotNumber: int.tryParse(lotNumController.text) ?? 0,
-                      expiryDate: expiryDateController.text,
+                      lotNum: int.tryParse(lotNumController.text) ?? 0,
+                      expiry: expiryDateController.text,
                       costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
                       note: noteController.text,
-                      addedBy: 'Sample User',
+                      addedBy: 1,
                       dateTimeAdded: DateTime.now().toIso8601String(),
-                      locations: locationStocks,
+                      quantity: totalQuantity as int,
+                    );
+
+                    final payload = InventoryPayload(
+                      inventory: newInventory,
+                      locations: itemLocs,
                     );
 
                     try {
-                      await _inventoryService.createInventory(newInventory);
+                      await _inventoryService.createInventory(payload);
                       if (!context.mounted) return;
                       Navigator.of(context).pop();
                       _showDialog('Success', 'Inventory item added!');
@@ -729,37 +735,39 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   } 
   
-  void _showEditDialog(Inventory inventory) {
+  void _showEditDialog(InventoryPayload payload) {
     final formKey = GlobalKey<FormState>();
 
+    final Inventory inventory = payload.inventory;
+
     final drsiController = TextEditingController(text: inventory.invoiceNum);
-    final lotNumController = TextEditingController(text: inventory.lotNumber.toString());
-    final expiryDateController = TextEditingController(text: inventory.expiryDate);
+    final lotNumController = TextEditingController(text: inventory.lotNum.toString());
+    final expiryDateController = TextEditingController(text: inventory.expiry);
     final costOfSaleController = TextEditingController(text: inventory.costOfSale.toString());
     final noteController = TextEditingController(text: inventory.note ?? '');
 
-    PurchaseOrder? selectedPO;
-    List<LocationStock> locationStocks = List.from(inventory.locations);
-    num totalQuantity = locationStocks.fold(0, (sum, loc) => sum + loc.quantity);
+    //PurchaseOrder? selectedPO;
+    List<ItemLoc> itemLocs = List.from(payload.locations);
+    num totalQuantity = itemLocs.fold(0, (sum, loc) => sum + loc.quantity);
 
     void recalculateTotalQuantity(StateSetter setStateDialog) {
       setStateDialog(() {
-        totalQuantity = locationStocks.fold(0, (sum, loc) => sum + loc.quantity);
+        totalQuantity = itemLocs.fold(0, (sum, loc) => sum + loc.quantity);
       });
     }
 
-    void selectPurchaseOrder(StateSetter setStateDialog) async {
-      final po = await selectPODialog(_availablePOs);
-      if (po != null) {
-        setStateDialog(() => selectedPO = po);
-      }
-    }
+    // void selectPurchaseOrder(StateSetter setStateDialog) async {
+    //   final po = await selectPODialog(_availablePOs);
+    //   if (po != null) {
+    //     setStateDialog(() => selectedPO = po);
+    //   }
+    // }
 
     void addLocation(StateSetter setStateDialog) async {
-      final updated = await addLocationDialog(_availableLocations, locationStocks);
+      final updated = await addLocationDialog(_availableLocations, itemLocs);
       if (updated != null) {
         setStateDialog(() {
-          locationStocks = List<LocationStock>.from(updated);
+          itemLocs = List<ItemLoc>.from(updated);
           recalculateTotalQuantity(setStateDialog);
         });
       }
@@ -790,28 +798,23 @@ class _InventoryPageState extends State<InventoryPage> {
 
                         _buildReadOnlyField(
                           label: 'PO/PI Reference',
-                          value: selectedPO?.poPIreference ?? '',
-                          onTap: () => selectPurchaseOrder(setStateDialog),
+                          value: inventory.poPireference,
                         ),
                         _buildReadOnlyField(
                           label: 'Item Code',
-                          value: selectedPO?.itemCode ?? '',
-                          onTap: () => selectPurchaseOrder(setStateDialog),
+                          value: inventory.itemCode,
                         ),
                         _buildReadOnlyField(
                           label: 'Brand',
-                          value: selectedPO?.brand ?? '',
-                          onTap: () => selectPurchaseOrder(setStateDialog),
+                          value: inventory.brandId.toString(), // TODO: convert to brandName given brandId
                         ),
                         _buildReadOnlyField(
                           label: 'Description',
-                          value: selectedPO?.productDescription ?? '',
-                          onTap: () => selectPurchaseOrder(setStateDialog),
+                          value: inventory.itemDescription,
                         ),
                         _buildReadOnlyField(
                           label: 'Pack Size',
-                          value: selectedPO?.packSize.toString() ?? '',
-                          onTap: () => selectPurchaseOrder(setStateDialog),
+                          value: inventory.packSize.toString(),
                         ),
                         const Divider(height: 24),
 
@@ -906,13 +909,13 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                         const SizedBox(height: 12),
 
-                        if (locationStocks.isNotEmpty)
+                        if (itemLocs.isNotEmpty)
                           Column(
-                            children: locationStocks
+                            children: itemLocs
                                 .map(
                                   (loc) => ListTile(
                                     dense: true,
-                                    title: Text(loc.locationName),
+                                    title: Text(loc.locationName ?? 'N/A'),
                                     trailing: Text('Qty: ${loc.quantity}'),
                                   ),
                                 )
@@ -944,25 +947,30 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (formKey.currentState!.validate() && selectedPO != null) {
+                if (formKey.currentState!.validate()) {
                   final updatedInventory = Inventory(
-                    poPIreference: selectedPO!.poPIreference,
+                      poPireference: inventory.poPireference,
                       invoiceNum: drsiController.text,
-                      itemCode: selectedPO!.itemCode ?? '',
-                      itemDescription: selectedPO!.productDescription,
-                      brand: selectedPO!.brand,
-                      packSize: selectedPO!.packSize,
-                      lotNumber: int.tryParse(lotNumController.text) ?? 0,
-                      expiryDate: expiryDateController.text,
+                      itemCode: inventory.itemCode,
+                      itemDescription: inventory.itemDescription,
+                      brandId: inventory.brandId,
+                      packSize: inventory.packSize,
+                      lotNum: int.tryParse(lotNumController.text) ?? 0,
+                      expiry: expiryDateController.text,
                       costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
                       note: noteController.text,
-                      addedBy: 'Sample User',
-                      dateTimeAdded: DateTime.now().toString(),
-                      locations: locationStocks,
+                      addedBy: 1,
+                      dateTimeAdded: inventory.dateTimeAdded,
+                      quantity: totalQuantity as int,
+                  );
+
+                  final updatePayload = InventoryPayload(
+                    inventory: updatedInventory,
+                    locations: itemLocs,
                   );
 
                   try {
-                    await _inventoryService.updateInventory(updatedInventory);
+                    await _inventoryService.updateInventory(updatePayload);
                     if (mounted) {
                       Navigator.pop(context);
                       _showDialog('Success', 'Inventory updated successfully.');
@@ -984,7 +992,7 @@ class _InventoryPageState extends State<InventoryPage> {
   Widget _buildReadOnlyField({
     required String label,
     required String value,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
     bool isHovered = false;
 
@@ -1027,7 +1035,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
   void _showDeleteConfirmationDialog() {
     final selectedCount = _selectedInventories.length;
-    final singleId = _selectedInventories.isNotEmpty ? _selectedInventories.first.itemCode : "";
+    final singleId = _selectedInventories.isNotEmpty ? _selectedInventories.first.inventory.itemCode : "";
     final message = selectedCount > 1
         ? 'Are you sure you want to delete $selectedCount selected Inventories? This action cannot be undone.'
         : 'Are you sure you want to delete the Inventory with Code: $singleId? This action cannot be undone.';
@@ -1058,7 +1066,7 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Future<void> _deleteSelectedInventories() async {
-    final inventoriesToDelete = List.from(_selectedInventories);
+    final payloadsToDelete = List.from(_selectedInventories);
     
     showDialog(
       context: context,
@@ -1082,12 +1090,12 @@ class _InventoryPageState extends State<InventoryPage> {
       int successCount = 0;
       List<String> errors = [];
 
-      for (Inventory inventory in inventoriesToDelete) {
+      for (InventoryPayload payload in payloadsToDelete) {
         try {
-          await _inventoryService.deleteInventory(inventory.itemCode);
+          await _inventoryService.deleteInventory(payload.inventory.itemCode);
           successCount++;
         } catch (e) {
-          errors.add('Error deleting ${inventory.itemCode}: $e');
+          errors.add('Error deleting ${payload.inventory.itemCode}: $e');
         }
       }
 
@@ -1622,23 +1630,24 @@ class _InventoryPageState extends State<InventoryPage> {
     final bool showAll = _rowsPerPage == _showAllValue;
     final recordsToShow = showAll ? _displayInventories : _displayInventories.sublist(_startIndex, endIndex);
 
-    return recordsToShow.map<DataRow>((inventory) {
-      final isSelected = _selectedInventories.contains(inventory);
+    return recordsToShow.map<DataRow>((payload) {
+      final inventory = payload.inventory;
+      final isSelected = _selectedInventories.contains(payload);
       final rowColor = counter.isEven ? const Color.fromRGBO(241, 245, 255, 1) : const Color.fromRGBO(230, 240, 255, 1);
       counter++;
 
       return DataRow(
         selected: isSelected,
-        onSelectChanged: (bool? selected) => _toggleOrderSelection(inventory),
+        onSelectChanged: (bool? selected) => _toggleOrderSelection(payload),
         color: WidgetStateProperty.all(rowColor),
         cells: [
-          DataCell(Text(inventory.poPIreference)),
+          DataCell(Text(inventory.poPireference)),
           DataCell(Text(inventory.invoiceNum)),
           DataCell(Text(inventory.itemCode)),
           DataCell(Text(inventory.itemDescription)),
           DataCell(Text(inventory.packSize.toString())),
-          DataCell(Text(inventory.lotNumber.toString())),
-          DataCell(Text(inventory.expiryDate)),
+          DataCell(Text(inventory.lotNum.toString())),
+          DataCell(Text(inventory.expiry)),
           DataCell(Text(inventory.quantity.toString())),
           DataCell(Text(inventory.costOfSale.toStringAsFixed(2))),
           DataCell(
@@ -1651,8 +1660,8 @@ class _InventoryPageState extends State<InventoryPage> {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: inventory.locations.isNotEmpty
-                          ? inventory.locations.map((loc) {
+                      children: payload.locations.isNotEmpty
+                          ? payload.locations.map((loc) {
                               return Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 4),
                                 child: Text('${loc.locationName}: ${loc.quantity}'),
@@ -1679,7 +1688,7 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
           ),
           DataCell(Text(inventory.note ?? '')),
-          DataCell(Text(inventory.addedBy)),
+          DataCell(Text(inventory.addedBy.toString())),  // TODO: get username given user id
           DataCell(Text(inventory.dateTimeAdded.toString())),
         ],
       );
