@@ -16,7 +16,7 @@ public class PurchaseOrder {
     @Id
     private String itemCode;
     private Integer brandId;
-    private Double packSize;
+    private Integer packSize;
     private Integer quantity;
     private Double unitCost;
     private String poPireference;
