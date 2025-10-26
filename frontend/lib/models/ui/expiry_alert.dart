@@ -1,8 +1,8 @@
 // import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/inventory_service.dart';
-import 'package:frontend/models/api/location_stock.dart';
+import 'package:frontend/models/api/item_loc.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
@@ -78,8 +78,8 @@ class ExpiryAlert extends StatefulWidget {
 class _ExpiryAlertState extends State<ExpiryAlert> {
   final inventoryService = InventoryService();
 
-  List<Inventory> _allExpiryAlerts = [];
-  List<Inventory> _displayAlerts = [];
+  List<InventoryPayload> _allExpiryAlerts = [];
+  List<InventoryPayload> _displayAlerts = [];
   bool _isLoading = true;
   bool _isHovered = false;
 
@@ -137,8 +137,10 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
         : _startIndex + _rowsPerPage;
 
     final allLocations = _allExpiryAlerts
-        .expand((inv) => inv.locations.map((loc) => loc.locationName))
+        .expand((payload) => payload.locations.map((loc) => loc.locationName))
         .toSet()
+        .where((locName) => locName != null)
+        .cast<String>()
         .toList();
 
     return Scaffold(
@@ -245,14 +247,16 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
   List<DataRow> _populateRows(List<String> allLocations) {
     int counter = 0;
 
-    return _displayAlerts.map((inv) {
+    return _displayAlerts.map((payload) {
+      final inv = payload.inventory;
+
       final daysTillExpiry =
-          DateTime.parse(inv.expiryDate).difference(DateTime.now()).inDays;
+          DateTime.parse(inv.expiry).difference(DateTime.now()).inDays;
 
       final locationCells = allLocations.map((locName) {
-        final location = inv.locations.firstWhere(
-          (loc) => loc.locationName.toLowerCase() == locName.toLowerCase(),
-          orElse: () => LocationStock(locationId: 0, locationName: locName, quantity: 0), // default
+        final location = payload.locations.firstWhere(
+          (loc) => loc.locationName?.toLowerCase() == locName.toLowerCase(),
+          orElse: () => ItemLoc(locationId: 0, locationName: locName, quantity: 0),
         );
         return DataCell(Text(location.quantity.toString()));
       }).toList();
@@ -267,11 +271,11 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
         }),
         cells: [
           DataCell(Text(inv.itemCode)),
-          DataCell(Text(inv.brand)),
+          DataCell(Text(inv.brandId.toString())), // TODO: convert to brandName given brandId
           DataCell(Text(inv.itemDescription)),
-          DataCell(Text(inv.lotNumber.toString())),
+          DataCell(Text(inv.lotNum.toString())),
           ...locationCells,
-          DataCell(Text(inv.expiryDate)),
+          DataCell(Text(inv.expiry)),
           DataCell(
             Text(
               '$daysTillExpiry days',
