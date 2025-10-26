@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
 
 class InventoryService {
   static final String baseUrl = dotenv.env['API_URL']!;
@@ -21,14 +22,17 @@ class InventoryService {
     }
   }
 
-  Future<List<Inventory>> getInventories() async {
+  Future<List<InventoryPayload>> getInventories() async {
     String? token = await storage.read(key: 'jwt_token');
     final response = await http.get(Uri.parse('$baseUrl/inv/v1/getInv'),
-      headers: {'Content-Type': 'application/json',
-                'Authorization': 'Bearer $token'});
+      headers: {
+        //'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      });
+
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
-      return data.map((json) => Inventory.fromJson(json)).toList();
+      return data.map((json) => InventoryPayload.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load inventory ${response.statusCode}');
     }
@@ -60,35 +64,49 @@ class InventoryService {
     }
   }
 
-  Future<Inventory> createInventory(Inventory inv) async {
+  Future<void> createInventory(InventoryPayload payload) async {
     String? token = await storage.read(key: 'jwt_token');
     final res = await http.post(
       Uri.parse('$baseUrl/inv/v1/addInv'),
-      headers: {'Content-Type': 'application/json',
-                'Authorization': 'Bearer $token'},
-      body: json.encode(inv.toJson()),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: json.encode(payload.toJson()),
     );
-    return Inventory.fromJson(json.decode(res.body));
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to create inventory: ${res.body}');
+    }
   }
 
-  Future<Inventory> updateInventory(Inventory inv) async {
+  Future<void> updateInventory(InventoryPayload payload) async {
     String? token = await storage.read(key: 'jwt_token');
     final res = await http.put(
-      Uri.parse('$baseUrl/inv/v1/updateInv'),
-      headers: {'Content-Type': 'application/json',
-                'Authorization': 'Bearer $token'},
-      body: json.encode(inv.toJson()),
+      Uri.parse('$baseUrl/inv/v1/updateInv'), 
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: json.encode(payload.toJson()),
     );
-    return Inventory.fromJson(json.decode(res.body));
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update inventory: ${res.body}');
+    }
   }
 
   Future<void> deleteInventory(String id) async {
     String? token = await storage.read(key: 'jwt_token');
-    final res = await http.delete(Uri.parse('$baseUrl/inv/v1/deleteInv/$id'),
-                      headers:{'Authorization': 'Bearer $token'} );
-
-    print(res.statusCode);
-    print(res.body);
+    
+    final res = await http.delete(
+      Uri.parse('$baseUrl/inv/v1/deleteInv/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    
+    if (res.statusCode != 200 && res.statusCode != 204) {
+      throw Exception('Failed to delete inventory: ${res.statusCode} ${res.body}');
+    }
   }
 
   Future<Inventory> getInventoryById(int id) async {
