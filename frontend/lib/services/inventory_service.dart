@@ -38,27 +38,35 @@ class InventoryService {
     }
   }
 
-  Future<List<Inventory>> getTopStock() async {
+  Future<List<InventoryPayload>> getTopStock() async {
     String? token = await storage.read(key: 'jwt_token');
-    final response = await http.get(Uri.parse('$baseUrl/inv/v1/getTopStock'),
-      headers: {'Content-Type': 'application/json',
-                'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      Uri.parse('$baseUrl/inv/v1/getTopStock'),
+      headers: {
+        'Authorization': 'Bearer $token'
+      }
+    );
+
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
-      return data.map((json) => Inventory.fromJson(json)).toList();
+      return data.map((json) => InventoryPayload.fromJson(json)).toList();
     } else {
       throw Exception('Failed top stocks ${response.statusCode}');
     }
   }
 
-  Future<List<Inventory>> getBottomStock() async {
+  Future<List<InventoryPayload>> getBottomStock() async {
     String? token = await storage.read(key: 'jwt_token');
-    final response = await http.get(Uri.parse('$baseUrl/inv/v1/getLowStock'),
-      headers: {'Content-Type': 'application/json',
-                'Authorization': 'Bearer $token'});
+    final response = await http.get(
+      Uri.parse('$baseUrl/inv/v1/getLowStock'),
+      headers: {
+        'Authorization': 'Bearer $token'
+      }
+    );
+
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
-      return data.map((json) => Inventory.fromJson(json)).toList();
+      return data.map((json) => InventoryPayload.fromJson(json)).toList();
     } else {
       throw Exception('Failed low stocks ${response.statusCode}');
     }
