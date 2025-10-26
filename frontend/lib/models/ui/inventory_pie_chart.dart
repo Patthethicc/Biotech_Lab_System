@@ -43,8 +43,9 @@ class InventoryPieChart extends StatelessWidget {
     final Map<String, int> brandQuantities = {};
 
     for (final item in originalList) {
-      brandQuantities[item.brand] =
-        (brandQuantities[item.brand] ?? 0) + item.quantity;
+      final String brandKey = 'Brand ${item.brandId}';
+
+      brandQuantities[brandKey] = (brandQuantities[brandKey] ?? 0) + item.quantity;
     }
 
     return brandQuantities.entries.toList();
