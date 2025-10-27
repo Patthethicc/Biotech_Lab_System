@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.biotech.lis.Entity.Inventory;
+import com.biotech.lis.Entity.InventoryPayload;
+import com.biotech.lis.Entity.ItemLoc;
 import com.biotech.lis.Service.InventoryService;
 
 @RestController
@@ -21,32 +23,41 @@ public class InventoryController {
     //For future reference
 
     @PostMapping("/addInv")
-    public ResponseEntity<Inventory> addInventory(@RequestBody Inventory inventory) {
-        Inventory savedInventory = inventoryService.addInventory(inventory);
-        return ResponseEntity.ok(savedInventory);
+    public ResponseEntity<InventoryPayload> addInventory(@RequestBody InventoryPayload payload) {
+        Inventory savedInventory = inventoryService.addInventory(payload.getInventory());
+
+        InventoryPayload response = new InventoryPayload();
+        response.setInventory(savedInventory);
+
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/getInv/{id}")
-    public ResponseEntity<Inventory> getInvById(@PathVariable("id") Integer invId) {
-        final Inventory invById = inventoryService.getInventoryById(invId);
+    @GetMapping("/getInv/{itemCode}")
+    public ResponseEntity<Inventory> getInvById(@PathVariable("itemCode") String itemCode) {
+        final Inventory invById = inventoryService.getInventoryByCode(itemCode);
         return ResponseEntity.ok(invById);
     }
 
     @GetMapping("/getInv")
-    public ResponseEntity<List<Inventory>> getInv() {
-        final List<Inventory> inventories = inventoryService.getInventories();
+    public ResponseEntity<List<InventoryPayload>> getInv() {
+        final List<InventoryPayload> inventories = inventoryService.getInventoriesWithLocations();
         return ResponseEntity.ok(inventories);
     }
 
+
     @PutMapping("/updateInv")
-    public ResponseEntity<Inventory> updateInventory(@RequestBody Inventory inventory) {
-        Inventory updatedInv = inventoryService.updateInventoryInv(inventory);
-        return ResponseEntity.ok(updatedInv);
+    public ResponseEntity<InventoryPayload> updateInventory(@RequestBody InventoryPayload payload) {
+        Inventory updatedInventory = inventoryService.updateInventoryInv(payload.getInventory());
+
+        InventoryPayload response = new InventoryPayload();
+        response.setInventory(updatedInventory);
+
+        return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/deleteInv/{id}")
-    public ResponseEntity<Inventory> deleteInv(@PathVariable("id") Integer id) {
-        inventoryService.deleteByInventoryId(id);
+    @DeleteMapping("/deleteInv/{itemCode}")
+    public ResponseEntity<Inventory> deleteInv(@PathVariable("itemCode") String itemCode) {
+        inventoryService.deleteByInventoryId(itemCode);
         return ResponseEntity.ok().build();
     }
 

@@ -3,15 +3,18 @@ package com.biotech.lis.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.Inventory;
+import com.biotech.lis.Entity.InventoryPayload;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Repository.ItemLocRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
 import com.biotech.lis.Entity.PurchaseOrder;
@@ -45,6 +48,18 @@ public class InventoryService {
     @Autowired
     TransactionEntryRepository transactionEntryRepository;
 
+    @Autowired
+    private ItemLocRepository itemLocRepository;
+
+    public List<InventoryPayload> getInventoriesWithLocations() {
+    List<Inventory> inventories = inventoryRepository.findAll();
+
+    return inventories.stream()
+            .map(inv -> new InventoryPayload(inv, itemLocRepository.findByItemCode(inv.getItemCode())))
+            .collect(Collectors.toList());
+}
+
+
     @Transactional
     public Inventory addInventory(Inventory inventory) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -52,30 +67,34 @@ public class InventoryService {
         LocalDateTime cDateTime = LocalDateTime.now();
 
         //Data from purchase order
-        inventory.setPoPIreference(inventory.getPoPIreference());
+        inventory.setPoPireference(inventory.getPoPireference());
         inventory.setItemCode(inventory.getItemCode());
-        inventory.setBrand(inventory.getBrand());
+        inventory.setBrandId(inventory.getBrandId());
         inventory.setItemDescription(inventory.getItemDescription());
         inventory.setPackSize(inventory.getPackSize());
-
+        
         //Manual
         inventory.setCostOfSale(inventory.getCostOfSale());
         inventory.setQuantity(inventory.getQuantity());
         inventory.setInvoiceNum(inventory.getInvoiceNum());
-        inventory.setLotNumber(inventory.getLotNumber());
-        inventory.setExpiryDate(inventory.getExpiryDate());
-        inventory.setLocations(inventory.getLocations());
+        inventory.setLotNum(inventory.getLotNum());
+        inventory.setExpiry(inventory.getExpiry());
+
         inventory.setNote(inventory.getNote());
 
         //not for front end
-        inventory.setAddedBy(user.getFirstName() + " " + user.getLastName());
+        inventory.setAddedBy(user.getUserId());
         inventory.setDateTimeAdded(cDateTime);
 
+        //Check that itemCode is not null
+        if (inventory.getItemCode() == null || inventory.getItemCode().isBlank()) {
+            throw new IllegalArgumentException("Item code must be provided.");
+        }
         return inventoryRepository.save(inventory);
     }
 
-    public Inventory getInventoryById(Integer inventoryId) {
-        return inventoryRepository.getReferenceById(inventoryId);
+    public Inventory getInventoryByCode(String itemCode) {
+        return inventoryRepository.getReferenceById(itemCode);
     }
 
     public List<Inventory> getInventories() {
@@ -104,29 +123,30 @@ public class InventoryService {
 
     @Transactional
     public Inventory updateInventoryInv(Inventory inventory) {
-        Inventory existingInventory = getInventoryById(inventory.getInventoryId());
+        Inventory existingInventory = getInventoryByCode(inventory.getItemCode());
+
+        if (existingInventory == null) {
+            throw new IllegalArgumentException(
+                "Inventory with code " + inventory.getItemCode() + " not found"
+            );
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
-        Brand brand = brandService.getBrandbyName(inventory.getBrand());
-        if (brand == null) {
-            throw new EntityNotFoundException();
-        }
 
-        existingInventory.setPoPIreference(inventory.getPoPIreference());
+        existingInventory.setPoPireference(inventory.getPoPireference());
         existingInventory.setInvoiceNum(inventory.getInvoiceNum());
-        existingInventory.setItemCode(inventory.getItemCode());
         existingInventory.setItemDescription(inventory.getItemDescription());
-        existingInventory.setBrand(inventory.getBrand());
-        existingInventory.setLotNumber(inventory.getLotNumber());
-        existingInventory.setExpiryDate(inventory.getExpiryDate());
+        existingInventory.setBrandId(inventory.getBrandId());
+        existingInventory.setLotNum(inventory.getLotNum());
+        existingInventory.setExpiry(inventory.getExpiry());
         existingInventory.setPackSize(inventory.getPackSize());
         existingInventory.setQuantity(inventory.getQuantity());
         existingInventory.setCostOfSale(inventory.getCostOfSale());
-        existingInventory.setLocations(inventory.getLocations());
         existingInventory.setNote(inventory.getNote());
 
-        existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
+        existingInventory.setAddedBy(user.getUserId());
         existingInventory.setDateTimeAdded(cDateTime);
 
         return inventoryRepository.save(existingInventory);
@@ -179,8 +199,8 @@ public class InventoryService {
     // }
 
     @Transactional
-    public void deleteByInventoryId(Integer inventoryId) {
-        inventoryRepository.deleteById(inventoryId);
+    public void deleteByInventoryId(String itemcode) {
+        inventoryRepository.deleteById(itemcode);
     }
 
     // public List<Inventory> getStockAlerts(Integer amount) {

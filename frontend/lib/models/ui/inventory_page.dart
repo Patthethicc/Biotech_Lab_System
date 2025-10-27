@@ -546,7 +546,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Brand',
-                          value: selectedPO?.brandName ?? '',
+                          value: selectedPO?.brandId.toString() ?? '',
                           onTap: () => selectPurchaseOrder(setStateDialog),
                         ),
                         const SizedBox(height: 16),

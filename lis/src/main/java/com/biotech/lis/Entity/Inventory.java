@@ -20,50 +20,20 @@ import lombok.NoArgsConstructor;
 @Table(name = "`inventory`")
 public class Inventory {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "inventory_id")
-    private Integer inventoryId;
-
-    @Column(name = "po_PIreference")
-    private String poPIreference;
-
-    @Column(name = "invoice_num")
-    private String invoiceNum;
-
-    @Column(name = "item_code")
     private String itemCode;
 
-    @Column(name = "item_description")
+    private String poPireference;
+    private String invoiceNum;
     private String itemDescription;
-
-    @Column(name = "brand")
-    private String brand;
-
-    @Column(name = "lot_number")
-    private String lotNumber;
-
-    @Column(name = "expiry_date")
-    private LocalDate expiryDate;
-
-    @Column(name = "pack_size")
-    private Double packSize;
-
-    @Column(name = "quantity")
+    private Integer brandId;
+    private Integer lotNum;
+    private LocalDate expiry;
+    private Integer packSize;
     private Integer quantity;
-
-    @Column(name = "cost_of_sale")
     private Double costOfSale;
-
-    @Column(name = "locations")
-    private String locations;
-
-    @Column(name = "note")
     private String note;
 
-    //note: do not display on frontend inventory table
-    @Column(name = "added_by")
-    private String addedBy;
-
-    @Column(name = "date_time_added")
+    //note: do not display on frontend inventory tabl
+    private Long addedBy;
     private LocalDateTime dateTimeAdded;
 }
