@@ -4,6 +4,7 @@ import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/models/api/item_loc.dart';
 import 'package:frontend/models/api/inventory_payload.dart';
+import 'package:frontend/services/brand_service.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/purchase_order_service.dart';
 import 'package:intl/intl.dart';
@@ -83,11 +84,13 @@ class _InventoryPageState extends State<InventoryPage> {
   final InventoryService _inventoryService = InventoryService();
   final TextEditingController _searchController = TextEditingController();
   final PurchaseOrderService _poService = PurchaseOrderService();
+  final BrandService _brandService = BrandService();
   List<InventoryPayload> _allInventories = [];
   List<InventoryPayload> _displayInventories = [];
   Set<InventoryPayload> _selectedInventories = {};
   InventoryPayload? _selectedInventoryForEdit;
   List<PurchaseOrder> _availablePOs = [];
+  List<Map<String, dynamic>> _allBrands = [];
 
   bool _isLoading = true;
   bool _selectAll = false;
@@ -111,6 +114,7 @@ class _InventoryPageState extends State<InventoryPage> {
     super.initState();
     _fetchInventories();
     _fetchAvailablePOs();
+    _fetchBrands();
     _searchController.addListener(_filterInventories);
   }
 
@@ -119,6 +123,33 @@ class _InventoryPageState extends State<InventoryPage> {
     _searchController.removeListener(_filterInventories);
     _searchController.dispose();
     super.dispose();
+  }
+
+    Future<void> _fetchBrands() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final brands = await _brandService.getBrands();
+
+      final brandList = brands.map((b) => {'id': b.brandId, 'name': b.brandName}).toList();
+
+      if(!mounted) return;
+      setState(() {
+        _allBrands = brandList;
+      });
+    } catch (e) {
+      if(mounted){
+        _showDialog('Error', 'Failed to load brands: $e');
+      }
+    } finally {
+      if(mounted){
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _fetchInventories() async {
@@ -237,6 +268,17 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
+  String getBrandNameById(int? brandId) {
+    if (brandId == null) return '';
+    
+    try {
+      final brand = _allBrands.firstWhere((brand) => brand['id'] == brandId);
+      return brand['name'];
+    } catch (e) {
+      return 'Unknown Brand (ID: $brandId)';
+    }
+  }
+
   Future<PurchaseOrder?> selectPODialog(List<PurchaseOrder> purchaseOrders) {
     return showDialog<PurchaseOrder>(
       context: context,
@@ -250,6 +292,7 @@ class _InventoryPageState extends State<InventoryPage> {
               itemCount: purchaseOrders.length,
               itemBuilder: (context, index) {
                 final po = purchaseOrders[index];
+                final brandName = getBrandNameById(po.brandId);
                 bool isHovered = false;
 
                 return StatefulBuilder(
@@ -278,7 +321,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           ),
                         ),
                         child: ListTile(
-                          title: Text('${po.brandName} (${po.itemCode}) - ${po.productDescription}'),
+                          title: Text('$brandName (${po.itemCode}) - ${po.productDescription}'),
                           subtitle: Text(
                             'PO Ref: ${po.poPireference} | Pack Size: ${po.packSize}',
                           ),
@@ -546,7 +589,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Brand',
-                          value: selectedPO?.brandId.toString() ?? '',
+                          value: getBrandNameById(selectedPO?.brandId),
                           onTap: () => selectPurchaseOrder(setStateDialog),
                         ),
                         const SizedBox(height: 16),
@@ -806,7 +849,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                         _buildReadOnlyField(
                           label: 'Brand',
-                          value: inventory.brandId.toString(), // TODO: convert to brandName given brandId
+                          value: getBrandNameById(inventory.brandId),
                         ),
                         _buildReadOnlyField(
                           label: 'Description',
@@ -1012,6 +1055,7 @@ class _InventoryPageState extends State<InventoryPage> {
               onTap: onTap,
               child: AbsorbPointer(
                 child: TextFormField(
+                  key: ValueKey<String>(value),
                   decoration: InputDecoration(
                     labelText: label,
                     border: const OutlineInputBorder(),
