@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.InventoryPayload;
+import com.biotech.lis.Entity.ItemLoc;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
@@ -52,45 +53,33 @@ public class InventoryService {
     private ItemLocRepository itemLocRepository;
 
     public List<InventoryPayload> getInventoriesWithLocations() {
-    List<Inventory> inventories = inventoryRepository.findAll();
-
-    return inventories.stream()
-            .map(inv -> new InventoryPayload(inv, itemLocRepository.findByItemCode(inv.getItemCode())))
-            .collect(Collectors.toList());
-}
-
+        List<Inventory> inventories = inventoryRepository.findAll();
+    
+        return inventories.stream()
+                .map(inv -> new InventoryPayload(inv, itemLocRepository.findByItemCode(inv.getItemCode())))
+                .collect(Collectors.toList());
+    }
 
     @Transactional
-    public Inventory addInventory(Inventory inventory) {
+    public Inventory addInventory(InventoryPayload payload) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = userService.getUserById(Long.parseLong(auth.getName()));
         LocalDateTime cDateTime = LocalDateTime.now();
 
-        //Data from purchase order
-        inventory.setPoPireference(inventory.getPoPireference());
-        inventory.setItemCode(inventory.getItemCode());
-        inventory.setBrandId(inventory.getBrandId());
-        inventory.setItemDescription(inventory.getItemDescription());
-        inventory.setPackSize(inventory.getPackSize());
-        
-        //Manual
-        inventory.setCostOfSale(inventory.getCostOfSale());
-        inventory.setQuantity(inventory.getQuantity());
-        inventory.setInvoiceNum(inventory.getInvoiceNum());
-        inventory.setLotNum(inventory.getLotNum());
-        inventory.setExpiry(inventory.getExpiry());
-
-        inventory.setNote(inventory.getNote());
-
-        //not for front end
+        //not from front end
+        Inventory inventory = payload.getInventory();
         inventory.setAddedBy(user.getUserId());
         inventory.setDateTimeAdded(cDateTime);
 
-        //Check that itemCode is not null
-        if (inventory.getItemCode() == null || inventory.getItemCode().isBlank()) {
-            throw new IllegalArgumentException("Item code must be provided.");
+        Inventory savedInv = inventoryRepository.save(inventory);
+
+        //saving locations
+        for (ItemLoc loc: payload.getLocations()){
+            loc.setItemCode(savedInv.getItemCode()); //save itemcode to loc
+            itemLocRepository.save(loc);
         }
-        return inventoryRepository.save(inventory);
+        
+        return inventoryRepository.save(savedInv);
     }
 
     public Inventory getInventoryByCode(String itemCode) {
@@ -100,10 +89,6 @@ public class InventoryService {
     public List<Inventory> getInventories() {
         return inventoryRepository.findAll();
     }
-
-    // public Optional<Inventory> getInventoryByBrandAndProdDesc(String brand, String prodDesc) {
-    //     return inventoryRepository.findByBrandAndProductDescription(brand, prodDesc);
-    // }
 
     public List<Inventory> getHighestStock() {
         List<Inventory> inventories = getInventories();
@@ -151,52 +136,6 @@ public class InventoryService {
 
         return inventoryRepository.save(existingInventory);
     }
-
-    // public Inventory updateInventoryTrns(TransactionEntry transactionEntry) {
-    //     Optional<Inventory> invOpt = getInventoryByBrandAndProdDesc(transactionEntry.getBrand(), 
-    //         transactionEntry.getProductDescription());
-    //     if (invOpt == null) {
-    //         throw new EntityNotFoundException();
-    //     }
-    //     Inventory existingInventory = invOpt.get();
-    // 
-    //     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    //     User user = userService.getUserById(Long.parseLong(auth.getName()));
-    //     LocalDateTime cDateTime = LocalDateTime.now();
-    //     Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
-    //     if (brand == null) {
-    //         throw new EntityNotFoundException();
-    //     }
-    // 
-    //     existingInventory.setBrand(transactionEntry.getBrand());
-    //     existingInventory.setProductDescription(transactionEntry.getProductDescription());
-    //     existingInventory.setLotSerialNumber(transactionEntry.getLotSerialNumber());
-    //     existingInventory.setCost(transactionEntry.getCost());
-    //     existingInventory.setExpiryDate(transactionEntry.getExpiryDate());
-    // 
-    //     String brandName = transactionEntry.getBrand();
-    //     String prodDesc = transactionEntry.getProductDescription();
-    // 
-    //     existingInventory.setStocksManila(stockLocatorService.getManilaStock(brandName, prodDesc));
-    //     existingInventory.setStocksCebu(stockLocatorService.getCebuStock(brandName, prodDesc));
-    //     existingInventory.setQuantityOnHand(existingInventory.getStocksManila() + existingInventory.getStocksCebu());
-    //     existingInventory.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
-    //     existingInventory.setDateTimeAdded(cDateTime);
-    // 
-    //     PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(transactionEntry.getItemCode());
-    //     
-    //     purchaseOrder.setBrand(brandName);
-    //     purchaseOrder.setProductDescription(prodDesc);
-    //     // purchaseOrder.setLotSerialNumber(transactionEntry.getLotSerialNumber());
-    //     // purchaseOrder.setOrderDate(transactionEntry.getDateTimeAdded().toLocalDate());
-    //     // purchaseOrder.setDrSIReferenceNum(transactionEntry.getDrSIReferenceNum());
-    //     // purchaseOrder.setAddedBy(user.getFirstName().concat(" " + user.getLastName()));
-    //     // purchaseOrder.setDateTimeAdded(cDateTime);
-    // 
-    //     purchaseOrderRepository.save(purchaseOrder);
-    // 
-    //     return inventoryRepository.save(existingInventory);
-    // }
 
     @Transactional
     public void deleteByInventoryId(String itemcode) {

@@ -24,10 +24,11 @@ public class InventoryController {
 
     @PostMapping("/addInv")
     public ResponseEntity<InventoryPayload> addInventory(@RequestBody InventoryPayload payload) {
-        Inventory savedInventory = inventoryService.addInventory(payload.getInventory());
+        Inventory savedInventory = inventoryService.addInventory(payload);
 
         InventoryPayload response = new InventoryPayload();
         response.setInventory(savedInventory);
+        response.setLocations(payload.getLocations());
 
         return ResponseEntity.ok(response);
     }
