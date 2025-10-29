@@ -1,6 +1,9 @@
 package com.biotech.lis.Entity;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,19 +12,11 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "purchase_order")
 public class PurchaseOrder {
     @Id
     @Column(name = "item_code")
     private String itemCode;
-    
-    @Column(name = "brand")
-    private String brand;
-    
-    @Column(name = "product_description")
-    private String productDescription;
-    
-    @Column(name = "pack_size")
+    private Integer brandId;
     private Double packSize;
     
     @Column(name = "quantity")
@@ -29,10 +24,23 @@ public class PurchaseOrder {
     
     @Column(name = "unit_cost")
     private Double unitCost;
-    
-    @Column(name = "total_cost")
-    private Double totalCost;
-    
-    @Column(name = "po_PIreference")
-    private String poPIreference;
+    private String poPireference;
+    private Integer addedBy;
+    private LocalDateTime dateTimeAdded;
+    private String productDescription;
+
+    // private String lotSerialNumber;
+    // private String purchaseOrderFileName;
+    // @Lob
+    // private byte[] purchaseOrderFile;
+    // private String suppliersPackingListName;
+    // @Lob
+    // private byte[] suppliersPackingList;
+    // private String inventoryOfDeliveredItemsName;
+    // @Lob
+    // private byte[] inventoryOfDeliveredItems;
+    // private LocalDate orderDate;
+    // private String addedBy;
+    // private LocalDateTime dateTimeAdded;
+    // private String drSIReferenceNum;
 }

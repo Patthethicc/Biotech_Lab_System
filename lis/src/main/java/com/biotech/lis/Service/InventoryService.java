@@ -126,8 +126,8 @@ public class InventoryService {
 
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(existingInventory.getItemCode());
         
-        purchaseOrder.setBrand(brandName);
-        purchaseOrder.setProductDescription(prodDesc);
+        // purchaseOrder.setBrand(brandName);
+        // purchaseOrder.setProductDescription(prodDesc);
         // purchaseOrder.setLotSerialNumber(existingInventory.getLotSerialNumber());
         // purchaseOrder.setOrderDate(existingInventory.getDateTimeAdded().toLocalDate());
 
@@ -181,8 +181,8 @@ public class InventoryService {
 
         PurchaseOrder purchaseOrder = purchaseOrderRepository.findByItemCode(transactionEntry.getItemCode());
         
-        purchaseOrder.setBrand(brandName);
-        purchaseOrder.setProductDescription(prodDesc);
+        // purchaseOrder.setBrand(brandName);
+        // purchaseOrder.setProductDescription(prodDesc);
         // purchaseOrder.setLotSerialNumber(transactionEntry.getLotSerialNumber());
         // purchaseOrder.setOrderDate(transactionEntry.getDateTimeAdded().toLocalDate());
         // purchaseOrder.setDrSIReferenceNum(transactionEntry.getDrSIReferenceNum());

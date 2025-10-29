@@ -5,7 +5,7 @@ import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/services/purchase_order_service.dart';
 import 'package:frontend/services/brand_service.dart';
 import 'package:flutter/services.dart';
-// import 'dart:convert';
+import 'dart:convert';
 // import 'dart:typed_data';
 // import 'package:file_picker/file_picker.dart';
 // import 'package:file_saver/file_saver.dart';
@@ -87,7 +87,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   List<PurchaseOrder> _displayOrders = [];
   Set<PurchaseOrder> _selectedOrders = {};
   PurchaseOrder? _selectedOrderForEdit;
-  List<String> _availableBrands = [];
+  List<Map<String, dynamic>> _availableBrands = [];
   String? selectedbrand;
 
   bool _isLoading = true;
@@ -122,11 +122,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     try {
       final brands = await _brandService.getBrands();
 
-      final brandNames = brands.map((b) => b.brandName).toList();
+      final brandList = brands.map((b) => {'id': b.brandId, 'name': b.brandName}).toList();
 
       if(!mounted) return;
       setState(() {
-        _availableBrands = brandNames;
+        _availableBrands = brandList;
       });
     } catch (e) {
       if(mounted){
@@ -153,7 +153,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
       // Sort by brand first, then itemCode (both case-insensitive).
       orders.sort((a, b) {
-        final brandCmp = a.brand.toLowerCase().compareTo(b.brand.toLowerCase());
+        final brandCmp = (a.brandName ?? '').toLowerCase().compareTo((b.brandName ?? '').toLowerCase());
         if (brandCmp != 0) return brandCmp;
         final codeA = a.itemCode?.toLowerCase() ?? '';
         final codeB = b.itemCode?.toLowerCase() ?? '';
@@ -188,7 +188,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     setState(() {
       if (query.isNotEmpty) {
         _displayOrders = _allOrders.where((order) {
-          final ref = order.poPIreference.toLowerCase();
+          final ref = order.poPireference.toLowerCase();
           return ref.contains(query);
         }).toList();
       } else {
@@ -277,7 +277,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     final unitCostController = TextEditingController();
     final popiRefController = TextEditingController();
 
-    String? selectedBrand;
+    Map<String, dynamic>? selectedBrand;
     num computedTotalCost = 0;
 
     void recalculateTotal() {
@@ -303,7 +303,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        DropdownButtonFormField<String>(
+                        DropdownButtonFormField<Map<String, dynamic>>(
                           initialValue: selectedBrand,
                           decoration: const InputDecoration(
                             labelText: 'Brand',
@@ -311,7 +311,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                           ),
                           items: _availableBrands.isEmpty
                             ? [
-                                const DropdownMenuItem<String>(
+                                const DropdownMenuItem<Map<String, dynamic>>(
                                   value: null,
                                   enabled: false,
                                   child: Text(
@@ -321,9 +321,9 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                 ),
                               ]
                             : _availableBrands.map((brand) {
-                                return DropdownMenuItem<String>(
+                                return DropdownMenuItem<Map<String, dynamic>>(
                                   value: brand,
-                                  child: Text(brand),
+                                  child: Text(brand['name']),
                                 );
                               }).toList(),
                           onChanged: (value) {
@@ -431,7 +431,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Brand: ${selectedBrand ?? ''}'),
+                            Text('Brand: ${selectedBrand!['name'] ?? ''}'),
                             Text('Description: ${descriptionController.text}'),
                             Text('Pack Size: ${packSizeController.text}'),
                             Text('Quantity: ${quantityController.text}'),
@@ -460,13 +460,15 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   if (confirmed == true) {
                     final newOrder = PurchaseOrder(
                       itemCode: itemController.text,
-                      brand: selectedBrand ?? '',
+                      brandId: selectedBrand!['id'],
                       productDescription: descriptionController.text,
                       packSize: num.tryParse(packSizeController.text) ?? 0,
                       quantity: num.tryParse(quantityController.text) ?? 0,
                       unitCost: num.tryParse(unitCostController.text) ?? 0,
-                      poPIreference: popiRefController.text,
+                      poPireference: popiRefController.text,
+                      addedBy: 1,
                     );
+                    print(newOrder.toJson());
                     try {
                       await _poService.addPurchaseOrder(newOrder);
                       if (!context.mounted) return;
@@ -496,9 +498,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     final packSizeController = TextEditingController(text: order.packSize.toString());
     final quantityController = TextEditingController(text: order.quantity.toString());
     final unitCostController = TextEditingController(text: order.unitCost.toString());
-    final popiRefController = TextEditingController(text: order.poPIreference);
+    final popiRefController = TextEditingController(text: order.poPireference);
 
-    String? selectedBrand = order.brand;
+    int? selectedBrandId = order.brandId;
+
     num computedTotalCost = order.totalCost;
 
     void recalculateTotal(){
@@ -524,22 +527,31 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        DropdownButtonFormField<String>(
-                          initialValue: selectedBrand,
+                        DropdownButtonFormField<int>(
+                          initialValue: selectedBrandId,
                           decoration: const InputDecoration(
                             labelText: 'Brand',
                             border: OutlineInputBorder(),
                           ),
-                          items: _availableBrands.map((brand) {
-                            return DropdownMenuItem<String>(
-                              value: brand,
-                              child: Text(brand),
-                            );
-                          }).toList(),
+                          items: _availableBrands.isEmpty
+                              ? [
+                                  const DropdownMenuItem<int>(
+                                    value: null,
+                                    enabled: false,
+                                    child: Text('No brands available',
+                                        style: TextStyle(color: Colors.grey)),
+                                  ),
+                                ]
+                              : _availableBrands.map((brand) {
+                                  return DropdownMenuItem<int>(
+                                    value: brand['id'],
+                                    child: Text(brand['name']),
+                                  );
+                                }).toList(),
                           onChanged: (value) {
-                            setStateDialog(() => selectedBrand = value);
+                            setStateDialog(() => selectedBrandId = value);
                           },
-                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                          validator: (v) => v == null ? 'Required' : null,
                         ),
                         const SizedBox(height: 16),
 
@@ -628,6 +640,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
             ElevatedButton(
               onPressed: () async {
                 if(formKey.currentState!.validate()) {
+                  final brandName = _availableBrands
+                    .firstWhere((b) => b['id'] == selectedBrandId, orElse: () => {'brandName': ''})['name'];
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (BuildContext context) {
@@ -637,6 +651,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text('Brand: $brandName'),
                             Text('Description: ${descriptionController.text}'),
                             Text('Pack Size: ${packSizeController.text}'),
                             Text('Quantity: ${quantityController.text}'),
@@ -665,13 +680,17 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   if(confirmed == true) {
                     final updatedOrder = PurchaseOrder(
                       itemCode: itemController.text, 
-                      brand: selectedBrand ?? '', 
+                      brandId: selectedBrandId!, 
                       productDescription: descriptionController.text, 
                       packSize: num.tryParse(packSizeController.text) ?? 0, 
                       quantity: num.tryParse(quantityController.text) ?? 0, 
                       unitCost: num.tryParse(unitCostController.text) ?? 0, 
-                      poPIreference: popiRefController.text,
+                      poPireference: popiRefController.text,
+                      addedBy: order.addedBy,
+                      dateTimeAdded: order.dateTimeAdded,
                     );
+
+                    print(jsonEncode(updatedOrder));
                     try {
                       await _poService.updatePurchaseOrder(updatedOrder);
                       if(!context.mounted) return;
@@ -1375,6 +1394,13 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     final recordsToShow = showAll ? _displayOrders : _displayOrders.sublist(_startIndex, endIndex);
 
     return recordsToShow.map<DataRow>((order) {
+      final matchedBrand = _availableBrands.firstWhere(
+        (b) => b['id'] == order.brandId,
+        orElse: () => {'brand_name': ''},
+      );
+
+      final brandName = matchedBrand['name'] ?? '';
+
       final isSelected = _selectedOrders.contains(order);
       final rowColor = counter.isEven ? const Color.fromRGBO(241, 245, 255, 1) : const Color.fromRGBO(230, 240, 255, 1);
       counter++;
@@ -1385,13 +1411,13 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         color: WidgetStateProperty.all(rowColor),
         cells: [
           DataCell(Text(order.itemCode ?? '')),
-          DataCell(Text(order.brand)),
+          DataCell(Text(brandName)),
           DataCell(Text(order.productDescription, overflow: TextOverflow.ellipsis)),
           DataCell(Text(order.packSize.toString())),
           DataCell(Text(order.quantity.toString())),
           DataCell(Text(order.unitCost.toStringAsFixed(2))),
           DataCell(Text(order.totalCost.toStringAsFixed(2))),
-          DataCell(Text(order.poPIreference)),
+          DataCell(Text(order.poPireference)),
         ],
       );
     }).toList();
