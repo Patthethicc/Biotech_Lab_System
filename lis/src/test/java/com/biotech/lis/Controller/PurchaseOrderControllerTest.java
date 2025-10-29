@@ -36,13 +36,12 @@ public class PurchaseOrderControllerTest {
     private PurchaseOrder createSamplePurchaseOrder() {
         PurchaseOrder po = new PurchaseOrder();
         po.setItemCode("ITEM001");
-        po.setBrand("TestBrand");
+        po.setBrandId(1); // Changed from setBrand to setBrandId
         po.setProductDescription("Test Description");
         po.setPackSize(10.0);
         po.setQuantity(5);
         po.setUnitCost(100.0);
-        po.setTotalCost(500.0);
-        po.setPoPIreference("REF123");
+        po.setPoPireference("REF123"); 
         return po;
     }
 
@@ -58,7 +57,7 @@ public class PurchaseOrderControllerTest {
                 .content(objectMapper.writeValueAsString(samplePO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.itemCode").value("ITEM001"))
-                .andExpect(jsonPath("$.brand").value("TestBrand"));
+                .andExpect(jsonPath("$.brandId").value(1)); // Changed from brand to brandId
 
         verify(purchaseOrderService, times(1)).addPurchaseOrder(any(PurchaseOrder.class));
     }
@@ -128,7 +127,7 @@ public class PurchaseOrderControllerTest {
         mockMvc.perform(get("/PO/v1/getPO/ITEM001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.itemCode").value("ITEM001"))
-                .andExpect(jsonPath("$.brand").value("TestBrand"));
+                .andExpect(jsonPath("$.brandId").value(1)); // Changed from brand to brandId
 
         verify(purchaseOrderService, times(1)).getPurchaseOrderByCode("ITEM001");
     }

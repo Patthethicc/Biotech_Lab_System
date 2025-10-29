@@ -31,13 +31,12 @@ public class PurchaseOrderRepositoryTest {
     private PurchaseOrder createSamplePurchaseOrder(String itemCode) {
         PurchaseOrder po = new PurchaseOrder();
         po.setItemCode(itemCode);
-        po.setBrand("TestBrand");
+        po.setBrandId(1); 
         po.setProductDescription("Test Description");
         po.setPackSize(10.0);
         po.setQuantity(5);
         po.setUnitCost(100.0);
-        po.setTotalCost(500.0);
-        po.setPoPIreference("REF123");
+        po.setPoPireference("REF123");
         return po;
     }
 
@@ -50,7 +49,7 @@ public class PurchaseOrderRepositoryTest {
         // Verify the saved purchase order
         assertNotNull(savedPo);
         assertEquals("ITEM001", savedPo.getItemCode());
-        assertEquals("TestBrand", savedPo.getBrand());
+        assertEquals(1, savedPo.getBrandId());
     }
 
     @Test
@@ -65,7 +64,7 @@ public class PurchaseOrderRepositoryTest {
         // Verify the result
         assertNotNull(found);
         assertEquals("ITEM001", found.getItemCode());
-        assertEquals("TestBrand", found.getBrand());
+        assertEquals(1, found.getBrandId()); 
     }
     
     @Test

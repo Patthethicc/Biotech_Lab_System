@@ -44,43 +44,43 @@ public class PurchaseOrderServiceTest {
     void setUp() {
         samplePurchaseOrder = new PurchaseOrder();
         samplePurchaseOrder.setItemCode("ITEM001");
-        samplePurchaseOrder.setBrand("TestBrand");
+        samplePurchaseOrder.setBrandId(1); 
         samplePurchaseOrder.setProductDescription("Test Description");
         samplePurchaseOrder.setPackSize(10.0);
         samplePurchaseOrder.setQuantity(5);
         samplePurchaseOrder.setUnitCost(100.0);
-        samplePurchaseOrder.setTotalCost(500.0);
-        samplePurchaseOrder.setPoPIreference("REF123");
+        samplePurchaseOrder.setPoPireference("REF123"); 
     }
 
     @Test
     void testAddPurchaseOrder() {
         // Setup
         Brand mockBrand = new Brand();
+        mockBrand.setBrandId(1);
         mockBrand.setAbbreviation("TST");
         mockBrand.setLatestSequence(1);
         
-        // Mock brand service
-        when(brandService.getBrandbyName(anyString())).thenReturn(mockBrand);
-        when(purchaseOrderRepository.existsById(anyString())).thenReturn(false);
-        
-        // Update this mock to return a PO with the expected generated code
-        PurchaseOrder savedMockPO = new PurchaseOrder();
-        savedMockPO.setItemCode("TST0001"); // The code that will be generated
-        savedMockPO.setBrand("TestBrand");
-        savedMockPO.setProductDescription("Test Description");
-        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedMockPO);
+        // Mock brand service uses getBrandById instead of getBrandbyName
+        when(brandService.getBrandById(1)).thenReturn(mockBrand);
+        when(purchaseOrderRepository.findTopByBrandIdOrderByItemCodeDesc(1)).thenReturn(Optional.empty());
         
         // Mock security context
         mockSecurityContext();
+        
+        // Update this mock to return a PO with the expected generated code
+        PurchaseOrder savedMockPO = new PurchaseOrder();
+        savedMockPO.setItemCode("TST0000"); // The code that will be generated (sequence 0)
+        savedMockPO.setBrandId(1); 
+        savedMockPO.setProductDescription("Test Description");
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedMockPO);
 
         // Execute
         PurchaseOrder savedPO = purchaseOrderService.addPurchaseOrder(samplePurchaseOrder);
 
         // Verify
         assertNotNull(savedPO);
-        assertEquals("TST0001", savedPO.getItemCode()); // Updated expectation
-        assertEquals("TestBrand", savedPO.getBrand());
+        assertEquals("TST0000", savedPO.getItemCode()); // Updated expectation
+        assertEquals(1, savedPO.getBrandId()); 
         verify(purchaseOrderRepository, times(1)).save(any(PurchaseOrder.class));
     }
 
@@ -136,9 +136,12 @@ public class PurchaseOrderServiceTest {
         // Setup
         PurchaseOrder updatedPO = new PurchaseOrder();
         updatedPO.setItemCode("ITEM001");
-        updatedPO.setBrand("UpdatedBrand");
+        updatedPO.setBrandId(2); 
         updatedPO.setProductDescription("Updated Description");
         updatedPO.setPackSize(20.0);
+        
+        // Mock security context
+        mockSecurityContext();
         
         // Mock the existence check and findByItemCode
         when(purchaseOrderRepository.existsById("ITEM001")).thenReturn(true);
@@ -151,7 +154,7 @@ public class PurchaseOrderServiceTest {
         // Verify
         assertNotNull(result);
         assertEquals("ITEM001", result.getItemCode());
-        assertEquals("UpdatedBrand", result.getBrand());
+        assertEquals(2, result.getBrandId()); // Changed from getBrand
         assertEquals("Updated Description", result.getProductDescription());
         assertEquals(20.0, result.getPackSize());
         verify(purchaseOrderRepository, times(1)).existsById("ITEM001");
@@ -181,14 +184,14 @@ public class PurchaseOrderServiceTest {
     void testDeletePurchaseOrder() {
         // Setup - Mock the existence check
         when(purchaseOrderRepository.existsById("ITEM001")).thenReturn(true);
-        doNothing().when(purchaseOrderRepository).deleteById("ITEM001"); // Fix: use deleteById instead
+        doNothing().when(purchaseOrderRepository).deleteById("ITEM001"); 
 
         // Execute
         purchaseOrderService.deletePurchaseOrder("ITEM001");
 
         // Verify
         verify(purchaseOrderRepository, times(1)).existsById("ITEM001");
-        verify(purchaseOrderRepository, times(1)).deleteById("ITEM001"); // Fix: verify deleteById
+        verify(purchaseOrderRepository, times(1)).deleteById("ITEM001"); 
     }
     
     @Test
@@ -202,7 +205,7 @@ public class PurchaseOrderServiceTest {
         );
         
         verify(purchaseOrderRepository, times(1)).existsById("NONEXISTENT");
-        verify(purchaseOrderRepository, never()).deleteById(anyString()); // Fix: verify deleteById
+        verify(purchaseOrderRepository, never()).deleteById(anyString()); 
     }
     
     // Helper method to mock security context
@@ -215,6 +218,7 @@ public class PurchaseOrderServiceTest {
         
         // Mock user service
         User mockUser = new User();
-        when(userService.getUserById(anyLong())).thenReturn(mockUser);
+        mockUser.setUserId(1L); // Set the user ID
+        when(userService.getUserById(1L)).thenReturn(mockUser);
     }
 }
