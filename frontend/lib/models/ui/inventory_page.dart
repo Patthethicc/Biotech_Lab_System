@@ -6,20 +6,19 @@ import 'package:frontend/models/api/item_loc.dart';
 import 'package:frontend/models/api/inventory_payload.dart';
 import 'package:frontend/services/brand_service.dart';
 import 'package:frontend/services/inventory_service.dart';
+import 'package:frontend/services/location_service.dart';
 import 'package:frontend/services/purchase_order_service.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/models/api/location.dart';
 
-
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
-    Key? key,
     required this.icon,
     required this.enabled,
     required this.onPressed,
     required this.tooltip,
-  }) : super(key: key);
+  });
 
   final IconData icon;
   final bool enabled;
@@ -85,12 +84,14 @@ class _InventoryPageState extends State<InventoryPage> {
   final TextEditingController _searchController = TextEditingController();
   final PurchaseOrderService _poService = PurchaseOrderService();
   final BrandService _brandService = BrandService();
+  final LocationService _locationService = LocationService();
   List<InventoryPayload> _allInventories = [];
   List<InventoryPayload> _displayInventories = [];
   Set<InventoryPayload> _selectedInventories = {};
   InventoryPayload? _selectedInventoryForEdit;
   List<PurchaseOrder> _availablePOs = [];
   List<Map<String, dynamic>> _allBrands = [];
+  List<Location> _availableLocations = [];
 
   bool _isLoading = true;
   bool _selectAll = false;
@@ -101,20 +102,13 @@ class _InventoryPageState extends State<InventoryPage> {
   final List<int> _rowsPerPageOptions = [10, 25, 50, 100];
   final int _showAllValue = -1;
 
-  final List<Location> _availableLocations = [
-    Location(id: 1, name: 'Storage 1'),
-    Location(id: 2, name: 'Storage 2'),
-    Location(id: 3, name: 'Storage 3'),
-    Location(id: 4, name: 'Storage 4'),
-    Location(id: 5, name: 'Storage 5'),
-  ];
-
   @override
   void initState() {
     super.initState();
     _fetchInventories();
     _fetchAvailablePOs();
     _fetchBrands();
+    _fetchLocations();
     _searchController.addListener(_filterInventories);
   }
 
@@ -125,7 +119,7 @@ class _InventoryPageState extends State<InventoryPage> {
     super.dispose();
   }
 
-    Future<void> _fetchBrands() async {
+  Future<void> _fetchBrands() async {
     setState(() {
       _isLoading = true;
     });
@@ -194,6 +188,17 @@ class _InventoryPageState extends State<InventoryPage> {
       final pos = await _poService.fetchPurchaseOrders();
       setState(() {
         _availablePOs = pos;
+      });
+    } catch (e) {
+      debugPrint('Error fetching POs: $e');
+    }
+  }
+
+  Future<void> _fetchLocations() async {
+    try {
+      final locs = await _locationService.getLocations();
+      setState(() {
+        _availableLocations = locs;
       });
     } catch (e) {
       debugPrint('Error fetching POs: $e');
@@ -279,6 +284,17 @@ class _InventoryPageState extends State<InventoryPage> {
     }
   }
 
+  String getLocationNameById(int? locId) {
+    if (locId == null) return '';
+    
+    try {
+      final location = _availableLocations.firstWhere((loc) => loc.locationId == locId);
+      return location.locationName;
+    } catch (e) {
+      return 'Unknown Location (ID: $locId)';
+    }
+  }
+
   Future<PurchaseOrder?> selectPODialog(List<PurchaseOrder> purchaseOrders) {
     return showDialog<PurchaseOrder>(
       context: context,
@@ -360,15 +376,15 @@ class _InventoryPageState extends State<InventoryPage> {
     void addLocation(StateSetter setState) {
       if (selectedLocation != null && quantityController.text.isNotEmpty) {
         final qty = int.tryParse(quantityController.text) ?? 0;
-        final existing = selectedLocs.indexWhere((s) => s.locationId == selectedLocation!.id);
+        final existing = selectedLocs.indexWhere((s) => s.locationId == selectedLocation!.locationId);
 
         if (existing >= 0) {
           selectedLocs[existing].quantity += qty;
         } else {
           selectedLocs.add(
             ItemLoc(
-              locationId: selectedLocation!.id,
-              locationName: selectedLocation!.name,
+              locationId: selectedLocation!.locationId ?? 1,
+              locationName: selectedLocation!.locationName,
               quantity: qty,
             ),
           );
@@ -399,7 +415,7 @@ class _InventoryPageState extends State<InventoryPage> {
                       items: availableLocations.map((loc) {
                         return DropdownMenuItem<Location>(
                           value: loc,
-                          child: Text(loc.name),
+                          child: Text(loc.locationName),
                         );
                       }).toList(),
                       onChanged: (val) => setState(() => selectedLocation = val),
@@ -1708,7 +1724,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           ? payload.locations.map((loc) {
                               return Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Text('${loc.locationName}: ${loc.quantity}'),
+                                child: Text('${getLocationNameById(loc.locationId)}: ${loc.quantity}'),
                               );
                             }).toList()
                           : [const Text('No location data')],
@@ -1756,7 +1772,7 @@ class _InventoryPageState extends State<InventoryPage> {
           child: Text(
             showAll 
                 ? 'Showing all ${_displayInventories.length} orders'
-                : '${_displayInventories.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayInventories.length}',
+                : '${_displayInventories.isEmpty ? 0 : _startIndex + 1} - $endIndex of ${_displayInventories.length}',
             style: const TextStyle(
               fontWeight: FontWeight.w500,
               color: Colors.black87,
