@@ -25,9 +25,9 @@ public class LocationService {
 
     public Location getLocationByName(String name) {
         Optional<Location> optionalLoc = locationRepository.findByLocationName(name);
-        Location location = optionalLoc.get();
-
-        return location;
+        return optionalLoc.orElseThrow(
+            () -> new RuntimeException("Location not found with name: " + name)
+        );
     }
 
     public Location updateLocation(String name, Location updatedLocation) {
