@@ -384,7 +384,7 @@ class _InventoryPageState extends State<InventoryPage> {
           selectedLocs.add(
             ItemLoc(
               locationId: selectedLocation!.locationId ?? 1,
-              locationName: selectedLocation!.locationName,
+              locationName: getLocationNameById(selectedLocation!.locationId),
               quantity: qty,
             ),
           );
@@ -449,8 +449,9 @@ class _InventoryPageState extends State<InventoryPage> {
                         itemCount: selectedLocs.length,
                         itemBuilder: (context, index) {
                           final loc = selectedLocs[index];
+                          final locName = getLocationNameById(loc.locationId);
                           return ListTile(
-                            title: Text('${loc.locationName}'),
+                            title: Text(locName),
                             trailing: Text('Qty: ${loc.quantity}'),
                             leading: IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
@@ -485,52 +486,72 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  // Future<bool> confirmAddDialog({
-  //   required String brand,
-  //   required String description,
-  //   required String packSize,
-  //   required String poReference,
-  //   required num totalQuantity,
-  //   required num unitCost,
-  //   required num totalCost,
-  // }) async {
-  //   return await showDialog<bool>(
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         title: const Text('Confirm Details'),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             Text('Brand: $brand'),
-  //             Text('Description: $description'),
-  //             Text('Pack Size: $packSize'),
-  //             Text('PO Ref: $poReference'),
-  //             Text('Total Quantity: $totalQuantity'),
-  //             Text('Unit Cost: $unitCost'),
-  //             const Divider(),
-  //             Text('Total Cost: ₱${totalCost.toStringAsFixed(2)}',
-  //               style: const TextStyle(fontWeight: FontWeight.bold)),
-  //             const SizedBox(height: 16),
-  //             const Text('Are you sure you want to proceed?',
-  //                 style: TextStyle(fontWeight: FontWeight.bold)),
-  //           ],
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () => Navigator.pop(context, false),
-  //             child: const Text('Cancel'),
-  //           ),
-  //           ElevatedButton(
-  //             onPressed: () => Navigator.pop(context, true),
-  //             child: const Text('Confirm'),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   ) ?? false;
-  // }
+  Future<bool> _confirmDialog(String actionType, InventoryPayload payload) async {
+    final inventory = payload.inventory;
+    final brandName = getBrandNameById(inventory.brandId);
+    final totalCost = inventory.quantity * inventory.costOfSale;
+
+    final title = actionType == 'add' ? 'Confirm New Item' : 'Confirm Changes';
+    final confirmText = actionType == 'add' ? 'Add' : 'Save Changes';
+    final question = actionType == 'add' 
+        ? 'Are you sure you want to add this item?'
+        : 'Are you sure you want to save these changes?';
+
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Brand: $brandName'),
+                Text('Description: ${inventory.itemDescription}'),
+                Text('Pack Size: ${inventory.packSize}'),
+                Text('PO Ref: ${inventory.poPireference}'),
+                Text('Lot Num: ${inventory.lotNum}'),
+                Text('Expiry: ${inventory.expiry}'),
+                const Divider(height: 20),
+
+                Text('Total Quantity: ${inventory.quantity}'),
+                Text('Unit Cost: ₱${inventory.costOfSale.toStringAsFixed(2)}'),
+                Text('Total Cost: ₱${totalCost.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Divider(height: 20),
+
+                const Text('Locations:', style: TextStyle(fontWeight: FontWeight.bold)),
+                if (payload.locations.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8.0, top: 4.0),
+                    child: Text('(No locations specified)', style: TextStyle(fontStyle: FontStyle.italic)),
+                  ),
+                ...payload.locations.map((loc) => Padding(
+                  padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+                  child: Text('• ${getLocationNameById(loc.locationId)}: ${loc.quantity}'),
+                )),
+                
+                const SizedBox(height: 20),
+                Text(question,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(confirmText),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+  }
 
   void _showAddDialog() {
     final formKey = GlobalKey<FormState>();
@@ -718,7 +739,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 .map(
                                   (loc) => ListTile(
                                     dense: true,
-                                    title: Text(loc.locationName ?? 'N/A'),
+                                    title: Text(getLocationNameById(loc.locationId)),
                                     trailing: Text('Qty: ${loc.quantity}'),
                                   ),
                                 )
@@ -751,29 +772,30 @@ class _InventoryPageState extends State<InventoryPage> {
             ElevatedButton(
               onPressed: () async {
                 if (formKey.currentState!.validate() && selectedPO != null) {
-                  // final confirmed = await confirmAddDialog(selectedPO!, totalQuantity);
-                  // if (confirmed == true) {
-                    final newInventory = Inventory(
-                      poPireference: selectedPO!.poPireference,
-                      invoiceNum: drsiController.text,
-                      itemCode: selectedPO?.itemCode ?? '',
-                      itemDescription: selectedPO!.productDescription,
-                      brandId: selectedPO!.brandId,
-                      packSize: selectedPO!.packSize,
-                      lotNum: int.tryParse(lotNumController.text) ?? 0,
-                      expiry: expiryDateController.text,
-                      costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
-                      note: noteController.text,
-                      addedBy: 1,
-                      dateTimeAdded: DateTime.now().toIso8601String(),
-                      quantity: totalQuantity as int,
-                    );
+                  final newInventory = Inventory(
+                    poPireference: selectedPO!.poPireference,
+                    invoiceNum: drsiController.text,
+                    itemCode: selectedPO!.itemCode ?? '',
+                    itemDescription: selectedPO!.productDescription,
+                    brandId: selectedPO!.brandId,
+                    packSize: selectedPO!.packSize,
+                    lotNum: int.tryParse(lotNumController.text) ?? 0,
+                    expiry: expiryDateController.text,
+                    costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
+                    note: noteController.text.isEmpty ? null : noteController.text,
+                    addedBy: 1,
+                    dateTimeAdded: DateTime.now().toIso8601String(),
+                    quantity: totalQuantity as int,
+                  );
 
-                    final payload = InventoryPayload(
-                      inventory: newInventory,
-                      locations: itemLocs,
-                    );
+                  final payload = InventoryPayload(
+                    inventory: newInventory,
+                    locations: itemLocs,
+                  );
 
+                  final confirmed = await _confirmDialog("add", payload);
+
+                  if (confirmed == true) {
                     try {
                       await _inventoryService.createInventory(payload);
                       if (!context.mounted) return;
@@ -781,9 +803,12 @@ class _InventoryPageState extends State<InventoryPage> {
                       _showDialog('Success', 'Inventory item added!');
                       _fetchInventories();
                     } catch (e) {
+                      if (!context.mounted) return;
                       _showDialog('Error', 'Failed to add inventory: $e');
                     }
-                  // }
+                  }
+                } else if (selectedPO == null) {
+                  _showDialog('Error', 'Please select a Purchase Order.');
                 }
               },
               child: const Text('Add'),
@@ -974,7 +999,7 @@ class _InventoryPageState extends State<InventoryPage> {
                                 .map(
                                   (loc) => ListTile(
                                     dense: true,
-                                    title: Text(loc.locationName ?? 'N/A'),
+                                    title: Text(getLocationNameById(loc.locationId)),
                                     trailing: Text('Qty: ${loc.quantity}'),
                                   ),
                                 )
@@ -1008,19 +1033,19 @@ class _InventoryPageState extends State<InventoryPage> {
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   final updatedInventory = Inventory(
-                      poPireference: inventory.poPireference,
-                      invoiceNum: drsiController.text,
-                      itemCode: inventory.itemCode,
-                      itemDescription: inventory.itemDescription,
-                      brandId: inventory.brandId,
-                      packSize: inventory.packSize,
-                      lotNum: int.tryParse(lotNumController.text) ?? 0,
-                      expiry: expiryDateController.text,
-                      costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
-                      note: noteController.text,
-                      addedBy: 1,
-                      dateTimeAdded: inventory.dateTimeAdded,
-                      quantity: totalQuantity as int,
+                    poPireference: inventory.poPireference,
+                    invoiceNum: drsiController.text,
+                    itemCode: inventory.itemCode,
+                    itemDescription: inventory.itemDescription,
+                    brandId: inventory.brandId,
+                    packSize: inventory.packSize,
+                    lotNum: int.tryParse(lotNumController.text) ?? 0,
+                    expiry: expiryDateController.text,
+                    costOfSale: double.tryParse(costOfSaleController.text) ?? 0.0,
+                    note: noteController.text,
+                    addedBy: 1,
+                    dateTimeAdded: inventory.dateTimeAdded,
+                    quantity: totalQuantity as int,
                   );
 
                   final updatePayload = InventoryPayload(
@@ -1028,15 +1053,19 @@ class _InventoryPageState extends State<InventoryPage> {
                     locations: itemLocs,
                   );
 
-                  try {
-                    await _inventoryService.updateInventory(updatePayload);
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _showDialog('Success', 'Inventory updated successfully.');
-                      _fetchInventories();
+                  final confirmed = await _confirmDialog("edit", updatePayload);
+
+                  if(confirmed == true){
+                    try {
+                      await _inventoryService.updateInventory(updatePayload);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _showDialog('Success', 'Inventory updated successfully.');
+                        _fetchInventories();
+                      }
+                    } catch (e) {
+                      _showDialog('Error', 'Failed to update: $e');
                     }
-                  } catch (e) {
-                    _showDialog('Error', 'Failed to update: $e');
                   }
                 }
               },
