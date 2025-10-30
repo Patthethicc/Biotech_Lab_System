@@ -362,6 +362,7 @@ class _HomePageState extends State<HomePage> {
           ),
           buildDrawerItem(context, 'View Profile', '/view_profile'),
           buildDrawerItem(context, 'Transaction Entry', '/transaction_entry'),
+          buildDrawerItem(context, 'Locations', '/location'),
           buildDrawerItem(context, 'Inventory', '/inventory'),
           buildDrawerItem(context, 'Brands', '/brand'),
           buildDrawerItem(context, 'Stock Alerts', '/stock_alert'),
