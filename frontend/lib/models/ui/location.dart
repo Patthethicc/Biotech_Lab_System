@@ -96,6 +96,9 @@ class _LocationPageState extends State<LocationPage> {
   }
 
   void _fetchData() {
+    setState(() {
+      _isLoading = true;
+    });
     locationService.getLocations().then((value) {
       setState(() {
         _allLocations = value;
@@ -194,6 +197,9 @@ class _LocationPageState extends State<LocationPage> {
                   if (!mounted) return;
                   Navigator.pop(context);
                   _fetchData();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Successfully Added Location')),
+                  );
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -257,6 +263,9 @@ class _LocationPageState extends State<LocationPage> {
                   if (!mounted) return;
                   Navigator.pop(context);
                   _fetchData();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Successfully Edited Location')),
+                  );
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -308,7 +317,7 @@ class _LocationPageState extends State<LocationPage> {
         ),
         child:Center(
         child:ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 1200),
+          constraints: BoxConstraints(maxWidth: 450),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -474,6 +483,9 @@ class _LocationPageState extends State<LocationPage> {
                   if (!mounted) return;
                   Navigator.of(context).pop();
                   _fetchData();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Successfully Deleted Location')),
+                  );
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
