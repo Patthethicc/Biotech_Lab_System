@@ -24,6 +24,14 @@ public class StockLocatorService {
         return stockLocatorRepository.findByBrandAndProductDescription(brand, productDescription);
     }
 
+    public List<StockLocator> searchStockLocators(String brand, String query) {
+        // Treat empty strings as null to match all records for that parameter
+        String effectiveBrand = (brand != null && !brand.trim().isEmpty()) ? brand : null;
+        String effectiveQuery = (query != null && !query.trim().isEmpty()) ? query : null;
+
+        return stockLocatorRepository.search(effectiveBrand, effectiveQuery);
+    }
+
     public Integer getManilaStock(String brand, String productDescription) {
         Optional<StockLocator> stockLocatorOpt = getStocksByBrandAndProduct(brand, productDescription);
         StockLocator stockLocator = stockLocatorOpt.get();

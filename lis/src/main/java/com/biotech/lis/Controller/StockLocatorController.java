@@ -40,15 +40,16 @@ public class StockLocatorController {
         }
     }
 
+
     @GetMapping("/search")
-    public ResponseEntity<StockLocator> getStockByBrandAndProduct(
-            @RequestParam String brand, 
-            @RequestParam String productDescription) {
-        Optional<StockLocator> stockLocator = stockLocatorService.getStocksByBrandAndProduct(brand, productDescription);
-        if (stockLocator.isPresent()) {
-            return ResponseEntity.ok(stockLocator.get());
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    public ResponseEntity<List<StockLocator>> searchStockLocators(
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String query) {
+        try {
+            List<StockLocator> results = stockLocatorService.searchStockLocators(brand, query);
+            return ResponseEntity.ok(results);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

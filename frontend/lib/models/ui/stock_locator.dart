@@ -151,7 +151,7 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    _fetchAndLoadInitialData();
     _searchController.addListener(_filterRecords);
   }
 
@@ -162,9 +162,10 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
     super.dispose();
   }
 
-  Future<void> _loadInitialData() async {
-    await _fetchRecords();
+  Future<void> _fetchAndLoadInitialData() async {
     await _loadBrands();
+
+    await _fetchRecords(); 
   }
 
   Future<void> _fetchRecords() async {
@@ -176,11 +177,14 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
       });
     }
     try {
-      final records = await _service.getAllStockLocators();
+      final records = await _service.searchStockLocators(
+        brand: _selectedBrandFilter?.brandName,
+        query: _searchController.text,
+      );
       if (mounted) {
         setState(() {
           _allRecords = records;
-          _filterRecords();
+          _displayRecords = List.from(_allRecords);
         });
       }
     } catch (e) {
@@ -211,19 +215,8 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
 
 
   void _filterRecords() {
-    final searchQuery = _searchController.text.toLowerCase();
-    final brandQuery = _selectedBrandFilter?.brandName.toLowerCase();
-
-    setState(() {
-      _displayRecords = _allRecords.where((record) {
-        final brandMatch = brandQuery == null || record.brand.toLowerCase() == brandQuery;
-        final searchMatch = searchQuery.isEmpty ||
-            record.brand.toLowerCase().contains(searchQuery) ||
-            record.productDescription.toLowerCase().contains(searchQuery) ||
-            record.itemCode.toLowerCase().contains(searchQuery);
-        return brandMatch && searchMatch;
-      }).toList();
-      
+    
+    _fetchRecords().then((_) {
       _startIndex = 0;
       _selectedEntry = null;
     });
@@ -503,9 +496,9 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
       context: context,
       builder: (context) => _EditStockDialog(
         stockLocator: stock,
-        onUpdate: (updatedStock) async {
-          final success = await _service.updateStockLocator(updatedStock);
-          if (success) {
+        onUpdate: (updatedStock) async { 
+          final updatedRecord = await _service.updateStockLocator(updatedStock); 
+          if (updatedRecord != null) {
             await _fetchRecords();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Stock updated successfully!'), backgroundColor: Colors.green));

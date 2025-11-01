@@ -8,14 +8,22 @@ class StockLocatorService {
   static final String baseUrl = dotenv.env['API_URL']!;
   final storage = const FlutterSecureStorage();
 
-  // New method to fetch all records for pagination
-  Future<List<StockLocator>> getAllStockLocators() async {
+  // Updated method to fetch records with serverside filtering and searching
+  Future<List<StockLocator>> searchStockLocators({String? brand, String? query}) async {
     final String? token = await storage.read(key: 'jwt_token');
     if (token == null) {
       throw Exception('JWT token not found in secure storage');
     }
 
-    final uri = Uri.parse('$baseUrl/stock-locator/all');
+    final queryParameters = <String, String>{};
+    if (brand != null && brand.isNotEmpty) {
+      queryParameters['brand'] = brand;
+    }
+    if (query != null && query.isNotEmpty) {
+      queryParameters['query'] = query;
+    }
+
+    final uri = Uri.parse('$baseUrl/stock-locator/search').replace(queryParameters: queryParameters);
     
     final response = await http.get(
       uri,
@@ -30,7 +38,7 @@ class StockLocatorService {
       final List<dynamic> jsonBody = json.decode(response.body);
       return jsonBody.map((json) => StockLocator.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load stock locators: ${response.statusCode} ${response.body}');
+      throw Exception('Failed to search stock locators: ${response.statusCode} ${response.body}');
     }
   }
 
@@ -70,11 +78,11 @@ class StockLocatorService {
     }
   }
 
-  Future<bool> updateStockLocator(StockLocator stockLocator) async {
+  Future<StockLocator?> updateStockLocator(StockLocator stockLocator) async {
     final String? token = await storage.read(key: 'jwt_token');
     if (token == null) {
       print('Error: JWT token not found in secure storage');
-      return false;
+      return null;
     }
 
     try {
@@ -89,15 +97,15 @@ class StockLocatorService {
       );
 
       if (response.statusCode == 200) {
-        print('Stock locator updated successfully');
-        return true;
+        final Map<String, dynamic> jsonBody = json.decode(response.body);
+        return StockLocator.fromJson(jsonBody);
       } else {
         print('Error updating stock locator ${response.statusCode}: ${response.body}');
-        return false;
+        return null;
       }
     } catch (e) {
       print('Exception during stock locator update: $e');
-      return false;
+      return null;
     }
   }
 }
