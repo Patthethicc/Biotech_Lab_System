@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
       final entries = await TransactionEntryService().fetchTransactionEntries();
       final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
-      final alerts = await StockAlertService().getStockAlerts();
+      final alerts = await StockAlertService().getStockAlerts(1);
       final outOfStockItems = alerts.where((item) => item.quantityOnHand == 0).length;
 
       setState(() {
@@ -366,6 +366,7 @@ class _HomePageState extends State<HomePage> {
           buildDrawerItem(context, 'Stock Locator', '/stock_locator'),
           buildDrawerItem(context, 'Expiration Alert', '/expiry_alert'),
           buildDrawerItem(context, 'Purchase Order', '/purchase_order'),
+          buildDrawerItem(context, 'Customer List', '/customer'),
           ListTile(
             title: const Text('Log out', style: TextStyle(fontSize: 14)),
             onTap: () {

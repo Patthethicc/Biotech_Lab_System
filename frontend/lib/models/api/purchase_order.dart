@@ -1,47 +1,85 @@
+import 'dart:typed_data';
+import 'dart:convert';
+
 class PurchaseOrder {
-  String? itemCode;
+  String itemCode;
   String brand;
   String productDescription;
-  num packSize;
-  num quantity;
-  num unitCost;
-  num totalCost;
-  String poPIreference;
+  String lotSerialNumber;
+  String? purchaseOrderFileName;
+  Uint8List? purchaseOrderFile;
+  String? suppliersPackingListName;
+  Uint8List? suppliersPackingList;
+  String? inventoryOfDeliveredItemsName;
+  Uint8List? inventoryOfDeliveredItems;
+  DateTime orderDate;
+  String drSIReferenceNum;
 
   PurchaseOrder({
-    this.itemCode,
+    required this.itemCode,
     required this.brand,
     required this.productDescription,
-    required this.packSize,
-    required this.quantity,
-    required this.unitCost,
-    required this.poPIreference,
-  }) : totalCost = quantity * unitCost; // compute automatically
+    required this.lotSerialNumber,
+    this.purchaseOrderFileName,
+    this.purchaseOrderFile,
+    this.suppliersPackingListName,
+    this.suppliersPackingList,
+    this.inventoryOfDeliveredItemsName,
+    this.inventoryOfDeliveredItems,
+    required this.orderDate,
+    required this.drSIReferenceNum,
+  });
 
+  bool get hasPurchaseOrderFile => purchaseOrderFile != null;
+  bool get hasSuppliersPackingList => suppliersPackingList != null;
+  bool get hasInventoryOfDeliveredItems => inventoryOfDeliveredItems != null;
   factory PurchaseOrder.fromJson(Map<String, dynamic> json) {
-    final qty = json['quantity'] ?? 0;
-    final cost = json['unitCost'] ?? 0;
-    return PurchaseOrder(
-      itemCode: json['itemCode'],
-      brand: json['brand'] ?? 'No Brand',
-      productDescription: json['productDescription'] ?? 'No Description',
-      packSize: json['packSize'] ?? 0,
-      quantity: qty,
-      unitCost: cost,
-      poPIreference: json['poPIreference'] ?? 'N/A',
-    );
+      return PurchaseOrder(
+        itemCode: json['itemCode'] ?? 'Unknown Code',
+        brand: json['brand'] ?? 'No Brand Provided',
+        productDescription: json['productDescription'] ?? 'No Description',
+        lotSerialNumber: json['lotSerialNumber'] ?? 'N/A',
+        purchaseOrderFileName: json['purchaseOrderFileName'] ?? 'No File Name',
+        purchaseOrderFile: json['purchaseOrderFile'] != null 
+          ? base64Decode(json['purchaseOrderFile'] as String) 
+          : null,
+        suppliersPackingListName: json['suppliersPackingListName'] ?? 'No File Name',
+        suppliersPackingList: json['suppliersPackingList'] != null
+          ? base64Decode(json['suppliersPackingList'] as String)
+          : null,
+        inventoryOfDeliveredItemsName: json['inventoryOfDeliveredItemsName'] ?? 'No File Name',
+        inventoryOfDeliveredItems: json['inventoryOfDeliveredItems'] != null
+          ? base64Decode(json['inventoryOfDeliveredItems'] as String)
+          : null,
+        orderDate: DateTime.parse(json['orderDate']),
+        drSIReferenceNum: json['drSIReferenceNum'] ?? 'N/A',
+      );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final json = <String, dynamic>{
       'itemCode': itemCode,
       'brand': brand,
       'productDescription': productDescription,
-      'packSize': packSize,
-      'quantity': quantity,
-      'unitCost': unitCost,
-      'totalCost': totalCost,
-      'poPIreference': poPIreference,
+      'lotSerialNumber': lotSerialNumber,
+      'purchaseOrderFileName': purchaseOrderFileName,
+      'suppliersPackingListName': suppliersPackingListName,
+      'inventoryOfDeliveredItemsName': inventoryOfDeliveredItemsName,
+      'orderDate': orderDate.toIso8601String(),
+      'drSIReferenceNum': drSIReferenceNum,
     };
+
+    if (purchaseOrderFile != null) {
+      json['purchaseOrderFile'] = base64Encode(purchaseOrderFile!);
+    }
+    if (suppliersPackingList != null) {
+      json['suppliersPackingList'] = base64Encode(suppliersPackingList!);
+    }
+    if (inventoryOfDeliveredItems != null) {
+      json['inventoryOfDeliveredItems'] = base64Encode(inventoryOfDeliveredItems!);
+    }
+
+    return json;
   }
+
 }
