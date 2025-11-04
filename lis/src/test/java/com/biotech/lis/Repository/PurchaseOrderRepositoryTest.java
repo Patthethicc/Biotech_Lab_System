@@ -31,7 +31,7 @@ public class PurchaseOrderRepositoryTest {
     private PurchaseOrder createSamplePurchaseOrder(String itemCode) {
         PurchaseOrder po = new PurchaseOrder();
         po.setItemCode(itemCode);
-        po.setBrandId(1);
+        po.setBrandId(1); 
         po.setProductDescription("Test Description");
         po.setPackSize(10.0);
         po.setQuantity(5);
@@ -64,7 +64,7 @@ public class PurchaseOrderRepositoryTest {
         // Verify the result
         assertNotNull(found);
         assertEquals("ITEM001", found.getItemCode());
-        assertEquals(1, found.getBrandId());
+        assertEquals(1, found.getBrandId()); 
     }
     
     @Test
