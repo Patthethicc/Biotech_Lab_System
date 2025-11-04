@@ -13,16 +13,16 @@ CREATE TABLE `brand` (
     latestSequence INT
 );
 
-CREATE TABLE purchase_order (
-    item_code VARCHAR(255) PRIMARY KEY,
-    brand_id INT,
-    product_description VARCHAR(255),
-    pack_size DOUBLE,
+CREATE TABLE purchaseOrder (
+    itemCode VARCHAR(255) PRIMARY KEY,
+    brandId INT,
+    productDescription VARCHAR(255),
+    packSize DOUBLE,
     quantity INT,
-    unit_cost DOUBLE,
-    po_pireference VARCHAR(255),
-    added_by INT,
-    date_time_added TIMESTAMP
+    unitCost DOUBLE,
+    poPireference VARCHAR(255),
+    addedBy INT,
+    dateTimeAdded TIMESTAMP
 );
 
 CREATE TABLE `inventory` (
