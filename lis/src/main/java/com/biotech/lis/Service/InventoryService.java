@@ -107,7 +107,16 @@ public class InventoryService {
     }
 
     @Transactional
-    public Inventory updateInventoryInv(Inventory inventory) {
+    public InventoryPayload updateInventory(InventoryPayload payload) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = userService.getUserById(Long.parseLong(auth.getName()));
+        LocalDateTime cDateTime = LocalDateTime.now();
+
+
+        Inventory inventory = payload.getInventory();
+        List<ItemLoc> newLocations = payload.getLocations();
+
         Inventory existingInventory = getInventoryByCode(inventory.getItemCode());
 
         if (existingInventory == null) {
@@ -115,10 +124,6 @@ public class InventoryService {
                 "Inventory with code " + inventory.getItemCode() + " not found"
             );
         }
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userService.getUserById(Long.parseLong(auth.getName()));
-        LocalDateTime cDateTime = LocalDateTime.now();
 
         existingInventory.setPoPireference(inventory.getPoPireference());
         existingInventory.setInvoiceNum(inventory.getInvoiceNum());
@@ -134,11 +139,24 @@ public class InventoryService {
         existingInventory.setAddedBy(user.getUserId());
         existingInventory.setDateTimeAdded(cDateTime);
 
-        return inventoryRepository.save(existingInventory);
+        Inventory savedInventory = inventoryRepository.save(existingInventory);
+
+        itemLocRepository.deleteByItemCode(savedInventory.getItemCode());
+        for (ItemLoc loc : newLocations) {
+            loc.setItemCode(savedInventory.getItemCode());
+            itemLocRepository.save(loc);
+        }
+
+        List<ItemLoc> savedLocations = itemLocRepository.findByItemCode(savedInventory.getItemCode());
+
+        InventoryPayload newPayload = new InventoryPayload(savedInventory, savedLocations);
+
+        return newPayload;
     }
 
     @Transactional
     public void deleteByInventoryId(String itemcode) {
+        itemLocRepository.deleteByItemCode(itemcode);
         inventoryRepository.deleteById(itemcode);
     }
 

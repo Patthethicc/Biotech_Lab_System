@@ -8,6 +8,7 @@ import com.biotech.lis.Entity.ItemLoc;
 
 public interface ItemLocRepository extends JpaRepository<ItemLoc, Integer> {
     List<ItemLoc> findByItemCode(String itemCode);
+    void deleteByItemCode(String itemCode);
 }
 
 

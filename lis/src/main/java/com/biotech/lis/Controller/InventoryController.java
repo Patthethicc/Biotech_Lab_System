@@ -48,12 +48,9 @@ public class InventoryController {
 
     @PutMapping("/updateInv")
     public ResponseEntity<InventoryPayload> updateInventory(@RequestBody InventoryPayload payload) {
-        Inventory updatedInventory = inventoryService.updateInventoryInv(payload.getInventory());
+        InventoryPayload updatedPayload = inventoryService.updateInventory(payload);
 
-        InventoryPayload response = new InventoryPayload();
-        response.setInventory(updatedInventory);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(updatedPayload);
     }
 
     @DeleteMapping("/deleteInv/{itemCode}")
