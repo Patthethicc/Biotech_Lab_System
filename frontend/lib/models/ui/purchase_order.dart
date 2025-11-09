@@ -6,8 +6,11 @@ import 'package:frontend/services/purchase_order_service.dart';
 import 'package:frontend/services/brand_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'dart:io';
 // import 'dart:typed_data';
-// import 'package:file_picker/file_picker.dart';
+import 'package:file_picker/file_picker.dart';
 // import 'package:file_saver/file_saver.dart';
 
 
@@ -462,8 +465,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       itemCode: itemController.text,
                       brandId: selectedBrand!['id'],
                       productDescription: descriptionController.text,
-                      packSize: num.tryParse(packSizeController.text) ?? 0,
-                      quantity: num.tryParse(quantityController.text) ?? 0,
+                      packSize: int.tryParse(packSizeController.text) ?? 0,
+                      quantity: int.tryParse(quantityController.text) ?? 0,
                       unitCost: num.tryParse(unitCostController.text) ?? 0,
                       poPireference: popiRefController.text,
                       addedBy: 1,
@@ -682,8 +685,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       itemCode: itemController.text, 
                       brandId: selectedBrandId!, 
                       productDescription: descriptionController.text, 
-                      packSize: num.tryParse(packSizeController.text) ?? 0, 
-                      quantity: num.tryParse(quantityController.text) ?? 0, 
+                      packSize: int.tryParse(packSizeController.text) ?? 0, 
+                      quantity: int.tryParse(quantityController.text) ?? 0, 
                       unitCost: num.tryParse(unitCostController.text) ?? 0, 
                       poPireference: popiRefController.text,
                       addedBy: order.addedBy,
@@ -873,6 +876,68 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   //     _showDialog('Error', 'An error occurred: $e');
   //   }
   // }
+
+  Future<void> _generateAndSavePDF(PurchaseOrder po, String brandName) async {
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build:(pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(po.poPireference, 
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold, 
+                    fontSize: 24
+                  )
+                ),
+                pw.SizedBox(height: 24),
+                pw.TableHelper.fromTextArray(
+                  headers: ['Item Code', 'Brand', 'Product Description', 'Pack Size', 'Quantity', 'Unit Cost', 'Total Cost', 'PO/PI Reference'],
+                  data: [[po.itemCode, brandName, po.productDescription, po.packSize, po.quantity, po.unitCost, po.totalCost, po.poPireference]],
+                  border: pw.TableBorder.all(color: PdfColors.grey600, width: 1),
+                  headerStyle: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.white,
+                  ),
+                  headerDecoration: const pw.BoxDecoration(
+                    color: PdfColors.blueGrey800,
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 12),
+                  cellAlignment: pw.Alignment.centerLeft,
+                  cellAlignments: {
+                    4: pw.Alignment.center,
+                    5: pw.Alignment.centerRight,
+                    6: pw.Alignment.centerRight,
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      final bytes = await pdf.save();
+
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Purchase Order PDF',
+        fileName: '${po.poPireference}.pdf',
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if(outputFile != null){
+        final file = File(outputFile);
+        await file.writeAsBytes(bytes);
+        _showDialog('Success', 'PDF Successfully Saved at $outputFile');
+      }
+    } catch (e) {
+      _showDialog('Error', 'Error generating or saving PDF: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1250,6 +1315,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
                                                     DataCell(Text('')),
+                                                    DataCell(Text('')),
                                                   ])
                                                 ]
                                               : _buildDataRows(formatter, endIndex, constraints.maxWidth),
@@ -1386,6 +1452,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       DataColumn(label: Text('Unit Cost', style: headerStyle,)), // drSIReferenceNum
       DataColumn(label: Text('Total Cost', style: headerStyle)), // purchaseOrderFile
       DataColumn(label: Text('PO/PI Reference', style: headerStyle)), // suppliersPackingList
+      DataColumn(label: Text('', style: headerStyle)), // suppliersPackingList
     ];
   }
     List<DataRow> _buildDataRows(DateFormat formatter, int endIndex, double screenWidth) {
@@ -1418,6 +1485,14 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           DataCell(Text(order.unitCost.toStringAsFixed(2))),
           DataCell(Text(order.totalCost.toStringAsFixed(2))),
           DataCell(Text(order.poPireference)),
+          DataCell(
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              color: Colors.blue[400],
+              tooltip: 'Save PO as PDF',
+              onPressed: () => _generateAndSavePDF(order, brandName),
+            )
+          ),
         ],
       );
     }).toList();
