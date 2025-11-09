@@ -4,11 +4,13 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "purchaseOrder")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,8 +22,11 @@ public class PurchaseOrder {
     private Integer quantity;
     private Double unitCost;
     private String poPireference;
+    
     private Integer addedBy;
+    
     private LocalDateTime dateTimeAdded;
+    
     private String productDescription;
 
     // private String lotSerialNumber;
