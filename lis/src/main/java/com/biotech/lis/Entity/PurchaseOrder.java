@@ -20,7 +20,7 @@ public class PurchaseOrder {
     
     private Integer brandId;
     
-    private Double packSize;
+    private Integer packSize;
     
     private Integer quantity;
     
