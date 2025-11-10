@@ -33,7 +33,7 @@ public class PurchaseOrderRepositoryTest {
         po.setItemCode(itemCode);
         po.setBrandId(1); 
         po.setProductDescription("Test Description");
-        po.setPackSize(10);
+        po.setPackSize(10.0);
         po.setQuantity(5);
         po.setUnitCost(100.0);
         po.setPoPireference("REF123");

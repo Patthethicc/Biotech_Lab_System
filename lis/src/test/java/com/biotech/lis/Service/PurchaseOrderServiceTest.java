@@ -46,7 +46,7 @@ public class PurchaseOrderServiceTest {
         samplePurchaseOrder.setItemCode("ITEM001");
         samplePurchaseOrder.setBrandId(1); 
         samplePurchaseOrder.setProductDescription("Test Description");
-        samplePurchaseOrder.setPackSize(10);
+        samplePurchaseOrder.setPackSize(10.0);
         samplePurchaseOrder.setQuantity(5);
         samplePurchaseOrder.setUnitCost(100.0);
         samplePurchaseOrder.setPoPireference("REF123"); 
@@ -138,7 +138,7 @@ public class PurchaseOrderServiceTest {
         updatedPO.setItemCode("ITEM001");
         updatedPO.setBrandId(2); 
         updatedPO.setProductDescription("Updated Description");
-        updatedPO.setPackSize(20);
+        updatedPO.setPackSize(20.0);
         
         // Mock security context
         mockSecurityContext();
