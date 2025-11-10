@@ -5,12 +5,14 @@ import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/services/purchase_order_service.dart';
 import 'package:frontend/services/brand_service.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'dart:io';
 // import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:docx_template/docx_template.dart';
 // import 'package:file_saver/file_saver.dart';
 
 
@@ -939,6 +941,49 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     }
   }
 
+  Future<void> _generateAndSaveDOCX(PurchaseOrder po, String brandName) async {
+    try {
+      final data = await rootBundle.load('Assets/Documents/template.docx');
+      final bytes = data.buffer.asUint8List();
+
+      final docx = await DocxTemplate.fromBytes(bytes);
+
+      Content content = Content();
+
+      content
+        ..add(TextContent("itemCode", po.itemCode))
+        ..add(TextContent("brandName", brandName))
+        ..add(TextContent("packSize", po.packSize.toStringAsFixed(2)))
+        ..add(TextContent("quantity", po.quantity.toString()))
+        ..add(TextContent("unitCost", po.unitCost.toStringAsFixed(2)))
+        ..add(TextContent("poPireference", po.poPireference))
+        ..add(TextContent("productDescription", po.productDescription))
+        ..add(TextContent("totalCost", po.totalCost.toStringAsFixed(2)));
+
+      final generatedBytes = await docx.generate(content);
+      
+      if (generatedBytes == null) {
+        _showDialog('Error', 'DOCX generation failed');
+        return;
+      }
+
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Purchase Order Docx',
+        fileName: '${po.poPireference}.docx',
+        type: FileType.custom,
+        allowedExtensions: ['docx'],
+      );
+
+      if(outputFile != null){
+        final file = File(outputFile);
+        await file.writeAsBytes(generatedBytes);
+        _showDialog('Success', 'DOCX Successfully Saved at $outputFile');
+      }
+    } catch (e) {
+      _showDialog('Error', 'Error generating or saving DOCX: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final DateFormat formatter = DateFormat('yyyy-MM-dd');
@@ -1486,12 +1531,65 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           DataCell(Text(order.totalCost.toStringAsFixed(2))),
           DataCell(Text(order.poPireference)),
           DataCell(
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf),
-              color: Colors.blue[400],
-              tooltip: 'Save PO as PDF',
-              onPressed: () => _generateAndSavePDF(order, brandName),
-            )
+            Builder(
+              builder: (BuildContext context) {
+                return IconButton(
+                  icon: const Icon(Icons.download),
+                  color: Colors.blue[400],
+                  tooltip: 'Download Purchase Order',
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext dialogContext) {
+                        return AlertDialog(
+                          title: const Text('Download Purchase Order'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              const Text('Choose a format to save the file:'),
+                              const SizedBox(height: 16),
+
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
+                                ),
+                                child: const Text('Save as DOCX'),
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop();
+                                  _generateAndSaveDOCX(order, brandName);
+                                },
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
+                                ),
+                                child: const Text('Save as PDF'),
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop();
+                                  _generateAndSavePDF(order, brandName);
+                                },
+                              ),
+                            ],
+                          ),
+                          
+                          actions: <Widget>[
+                            TextButton(
+                              child: const Text('Cancel'),
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop();
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       );
