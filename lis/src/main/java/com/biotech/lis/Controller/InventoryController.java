@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.InventoryPayload;
@@ -75,5 +78,16 @@ public class InventoryController {
     public ResponseEntity<List<Inventory>> getBottomStock() {
         List<Inventory> lowInv = inventoryService.getLowestStock();
         return ResponseEntity.ok(lowInv);
+    }
+
+        // Exception handlers for proper HTTP status codes
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        return new ResponseEntity<>("Invalid request body", HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        return new ResponseEntity<>("Validation failed", HttpStatus.BAD_REQUEST);
     }
 }

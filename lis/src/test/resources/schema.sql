@@ -13,6 +13,11 @@ CREATE TABLE `brand` (
     latestSequence INT
 );
 
+CREATE TABLE `Location` (
+    locationId INT PRIMARY KEY AUTO_INCREMENT,
+    locationName VARCHAR(255)
+);
+
 CREATE TABLE purchaseOrder (
     itemCode VARCHAR(255) PRIMARY KEY,
     brandId INT,
@@ -26,18 +31,25 @@ CREATE TABLE purchaseOrder (
 );
 
 CREATE TABLE `inventory` (
-    inventoryId INT PRIMARY KEY AUTO_INCREMENT,
-    itemCode VARCHAR(64),
-    brand VARCHAR(255),
-    productDescription VARCHAR(255),
-    lotSerialNumber VARCHAR(64),
-    cost DOUBLE,
-    expiryDate DATE,
-    stocksManila INT,
-    stocksCebu INT,
-    quantityOnHand INT,
-    addedBy VARCHAR(255),
+    itemCode VARCHAR(255) PRIMARY KEY,
+    poPireference VARCHAR(255),
+    invoiceNum VARCHAR(255),
+    itemDescription VARCHAR(255),
+    brandId INT,
+    lotNum INT,
+    expiry DATE,
+    packSize INT,
+    quantity INT,
+    costOfSale DOUBLE,
+    note TEXT,
+    addedBy BIGINT,
     dateTimeAdded TIMESTAMP
+);
+
+CREATE TABLE itemLoc (
+    locationId INT PRIMARY KEY,
+    itemCode VARCHAR(255),
+    quantity INT
 );
 
 CREATE TABLE transactionEntry (
