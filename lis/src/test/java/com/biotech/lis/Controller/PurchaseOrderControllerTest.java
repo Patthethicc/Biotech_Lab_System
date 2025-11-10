@@ -38,7 +38,7 @@ public class PurchaseOrderControllerTest {
         po.setItemCode("ITEM001");
         po.setBrandId(1);
         po.setProductDescription("Test Description");
-        po.setPackSize(10.0);
+        po.setPackSize(10);
         po.setQuantity(5);
         po.setUnitCost(100.0);
         po.setPoPireference("REF123"); 
