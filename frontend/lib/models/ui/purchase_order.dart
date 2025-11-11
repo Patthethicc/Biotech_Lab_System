@@ -345,6 +345,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
                         TextFormField(
                           controller: packSizeController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           decoration: const InputDecoration(
                             labelText: 'Pack Size',
                             border: OutlineInputBorder(),
@@ -373,7 +375,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         TextFormField(
                           controller: unitCostController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,}$'))],
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
                           decoration: const InputDecoration(
                             labelText: 'Unit Cost',
                             border: OutlineInputBorder(),
@@ -568,6 +570,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         TextFormField(
                           controller: packSizeController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly,],
                           decoration: const InputDecoration(
                             labelText: 'Pack Size',
                             border: OutlineInputBorder(),
@@ -579,6 +582,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                         TextFormField(
                           controller: quantityController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           decoration: const InputDecoration(
                             labelText: 'Quantity',
                             border: OutlineInputBorder(),
@@ -594,7 +598,8 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
 
                         TextFormField(
                           controller: unitCostController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),],
                           decoration: const InputDecoration(
                             labelText: 'Unit Cost',
                             border: OutlineInputBorder(),
