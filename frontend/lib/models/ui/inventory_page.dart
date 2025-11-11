@@ -11,6 +11,7 @@ import 'package:frontend/services/purchase_order_service.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/models/api/location.dart';
+import 'package:flutter/gestures.dart';
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
@@ -85,6 +86,7 @@ class _InventoryPageState extends State<InventoryPage> {
   final PurchaseOrderService _poService = PurchaseOrderService();
   final BrandService _brandService = BrandService();
   final LocationService _locationService = LocationService();
+  final ScrollController _scrollController = ScrollController();
   List<InventoryPayload> _allInventories = [];
   List<InventoryPayload> _displayInventories = [];
   Set<InventoryPayload> _selectedInventories = {};
@@ -116,6 +118,7 @@ class _InventoryPageState extends State<InventoryPage> {
   void dispose() {
     _searchController.removeListener(_filterInventories);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -662,6 +665,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
                         TextFormField(
                           controller: lotNumController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           decoration: const InputDecoration(
                             labelText: 'Lot Number',
                             border: OutlineInputBorder(),
@@ -884,22 +889,27 @@ class _InventoryPageState extends State<InventoryPage> {
                           label: 'PO/PI Reference',
                           value: inventory.poPireference,
                         ),
+                        const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Item Code',
                           value: inventory.itemCode,
                         ),
+                        const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Brand',
                           value: getBrandNameById(inventory.brandId),
                         ),
+                        const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Description',
                           value: inventory.itemDescription,
                         ),
+                        const SizedBox(height: 16),
                         _buildReadOnlyField(
                           label: 'Pack Size',
                           value: inventory.packSize.toString(),
                         ),
+                        const SizedBox(height: 8),
                         const Divider(height: 24),
 
                         const Text(
@@ -920,6 +930,8 @@ class _InventoryPageState extends State<InventoryPage> {
 
                         TextFormField(
                           controller: lotNumController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           decoration: const InputDecoration(
                             labelText: 'Lot Number',
                             border: OutlineInputBorder(),
@@ -1563,57 +1575,90 @@ class _InventoryPageState extends State<InventoryPage> {
                                       ),
                                     ),
                                   )
-                                : SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        minWidth: constraints.maxWidth,
-                                      ),
-                                      child: Theme(
-                                        data: Theme.of(context).copyWith(
-                                           dataTableTheme: DataTableThemeData(
-                                            checkboxHorizontalMargin: 0.0,
-                                            columnSpacing: constraints.maxWidth > 1200 ? 12.0 : 6.0,
-                                            horizontalMargin: constraints.maxWidth > 800 ? 4.0 : 2.0,
-                                          ),
-                                          checkboxTheme: CheckboxThemeData(
-                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            visualDensity: VisualDensity.compact,
-                                          ),
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                        child: DataTable(
-                                          showCheckboxColumn: true,
-                                          columnSpacing: constraints.maxWidth > 1200 ? 12.0 : 6.0,
-                                          horizontalMargin: constraints.maxWidth > 800 ? 4.0 : 2.0,
-                                          checkboxHorizontalMargin: 0.0,
-                                          dataRowMaxHeight: 48.0,
-                                          dataRowMinHeight: 40.0,
-                                          headingRowHeight: constraints.maxWidth > 600 ? 52.0 : 44.0,
-                                          columns: _buildDataColumns(constraints.maxWidth),
-                                          rows: _displayInventories.isEmpty
-                                              ? [
-                                                  const DataRow(cells: [
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                    DataCell(Text('')),
-                                                  ])
-                                                ]
-                                              : _buildDataRows(formatter, endIndex, constraints.maxWidth),
+                                : Theme(
+                                    data: Theme.of(context).copyWith(
+                                      scrollbarTheme: ScrollbarThemeData(
+                                        thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                                          (Set<WidgetState> states) {
+                                            if (states.contains(WidgetState.hovered) ||
+                                                states.contains(WidgetState.dragged)) {
+                                              return Colors.white.withValues(alpha: 0.8);
+                                            }
+                                            return Colors.white.withValues(alpha: 0.3);
+                                          },
                                         ),
                                       ),
                                     ),
+                                    child: Scrollbar(
+                                      controller: _scrollController,
+                                      thumbVisibility: _displayInventories.isNotEmpty,
+                                      child: Listener(
+                                        onPointerSignal: (PointerSignalEvent event) {
+                                          if (event is PointerScrollEvent) {
+                                            final double newOffset = _scrollController.offset + event.scrollDelta.dy;
+                                            final double clampedOffset = newOffset.clamp(
+                                              _scrollController.position.minScrollExtent,
+                                              _scrollController.position.maxScrollExtent,
+                                            );
+                                            _scrollController.jumpTo(clampedOffset);
+                                          }
+                                        },
+                                        child: SingleChildScrollView(
+                                          controller: _scrollController,
+                                          scrollDirection: Axis.horizontal,
+                                          padding: EdgeInsets.only(bottom: _displayInventories.isNotEmpty ? 11 : 0),
+                                          child: ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              minWidth: constraints.maxWidth,
+                                            ),
+                                            child: Theme(
+                                              data: Theme.of(context).copyWith(
+                                                dataTableTheme: DataTableThemeData(
+                                                  checkboxHorizontalMargin: 16.0,
+                                                  columnSpacing: constraints.maxWidth > 1200 ? 24.0 : 12.0,
+                                                  horizontalMargin: constraints.maxWidth > 800 ? 16.0 : 8.0,
+                                                ),
+                                                checkboxTheme: CheckboxThemeData(
+                                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                  visualDensity: VisualDensity.compact,
+                                                ),
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                              child: DataTable(
+                                                showCheckboxColumn: true,
+                                                columnSpacing: constraints.maxWidth > 1200 ? 24.0 : 12.0,
+                                                horizontalMargin: constraints.maxWidth > 800 ? 16.0 : 8.0,
+                                                checkboxHorizontalMargin: 16.0,
+                                                dataRowMaxHeight: 48.0,
+                                                dataRowMinHeight: 40.0,
+                                                headingRowHeight: constraints.maxWidth > 600 ? 52.0 : 44.0,
+                                                columns: _buildDataColumns(constraints.maxWidth),
+                                                rows: _displayInventories.isEmpty
+                                                    ? [
+                                                        const DataRow(cells: [
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('No results found', style: TextStyle(color: Colors.white))),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                          DataCell(Text('')),
+                                                        ])
+                                                      ]
+                                                    : _buildDataRows(formatter, endIndex, constraints.maxWidth),
+                                              ),
+                                            ),
+                                          ),
+                                      ),
+                                    ),
                                   ),
+                                ),
                           ),
                         );
                       },
