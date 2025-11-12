@@ -13,6 +13,7 @@ import 'models/ui/transaction_entry_page.dart';
 import 'models/ui/inventory_page.dart';
 import 'models/ui/stock_locator.dart';
 import 'models/ui/customer.dart';
+import 'models/ui/customer_transaction_page.dart';
 
 void main() async{
   await dotenv.load(fileName: ".env");
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget{
         '/brand': (context) => BrandPage(),
         '/stock_locator': (context) => StockLocatorPage(),
         '/customer': (context) => CustomerPage(),
+        '/customer_transaction': (context) => CustomerTransactionPage(),
       },
     );
   }
