@@ -367,6 +367,7 @@ class _HomePageState extends State<HomePage> {
           buildDrawerItem(context, 'Expiration Alert', '/expiry_alert'),
           buildDrawerItem(context, 'Purchase Order', '/purchase_order'),
           buildDrawerItem(context, 'Customer List', '/customer'),
+          buildDrawerItem(context, 'Customer Transaction', '/customer_transaction'),
           ListTile(
             title: const Text('Log out', style: TextStyle(fontSize: 14)),
             onTap: () {
