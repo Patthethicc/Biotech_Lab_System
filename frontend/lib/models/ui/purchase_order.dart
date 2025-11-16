@@ -879,7 +879,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   //   }
   // }
 
-  Future<void> _generateAndSavePDF(PurchaseOrder po, String brandName) async {
+  Future<void> _generateAndSavePDF(PurchaseOrder po, String brandName, Map<String, String> approvalData) async {
     try {
       final pdf = pw.Document();
 
@@ -941,7 +941,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     }
   }
 
-  Future<void> _generateAndSaveDOCX(PurchaseOrder po, String brandName) async {
+  Future<void> _generateAndSaveDOCX(PurchaseOrder po, String brandName, Map<String, String> approvalData) async {
     try {
       final data = await rootBundle.load('Assets/Documents/template.docx');
       final bytes = data.buffer.asUint8List();
@@ -1538,54 +1538,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   color: Colors.blue[400],
                   tooltip: 'Download Purchase Order',
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext dialogContext) {
-                        return AlertDialog(
-                          title: const Text('Download Purchase Order'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              const Text('Choose a format to save the file:'),
-                              const SizedBox(height: 16),
-
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
-                                ),
-                                child: const Text('Save as DOCX'),
-                                onPressed: () {
-                                  Navigator.of(dialogContext).pop();
-                                  _generateAndSaveDOCX(order, brandName);
-                                },
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
-                                ),
-                                child: const Text('Save as PDF'),
-                                onPressed: () {
-                                  Navigator.of(dialogContext).pop();
-                                  _generateAndSavePDF(order, brandName);
-                                },
-                              ),
-                            ],
-                          ),
-                          
-                          actions: <Widget>[
-                            TextButton(
-                              child: const Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
+                    _showExportPODialog(context, order, brandName);
                   },
                 );
               },
@@ -1594,6 +1547,145 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ],
       );
     }).toList();
+  }
+
+  void _showExportPODialog (BuildContext context, PurchaseOrder order, String brandName) {
+    final formKey = GlobalKey<FormState>();
+
+    final appFullName = TextEditingController();
+    final appDateAdded = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Export Purchase Order'),
+          content: Form(
+            key: formKey,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateDialog) {
+                return SingleChildScrollView(
+                  child: SizedBox(
+                    width: 300,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Approved By:'),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: appFullName,
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+
+                        const SizedBox(height: 16),
+                        const Text('Approval Date:'),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: appDateAdded,
+                          readOnly: true,
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              initialDate: DateTime.now(),
+                            );
+                            if (date != null) {
+                              setStateDialog(() {
+                                appDateAdded.text = DateFormat('MMMM d, yyyy').format(date);
+                              });
+                            }
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if(formKey.currentState!.validate()){
+                  final Map<String, String> approvalData = {
+                    'approvedBy': appFullName.text,
+                    'dateApproved': appDateAdded.text,
+                  };
+
+                  Navigator.of(context).pop();
+
+                  _showExportFormatDialog(context, order, brandName, approvalData);
+                }
+              },
+              child: const Text('Next'),
+            )
+          ],
+        );
+      }
+    );
+  }
+
+  void _showExportFormatDialog (BuildContext context, PurchaseOrder order, String brandName, Map<String, String> approvalData){
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Download Purchase Order'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text('Choose a format to save the file:'),
+              const SizedBox(height: 16),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
+                ),
+                child: const Text('Save as DOCX'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _generateAndSaveDOCX(order, brandName, approvalData);
+                },
+              ),
+
+              const SizedBox(height: 10),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
+                ),
+                child: const Text('Save as PDF'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _generateAndSavePDF(order, brandName, approvalData);
+                },
+              ),
+            ],
+          ),
+          
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildPaginationControls(int endIndex) {
