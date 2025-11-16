@@ -45,6 +45,17 @@ public class PurchaseOrderController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @GetMapping("/getFilteredPOs")
+    public ResponseEntity<List<PurchaseOrder>> getFilteredPurchaseOrders() {
+        try {
+            List<PurchaseOrder> purchaseOrders = purchaseOrderService.getFilteredPurchaseOrders();
+            return ResponseEntity.ok(purchaseOrders);
+        } catch (Exception e) {
+            System.err.println("Error fetching filtered purchase orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
     
     @GetMapping("/getPO/{code}")
     public ResponseEntity<PurchaseOrder> getPurchaseOrderByCode(@PathVariable("code") String code) {

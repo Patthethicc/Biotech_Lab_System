@@ -188,7 +188,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
   Future<void> _fetchAvailablePOs() async {
     try {
-      final pos = await _poService.fetchPurchaseOrders();
+      final pos = await _poService.fetchFilteredPurchaseOrders();
       setState(() {
         _availablePOs = pos;
       });
