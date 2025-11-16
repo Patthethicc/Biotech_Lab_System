@@ -882,39 +882,217 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   Future<void> _generateAndSavePDF(PurchaseOrder po, String brandName, Map<String, String> approvalData) async {
     try {
       final pdf = pw.Document();
+      final byteData = await rootBundle.load('Assets/Images/logo.png');
+      final Uint8List logoImageData = byteData.buffer.asUint8List();
+      final arialBlackData = await rootBundle.load("Assets/Fonts/ARIBLK.TTF");
+      final pw.TtfFont arialBlackFont = pw.TtfFont(arialBlackData);
+      final latoRegularData = await rootBundle.load("Assets/Fonts/Lato-Regular.ttf");
+      final pw.TtfFont latoRegularFont = pw.TtfFont(latoRegularData);
+      final latoBoldData = await rootBundle.load("Assets/Fonts/Lato-Bold.ttf");
+      final pw.TtfFont latoBoldFont = pw.TtfFont(latoBoldData);
 
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build:(pw.Context context) {
+          pageFormat: PdfPageFormat.letter,
+          build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(po.poPireference, 
-                  style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold, 
-                    fontSize: 24
+                pw.Center(
+                  child: pw.Image(
+                    pw.MemoryImage(logoImageData),
+                    width: 255,
+                    height: 60,
+                    fit: pw.BoxFit.fill
                   )
                 ),
-                pw.SizedBox(height: 24),
-                pw.TableHelper.fromTextArray(
-                  headers: ['Item Code', 'Brand', 'Product Description', 'Pack Size', 'Quantity', 'Unit Cost', 'Total Cost', 'PO/PI Reference'],
-                  data: [[po.itemCode, brandName, po.productDescription, po.packSize, po.quantity, po.unitCost, po.totalCost, po.poPireference]],
-                  border: pw.TableBorder.all(color: PdfColors.grey600, width: 1),
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
+
+                pw.SizedBox(height: 22),
+
+                pw.Center(
+                  child: pw.Text(
+                    'P U R C H A S E    O R D E R',
+                    style: pw.TextStyle(
+                      font: arialBlackFont,
+                      fontSize: 16,
+                    ),
                   ),
-                  headerDecoration: const pw.BoxDecoration(
-                    color: PdfColors.blueGrey800,
-                  ),
-                  cellStyle: const pw.TextStyle(fontSize: 12),
-                  cellAlignment: pw.Alignment.centerLeft,
-                  cellAlignments: {
-                    4: pw.Alignment.center,
-                    5: pw.Alignment.centerRight,
-                    6: pw.Alignment.centerRight,
-                  },
+                ),
+
+                pw.SizedBox(height: 41.5),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 70,
+                      child: pw.Text(
+                        'ITEM CODE: ${po.itemCode}',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    pw.Expanded(
+                      flex: 30,
+                      child: pw.Text(
+                        'BRAND: $brandName',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 70,
+                      child: pw.Text(
+                        'PackSize: ${po.packSize}',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    pw.Expanded(
+                      flex: 30,
+                      child: pw.Text(
+                        'Quantity: ${po.quantity.toString()}',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Text('UNIT COST: ${po.unitCost.toString()}',
+                  style: pw.TextStyle(
+                    font: latoRegularFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Text('PURCHASE ORDER/PURCHASE INVOICE REFERENCE: ${po.poPireference}',
+                  style: pw.TextStyle(
+                    font: latoRegularFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Text('DESCRIPTION: ${po.productDescription}',
+                  style: pw.TextStyle(
+                    font: latoRegularFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30 * 2.5),
+
+                pw.Text('TOTAL COST: ${po.totalCost.toString()}',
+                  style: pw.TextStyle(
+                    font: latoBoldFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30 * 1.8),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(flex: 48, child: pw.Text('PREPARED BY:',
+                      style: pw.TextStyle(
+                        font: latoBoldFont,
+                        fontSize: 11
+                      )
+                    )),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(flex: 52, child: pw.Text('APPROVED BY:',
+                      style: pw.TextStyle(
+                        font: latoBoldFont,
+                        fontSize: 11
+                      )
+                    )),
+                  ],
+                ),
+
+                pw.SizedBox(height: 30 * 1.6),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 48,
+                      child: pw.Container(height: 1, color: PdfColors.black)),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(
+                      flex: 52,
+                      child: pw.Container(height: 1, color: PdfColors.black)),
+                  ],
+                ),
+                
+                pw.SizedBox(height: 4),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 48,
+                      child: pw.Text(po.addedBy.toString(),
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(
+                      flex: 52,
+                      child: pw.Text(approvalData['approvedBy'] ?? '',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                  ],
+                ),
+                
+                pw.SizedBox(height: 9),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 48,
+                      child: pw.Text(DateFormat('MMMM d, yyyy').format(po.dateTimeAdded ?? DateTime.now()),
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(
+                      flex: 52,
+                      child: pw.Text(approvalData['dateApproved'] ?? '',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                  ],
                 ),
               ],
             );
