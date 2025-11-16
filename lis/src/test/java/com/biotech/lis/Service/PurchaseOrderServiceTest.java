@@ -85,6 +85,95 @@ public class PurchaseOrderServiceTest {
     }
 
     @Test
+    void testAddPurchaseOrder_BiorexBrand_GeneratesCorrectItemCode() {
+        // Simulate adding a PO for Biorex brand
+        Brand biorexBrand = new Brand();
+        biorexBrand.setBrandId(1);
+        biorexBrand.setBrandName("Biorex Products");
+        biorexBrand.setAbbreviation("Bx");
+        biorexBrand.setLatestSequence(0);
+        
+        PurchaseOrder biorexPO = new PurchaseOrder();
+        biorexPO.setBrandId(1); // User selects Biorex
+        biorexPO.setProductDescription("Biorex ALT Reagent");
+        biorexPO.setPackSize(100);
+        biorexPO.setQuantity(5);
+        biorexPO.setUnitCost(850.50);
+        biorexPO.setPoPireference("PO-2024-001");
+        
+        // Mock: When service looks up brandId=1, it gets Biorex
+        when(brandService.getBrandById(1)).thenReturn(biorexBrand);
+        
+        // Mock: No previous POs for Biorex exist
+        when(purchaseOrderRepository.findTopByBrandIdOrderByItemCodeDesc(1))
+            .thenReturn(Optional.empty());
+        
+        mockSecurityContext();
+        
+        // Mock: Save returns the PO with generated code
+        PurchaseOrder savedPO = new PurchaseOrder();
+        savedPO.setItemCode("Bx0000");
+        savedPO.setBrandId(1);
+        savedPO.setProductDescription("Biorex ALT Reagent");
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedPO);
+
+        // Execute
+        PurchaseOrder result = purchaseOrderService.addPurchaseOrder(biorexPO);
+
+        // Verify: Item code starts with "Bx" and sequence is "0000"
+        assertNotNull(result);
+        assertEquals("Bx0000", result.getItemCode());
+        assertTrue(result.getItemCode().startsWith("Bx"), "Item code should start with Bx for Biorex");
+        verify(brandService, times(1)).getBrandById(1);
+        verify(purchaseOrderRepository, times(1)).save(any(PurchaseOrder.class));
+    }
+
+    @Test
+    void testAddPurchaseOrder_BiorexBrand_IncrementsSequence() {
+        // Setup - Biorex already has one item (Bx0000), adding second one
+        Brand biorexBrand = new Brand();
+        biorexBrand.setBrandId(1);
+        biorexBrand.setBrandName("Biorex Products");
+        biorexBrand.setAbbreviation("Bx");
+        biorexBrand.setLatestSequence(0);
+        
+        // Mock: Last Biorex PO was "Bx0000"
+        PurchaseOrder existingBiorexPO = new PurchaseOrder();
+        existingBiorexPO.setItemCode("Bx0000");
+        
+        when(brandService.getBrandById(1)).thenReturn(biorexBrand);
+        when(purchaseOrderRepository.findTopByBrandIdOrderByItemCodeDesc(1))
+            .thenReturn(Optional.of(existingBiorexPO)); // Returns "Bx0000"
+        
+        mockSecurityContext();
+        
+        // New PO for Biorex
+        PurchaseOrder newBiorexPO = new PurchaseOrder();
+        newBiorexPO.setBrandId(1);
+        newBiorexPO.setProductDescription("Another Biorex Item");
+        newBiorexPO.setPackSize(50);
+        newBiorexPO.setQuantity(10);
+        newBiorexPO.setUnitCost(500.00);
+        newBiorexPO.setPoPireference("PO-2024-002");
+        
+        PurchaseOrder savedPO = new PurchaseOrder();
+        savedPO.setItemCode("Bx0001");
+        savedPO.setBrandId(1);
+        savedPO.setProductDescription("Another Biorex Item");
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedPO);
+
+        // Execute
+        PurchaseOrder result = purchaseOrderService.addPurchaseOrder(newBiorexPO);
+
+        // Verify: Next item code should be "Bx0001"
+        assertNotNull(result);
+        assertEquals("Bx0001", result.getItemCode());
+        assertTrue(result.getItemCode().startsWith("Bx"));
+        verify(purchaseOrderRepository, times(1)).findTopByBrandIdOrderByItemCodeDesc(1);
+        verify(purchaseOrderRepository, times(1)).save(any(PurchaseOrder.class));
+    }
+
+    @Test
     void testGetAllPurchaseOrders() {
         // Setup
         PurchaseOrder anotherPO = new PurchaseOrder();
