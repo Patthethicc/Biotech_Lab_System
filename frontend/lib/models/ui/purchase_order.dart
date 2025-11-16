@@ -958,7 +958,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ..add(TextContent("unitCost", po.unitCost.toStringAsFixed(2)))
         ..add(TextContent("poPireference", po.poPireference))
         ..add(TextContent("productDescription", po.productDescription))
-        ..add(TextContent("totalCost", po.totalCost.toStringAsFixed(2)));
+        ..add(TextContent("totalCost", po.totalCost.toStringAsFixed(2)))
+        ..add(TextContent("PrepFullName", po.addedBy.toString()))
+        ..add(TextContent("PrepDateAdded", DateFormat('MMMM d, yyyy').format(po.dateTimeAdded ?? DateTime.now())))
+        ..add(TextContent("AppFullName", approvalData['approvedBy']))
+        ..add(TextContent("AppDateAdded", approvalData['dateApproved']));
 
       final generatedBytes = await docx.generate(content);
       
