@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.util.logging.Logger;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -100,6 +101,11 @@ public class UserService {
             throw new RuntimeException("Failed to retrieve user due to internal error", e);
         }
     }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
 
     public User updateUser(User user) {
         try {
