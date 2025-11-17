@@ -25,9 +25,13 @@ public class LocationController {
     }
 
     @PostMapping("/addLoc")
-    public ResponseEntity<Location> addLocation(@RequestBody Location location) {
-        Location savedLocation = locationService.addLocation(location);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedLocation);
+    public ResponseEntity<?> addLocation(@RequestBody Location location) {
+        try {
+            Location savedLocation = locationService.addLocation(location);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedLocation);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
     }
 
     @GetMapping("/getLoc")
@@ -37,8 +41,14 @@ public class LocationController {
     }
 
     @PutMapping("/editLoc/{name}")
-    public ResponseEntity<Location> updateLocation(@PathVariable("name") String name, @RequestBody Location location) {
-        return ResponseEntity.ok(locationService.updateLocation(name, location));
+    public ResponseEntity<?> updateLocation(@PathVariable("name") String name, @RequestBody Location location) {
+        try {
+            return ResponseEntity.ok(locationService.updateLocation(name, location));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/deleteLoc/{id}")

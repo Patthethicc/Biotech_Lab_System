@@ -10,4 +10,6 @@ import com.biotech.lis.Entity.Location;
 @Repository
 public interface LocationRepository extends JpaRepository<Location, Integer> {
     Optional<Location> findByLocationName(String locationName);
+
+    boolean existsByLocationNameIgnoreCase(String locationName);
 }

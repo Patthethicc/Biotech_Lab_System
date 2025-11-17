@@ -29,10 +29,12 @@ class LocationService {
                 'Authorization': 'Bearer $token'},
       body: json.encode(loc.toJson()),
     );
-    if(res.statusCode == 201){
+    if (res.statusCode == 201) {
       return Location.fromJson(json.decode(res.body));
+    } else if (res.statusCode == 409) {
+      throw Exception(res.body); 
     } else {
-      throw Exception('Failed to create location');
+      throw Exception('Failed to create location: ${res.statusCode}');
     }
   }
 
@@ -45,10 +47,14 @@ class LocationService {
                 'Authorization': 'Bearer $token'},
       body: json.encode(loc.toJson()),
     );
-    if(res.statusCode == 200){
+    if (res.statusCode == 200) {
       return Location.fromJson(json.decode(res.body));
+    } else if (res.statusCode == 409) {
+      throw Exception(res.body);
+    } else if (res.statusCode == 404) {
+      throw Exception('Original location not found.');
     } else {
-      throw Exception('Failed to update location');
+      throw Exception('Failed to update location: ${res.statusCode}');
     }
   }
 
