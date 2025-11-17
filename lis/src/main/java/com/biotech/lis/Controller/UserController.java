@@ -1,10 +1,10 @@
 package com.biotech.lis.Controller;
 
 import com.biotech.lis.Entity.LogInReq;
-import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Service.UserService;
 import com.biotech.lis.Exception.*;
+import com.biotech.lis.DTO.UserSummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -123,9 +123,9 @@ public class UserController {
     }
 
     @GetMapping("/getUsers")
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserSummary>> getAllUsers() {
         try {
-            List<User> users = userService.getAllUsers();
+            List<UserSummary> users = userService.getAllUsers();
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             System.err.println("Error fetching all users: " + e.getMessage());

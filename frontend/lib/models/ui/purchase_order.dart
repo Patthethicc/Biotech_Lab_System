@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/existing_user.dart';
+import 'package:frontend/services/existing_user_service.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/services/purchase_order_service.dart';
@@ -88,8 +90,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   final PurchaseOrderService _poService = PurchaseOrderService();
   final TextEditingController _searchController = TextEditingController();
   final BrandService _brandService = BrandService();
+  final ExistingUserService _userService = ExistingUserService();
   List<PurchaseOrder> _allOrders = [];
   List<PurchaseOrder> _displayOrders = [];
+  List<ExistingUser> _allUsers = [];
   Set<PurchaseOrder> _selectedOrders = {};
   PurchaseOrder? _selectedOrderForEdit;
   List<Map<String, dynamic>> _availableBrands = [];
@@ -110,6 +114,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     _fetchPurchaseOrders();
     _searchController.addListener(_filterOrders);
     _fetchBrands();
+    _fetchUsers();
   }
 
   @override
@@ -181,6 +186,44 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final users = await _userService.fetchUsers();
+
+      final userList = users.toList();
+
+      if(!mounted) return;
+      setState(() {
+        _allUsers = userList;
+      });
+    } catch (e) {
+      if(mounted){
+        _showDialog('Error', 'Failed to load users: $e');
+      }
+    } finally {
+      if(mounted){
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String getUserNameById(int? userId) {
+    if (userId == null) return '';
+    
+    try {
+      final user = _allUsers.firstWhere((user) => user.userId == userId);
+      return user.firstName + user.lastName;
+    } catch (e) {
+      return 'Unknown User (ID: $userId)';
     }
   }
 
@@ -473,7 +516,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       poPireference: popiRefController.text,
                       addedBy: 1,
                     );
-                    print(newOrder.toJson());
+
                     try {
                       await _poService.addPurchaseOrder(newOrder);
                       if (!context.mounted) return;
@@ -1049,7 +1092,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   children: [
                     pw.Expanded(
                       flex: 48,
-                      child: pw.Text(po.addedBy.toString(),
+                      child: pw.Text(getUserNameById(po.addedBy),
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
                           font: latoRegularFont,
@@ -1137,7 +1180,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ..add(TextContent("poPireference", po.poPireference))
         ..add(TextContent("productDescription", po.productDescription))
         ..add(TextContent("totalCost", po.totalCost.toStringAsFixed(2)))
-        ..add(TextContent("PrepFullName", po.addedBy.toString()))
+        ..add(TextContent("PrepFullName", getUserNameById(po.addedBy)))
         ..add(TextContent("PrepDateAdded", DateFormat('MMMM d, yyyy').format(po.dateTimeAdded ?? DateTime.now())))
         ..add(TextContent("AppFullName", approvalData['approvedBy']))
         ..add(TextContent("AppDateAdded", approvalData['dateApproved']));

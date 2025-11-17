@@ -40,4 +40,20 @@ class ExistingUserService {
       throw Exception('Unexpected error: $e');
     }
   }
+
+  Future<List<ExistingUser>> fetchUsers() async {
+    String? token = await storage.read(key: 'jwt_token');
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/user/v1/getUsers'),
+      headers:{'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        return data.map((json) => ExistingUser.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load users: ${response.statusCode}');
+      }
+    } catch (e) {
+        throw Exception('Invalid JSON response: $e');
+    }
+  }
 }

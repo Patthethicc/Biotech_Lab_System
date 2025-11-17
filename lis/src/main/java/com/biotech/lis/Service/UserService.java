@@ -3,6 +3,7 @@ package com.biotech.lis.Service;
 import org.springframework.stereotype.Service;
 import com.biotech.lis.Repository.UserRepository;
 import com.biotech.lis.config.JwtService;
+import com.biotech.lis.DTO.UserSummary;
 import com.biotech.lis.Entity.LogInReq;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Exception.*;
@@ -102,8 +103,8 @@ public class UserService {
         }
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserSummary> getAllUsers() {
+        return userRepository.findAllProjectedBy();
     }
 
 
