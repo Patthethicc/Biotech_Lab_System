@@ -1,6 +1,7 @@
 package com.biotech.lis.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,20 @@ public class StockLocatorService {
     private StockLocatorRepository stockLocatorRepository;
 
     public List<StockLocator> getAllStockLocations() {
+        return stockLocatorRepository.findAll();
+    }
+
+    public List<StockLocator> searchStockLocators(String brand, String query) {
+        boolean hasBrand = brand != null && !brand.trim().isEmpty();
+        boolean hasQuery = query != null && !query.trim().isEmpty();
+
+        if (hasBrand && hasQuery) {
+            return stockLocatorRepository.findByBrandIgnoreCaseAndProductDescriptionContainingIgnoreCase(brand, query);
+        } else if (hasBrand) {
+            return stockLocatorRepository.findByBrandIgnoreCase(brand);
+        } else if (hasQuery) {
+            return stockLocatorRepository.findByProductDescriptionContainingIgnoreCase(query);
+        }
         return stockLocatorRepository.findAll();
     }
 
@@ -42,13 +57,10 @@ public class StockLocatorService {
 
     public void updateStockFromTransaction(TransactionEntry transactionEntry, boolean isAddition) {
         String brand = transactionEntry.getBrand();
-        System.out.println(brand);
+        String itemCode = transactionEntry.getItemCode();
         String productDescription = transactionEntry.getProductDescription();
-        System.out.println(productDescription);
         String stockLocation = transactionEntry.getStockLocation().toLowerCase();
-        System.out.println(stockLocation);
         Integer quantity = transactionEntry.getQuantity();
-        System.out.println(quantity);
 
         Optional<StockLocator> existingStock = stockLocatorRepository.findByBrandAndProductDescription(brand, productDescription);
         StockLocator stockLocator;
@@ -59,7 +71,7 @@ public class StockLocatorService {
             if (!isAddition){
                 throw new RuntimeException("Stock not found for Brand: " + brand + ", Product: " + productDescription + " to deduct from.");
             }
-            stockLocator = new StockLocator(brand, productDescription);
+            stockLocator = new StockLocator(itemCode, brand, productDescription);
         }
 
         int quantityChange = isAddition ? quantity : -quantity;
@@ -119,7 +131,6 @@ public class StockLocatorService {
         }
 
         stockLocatorRepository.save(stockLocator);
-        System.out.println("Stock updated for Brand: " + brand + ", Product: " + productDescription + " at " + stockLocation + " by " + quantityChange);
     }
 
     public StockLocator updateStockLocator(StockLocator stockLocator) {
@@ -132,5 +143,70 @@ public class StockLocatorService {
 
     public boolean existsByBrandAndProduct(String brand, String productDescription) {
         return stockLocatorRepository.existsByBrandAndProductDescription(brand, productDescription);
+    }
+
+    public List<String> getProductDescriptions(String brand) {
+        return stockLocatorRepository.findDistinctProductDescriptions(brand);
+    }
+
+    public void updateStockFromInventory(String itemCode, String brand, String description, java.util.Map<String, Integer> locationQuantities) {
+        StockLocator stockLocator = stockLocatorRepository.findById(itemCode)
+            .orElse(new StockLocator(itemCode, brand, description));
+        
+        stockLocator.setBrand(brand);
+        stockLocator.setProductDescription(description);
+        
+        // Reset all to 0 before applying new quantities
+        stockLocator.setLazcanoRef1(0);
+        stockLocator.setLazcanoRef2(0);
+        stockLocator.setGandiaColdStorage(0);
+        stockLocator.setGandiaRef1(0);
+        stockLocator.setGandiaRef2(0);
+        stockLocator.setLimbaga(0);
+        stockLocator.setCebu(0);
+
+        for (java.util.Map.Entry<String, Integer> entry : locationQuantities.entrySet()) {
+            String rawLocName = entry.getKey();
+            String normalizedLoc = normalizeLocationName(rawLocName);
+            Integer qty = entry.getValue();
+            
+            // Mapping logic for various location name formats
+            if (normalizedLoc.contains("lazcano") && normalizedLoc.contains("ref1")) {
+                stockLocator.setLazcanoRef1(qty);
+            } else if (normalizedLoc.contains("lazcano") && normalizedLoc.contains("ref2")) {
+                stockLocator.setLazcanoRef2(qty);
+            } else if (normalizedLoc.contains("gandia") && normalizedLoc.contains("cold")) {
+                stockLocator.setGandiaColdStorage(qty);
+            } else if (normalizedLoc.contains("gandia") && normalizedLoc.contains("ref1")) {
+                stockLocator.setGandiaRef1(qty);
+            } else if (normalizedLoc.contains("gandia") && normalizedLoc.contains("ref2")) {
+                stockLocator.setGandiaRef2(qty);
+            } else if (normalizedLoc.contains("limbaga")) {
+                stockLocator.setLimbaga(qty);
+            } else if (normalizedLoc.contains("cebu")) {
+                stockLocator.setCebu(qty);
+            } 
+            // Fallback mappings for generic names found in DB (e.g., "Ref 1", "Fridge 1")
+            else if (normalizedLoc.equals("ref1")) {
+                stockLocator.setLazcanoRef1(qty); // Assuming Ref 1 is Lazcano Ref 1
+            } else if (normalizedLoc.equals("ref2")) {
+                stockLocator.setLazcanoRef2(qty); // Assuming Ref 2 is Lazcano Ref 2
+            } else if (normalizedLoc.contains("fridge") || normalizedLoc.contains("cold")) {
+                stockLocator.setGandiaColdStorage(qty); // Assuming Fridge/Cold is Gandia Cold Storage
+            } else if (normalizedLoc.equals("ref3")) {
+                 // No specific column for Ref 3, adding to Gandia Ref 1 as fallback or ignore
+                 stockLocator.setGandiaRef1(qty); 
+            } else if (normalizedLoc.equals("ref4")) {
+                 // No specific column for Ref 4, adding to Gandia Ref 2 as fallback or ignore
+                 stockLocator.setGandiaRef2(qty);
+            }
+        }
+        stockLocatorRepository.save(stockLocator);
+        stockLocatorRepository.flush(); // Force write to DB
+    }
+
+    private String normalizeLocationName(String locationName) {
+        if (locationName == null) return "";
+        return locationName.toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 }

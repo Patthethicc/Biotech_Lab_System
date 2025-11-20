@@ -14,38 +14,49 @@ class InventoryPieChart extends StatelessWidget {
     required this.isLoading,
   });
 
-  List<Inventory> groupByBrand(List<Inventory> originalList) {
+  // List<Inventory> groupByBrand(List<Inventory> originalList) {
+  //   final Map<String, int> brandQuantities = {};
+
+  //   for (final item in originalList) {
+  //     brandQuantities[item.brand] = (brandQuantities[item.brand] ?? 0) + item.quantityOnHand;
+  //   }
+
+  //   // Convert to list of Inventory-like objects with brand and quantityOnHand
+  //   return brandQuantities.entries.map((entry) {
+  //     return Inventory(
+  //         inventoryID: 0,
+  //         itemCode: '',
+  //         brand: entry.key,
+  //         productDescription: '',
+  //         lotSerialNumber: '',
+  //         cost: 0,
+  //         expiryDate: '',
+  //         stocksManila: 0,
+  //         stocksCebu: 0,
+  //         addedBy: '',
+  //         dateTimeAdded: '',
+  //       )..quantityOnHand = entry.value;
+  //     }).toList();
+  // }
+
+  List<MapEntry<String, int>> groupByBrand(List<Inventory> originalList) {
     final Map<String, int> brandQuantities = {};
 
     for (final item in originalList) {
-      brandQuantities[item.brand] = (brandQuantities[item.brand] ?? 0) + item.quantityOnHand;
+      final String brandKey = 'Brand ${item.brandId}';
+
+      brandQuantities[brandKey] = (brandQuantities[brandKey] ?? 0) + item.quantity;
     }
 
-    // Convert to list of Inventory-like objects with brand and quantityOnHand
-    return brandQuantities.entries.map((entry) {
-      return Inventory(
-          inventoryID: 0,
-          itemCode: '',
-          brand: entry.key,
-          productDescription: '',
-          lotSerialNumber: '',
-          cost: 0,
-          expiryDate: '',
-          stocksManila: 0,
-          stocksCebu: 0,
-          addedBy: '',
-          dateTimeAdded: '',
-        )..quantityOnHand = entry.value;
-      }).toList();
+    return brandQuantities.entries.toList();
   }
 
 
   @override
   Widget build(BuildContext context) {
     final groupedData = groupByBrand(data);
-    final top10List = groupedData
-      ..sort((a, b) => b.quantityOnHand.compareTo(a.quantityOnHand));
-    final top10 = top10List.take(10).toList();
+    groupedData.sort((a, b) => b.value.compareTo(a.value));
+    final top10 = groupedData.take(10).toList();
 
     return SizedBox(
       height: 400,
@@ -104,7 +115,7 @@ class InventoryPieChart extends StatelessWidget {
                               enable: true,
                               format: 'point.x: point.y',
                               builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
-                                final Inventory inv = data;
+                                final entry = data as MapEntry<String, int>;
                                 return Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
@@ -120,7 +131,7 @@ class InventoryPieChart extends StatelessWidget {
                                     ],
                                   ),
                                   child: Text(
-                                    '${inv.brand}: ${inv.quantityOnHand}',
+                                    '${entry.key}: ${entry.value}',
                                     style: const TextStyle(
                                       color: Color(0xFF2A4C78),
                                       fontWeight: FontWeight.bold,
@@ -130,11 +141,11 @@ class InventoryPieChart extends StatelessWidget {
                               },
                             ),
                             series: <CircularSeries>[
-                              PieSeries<Inventory, String>(
+                              PieSeries<MapEntry<String, int>, String>(
                                 dataSource: top10,
-                                xValueMapper: (Inventory inv, _) => inv.brand,
-                                yValueMapper: (Inventory inv, _) => inv.quantityOnHand,
-                                dataLabelMapper: (Inventory inv, _) => inv.quantityOnHand.toString(),
+                                xValueMapper: (entry, _) => entry.key,
+                                yValueMapper: (entry, _) => entry.value,
+                                dataLabelMapper: (entry, _) => entry.value.toString(),
                                 dataLabelSettings: const DataLabelSettings(
                                   isVisible: true,
                                   labelPosition: ChartDataLabelPosition.outside,

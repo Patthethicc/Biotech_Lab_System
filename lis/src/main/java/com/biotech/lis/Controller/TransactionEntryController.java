@@ -1,6 +1,5 @@
 package com.biotech.lis.Controller;
 
-import com.biotech.lis.Entity.CombinedTrnPO;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Service.TransactionEntryService;
 import com.biotech.lis.DTO.DashboardStatsDTO;
@@ -37,9 +36,9 @@ public class TransactionEntryController {
     }
 
     @PostMapping("/createTransactionEntry")
-    public ResponseEntity<TransactionEntry> createTransactionEntry(@RequestBody CombinedTrnPO combinedTrnPO) {
+    public ResponseEntity<TransactionEntry> createTransactionEntry(@RequestBody TransactionEntry transactionEntry) {
         try {
-            TransactionEntry newTransactionEntry = transactionEntryService.createTransactionEntry(combinedTrnPO);
+            TransactionEntry newTransactionEntry = transactionEntryService.createTransactionEntry(transactionEntry);
             return ResponseEntity.ok(newTransactionEntry);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build(); // invalid input

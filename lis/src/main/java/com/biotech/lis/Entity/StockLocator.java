@@ -11,6 +11,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 @Entity
 @Table(name = "stockLocator")
 @Data
@@ -55,10 +57,10 @@ public class StockLocator {
     @Column(name = "dateTimeAdded")
     private LocalDateTime dateTimeAdded;
 
-    public StockLocator(String brand, String productDescription) {
+    public StockLocator(String itemCode, String brand, String productDescription) {
+        this.itemCode = itemCode;
         this.brand = brand;
         this.productDescription = productDescription;
-        this.itemCode = "placeholder"; // replace 
         this.lazcanoRef1 = 0;
         this.lazcanoRef2 = 0;
         this.gandiaColdStorage = 0;
@@ -66,7 +68,16 @@ public class StockLocator {
         this.gandiaRef2 = 0;
         this.limbaga = 0;
         this.cebu = 0;
-    }   
-    
-    
+    }
+
+    @JsonProperty("totalStock")
+    public int getTotalStock() {
+        return (lazcanoRef1 != null ? lazcanoRef1 : 0) +
+               (lazcanoRef2 != null ? lazcanoRef2 : 0) +
+               (gandiaColdStorage != null ? gandiaColdStorage : 0) +
+               (gandiaRef1 != null ? gandiaRef1 : 0) +
+               (gandiaRef2 != null ? gandiaRef2 : 0) +
+               (limbaga != null ? limbaga : 0) +
+               (cebu != null ? cebu : 0);
+    }
 }

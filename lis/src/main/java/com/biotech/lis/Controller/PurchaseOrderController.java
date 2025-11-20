@@ -6,12 +6,10 @@ import com.biotech.lis.Service.PurchaseOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-
 
 @RestController
 @RequestMapping("/PO/v1")
@@ -122,4 +120,8 @@ public class PurchaseOrderController {
     }
     */ 
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest().body("Invalid JSON request");
+    }
 }
