@@ -807,6 +807,9 @@ class _InventoryPageState extends State<InventoryPage> {
                       Navigator.of(context).pop();
                       _showDialog('Success', 'Inventory item added!');
                       _fetchInventories();
+                      setState(() {
+                        _availablePOs.removeWhere((po) => po.itemCode == selectedPO!.itemCode);
+                      });
                     } catch (e) {
                       if (!context.mounted) return;
                       _showDialog('Error', 'Failed to add inventory: $e');
@@ -1204,6 +1207,7 @@ class _InventoryPageState extends State<InventoryPage> {
       Navigator.of(context).pop();
 
       await _fetchInventories();
+      await _fetchAvailablePOs();
 
       if (!mounted) return;
 
