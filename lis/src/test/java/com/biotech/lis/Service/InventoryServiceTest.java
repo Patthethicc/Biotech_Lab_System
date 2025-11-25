@@ -149,6 +149,10 @@ public class InventoryServiceTest {
     void testAddInventory_WithMultipleLocations() {
         // Setup - User Story 2: Adding inventory to 3 different locations
         setupAuthentication();
+        
+        // Create inventory with total quantity of 100
+        sampleInventory.setQuantity(100);
+        
         ItemLoc loc1 = new ItemLoc(1, "ITEM001", 30);
         ItemLoc loc2 = new ItemLoc(2, "ITEM001", 40);
         ItemLoc loc3 = new ItemLoc(3, "ITEM001", 30);
@@ -164,10 +168,19 @@ public class InventoryServiceTest {
 
         // Verify
         assertNotNull(result);
+        
+        // Verify total quantity matches sum of all locations
+        int totalLocationQuantity = multipleLocations.stream()
+            .mapToInt(ItemLoc::getQuantity)
+            .sum();
+        assertEquals(100, totalLocationQuantity, 
+            "Total quantity in locations (30+40+30) should equal 100");
+        assertEquals(100, result.getQuantity(), 
+            "Inventory total quantity should be 100");
+        
         verify(itemLocRepository, times(3)).save(any(ItemLoc.class));
         
         // Verify each location was saved with correct itemCode and quantity
-        // Note: There are TWO locations with quantity 30, so we verify at least once
         verify(itemLocRepository, atLeastOnce()).save(argThat(loc -> 
             loc.getItemCode().equals("ITEM001") && loc.getQuantity() == 30));
         verify(itemLocRepository, times(1)).save(argThat(loc -> 
