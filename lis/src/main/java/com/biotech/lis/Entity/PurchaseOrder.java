@@ -2,7 +2,6 @@ package com.biotech.lis.Entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -21,7 +20,7 @@ public class PurchaseOrder {
     
     private Integer brandId;
     
-    private Double packSize;
+    private Integer packSize;
     
     private Integer quantity;
     
@@ -34,4 +33,19 @@ public class PurchaseOrder {
     private LocalDateTime dateTimeAdded;
     
     private String productDescription;
+
+    // private String lotSerialNumber;
+    // private String purchaseOrderFileName;
+    // @Lob
+    // private byte[] purchaseOrderFile;
+    // private String suppliersPackingListName;
+    // @Lob
+    // private byte[] suppliersPackingList;
+    // private String inventoryOfDeliveredItemsName;
+    // @Lob
+    // private byte[] inventoryOfDeliveredItems;
+    // private LocalDate orderDate;
+    // private String addedBy;
+    // private LocalDateTime dateTimeAdded;
+    // private String drSIReferenceNum;
 }

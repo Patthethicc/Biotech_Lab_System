@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/stock_alert_service.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
@@ -75,8 +74,8 @@ class StockAlert extends StatefulWidget {
 }
 
 class _StockAlertState extends State<StockAlert> {
-  List<Inventory> _allStockAlerts = [];
-  List<Inventory> _displayStockAlerts = [];
+  List<InventoryPayload> _allStockAlerts = [];
+  List<InventoryPayload> _displayStockAlerts = [];
   bool _isLoading = true;
 
   int _startIndex = 0;
@@ -185,7 +184,8 @@ class _StockAlertState extends State<StockAlert> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemBuilder: (context, index) {
-                              final alert = _displayStockAlerts[_startIndex + index];
+                              final payload = _displayStockAlerts[_startIndex + index];
+                              final alert = payload.inventory;
                               return Padding(
                                 // Reduced vertical padding
                                 padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -214,7 +214,7 @@ class _StockAlertState extends State<StockAlert> {
                                         ),
                                         const SizedBox(height: 4), // Reduced SizedBox height
                                         Text(
-                                          "Quantity on Hand: ${alert.quantityOnHand}",
+                                          "Quantity on Hand: ${alert.quantity}",
                                           style: TextStyle(
                                             // Reduced font size
                                             fontSize: 14,
@@ -223,7 +223,7 @@ class _StockAlertState extends State<StockAlert> {
                                         ),
                                         const SizedBox(height: 2), // Reduced SizedBox height
                                         Text(
-                                          "Inventory ID: ${alert.inventoryID}",
+                                          "Item Code: ${alert.itemCode}",
                                           style: TextStyle(
                                             // Reduced font size
                                             fontSize: 12,
@@ -319,7 +319,7 @@ class _StockAlertState extends State<StockAlert> {
           NeumorphicText(
               showAll
                 ? 'Showing all ${_displayStockAlerts.length} entries'
-                :'${_displayStockAlerts.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayStockAlerts.length}',
+                :'${_displayStockAlerts.isEmpty ? 0 : _startIndex + 1} - $endIndex of ${_displayStockAlerts.length}',
               style: NeumorphicStyle(
                 depth: 1,
                 intensity: 0.7,

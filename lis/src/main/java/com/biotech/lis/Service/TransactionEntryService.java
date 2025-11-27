@@ -110,7 +110,7 @@ public class TransactionEntryService {
             stockLocatorService.updateStockFromTransaction(updatedEntry, false);
         }
 
-        inventoryService.updateInventoryTrns(updatedEntry);
+        // inventoryService.updateInventoryTrns(updatedEntry);
 
         return updatedEntry;
     }

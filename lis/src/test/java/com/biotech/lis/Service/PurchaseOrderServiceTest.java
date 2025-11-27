@@ -46,7 +46,7 @@ public class PurchaseOrderServiceTest {
         samplePurchaseOrder.setItemCode("ITEM001");
         samplePurchaseOrder.setBrandId(1); 
         samplePurchaseOrder.setProductDescription("Test Description");
-        samplePurchaseOrder.setPackSize(10.0);
+        samplePurchaseOrder.setPackSize(10);
         samplePurchaseOrder.setQuantity(5);
         samplePurchaseOrder.setUnitCost(100.0);
         samplePurchaseOrder.setPoPireference("REF123"); 
@@ -138,7 +138,7 @@ public class PurchaseOrderServiceTest {
         updatedPO.setItemCode("ITEM001");
         updatedPO.setBrandId(2); 
         updatedPO.setProductDescription("Updated Description");
-        updatedPO.setPackSize(20.0);
+        updatedPO.setPackSize(20);
         
         // Mock security context
         mockSecurityContext();
@@ -156,7 +156,7 @@ public class PurchaseOrderServiceTest {
         assertEquals("ITEM001", result.getItemCode());
         assertEquals(2, result.getBrandId()); // Changed from getBrand
         assertEquals("Updated Description", result.getProductDescription());
-        assertEquals(20.0, result.getPackSize());
+        assertEquals(20, result.getPackSize());
         verify(purchaseOrderRepository, times(1)).existsById("ITEM001");
         verify(purchaseOrderRepository, times(1)).findByItemCode("ITEM001");
         verify(purchaseOrderRepository, times(1)).save(any(PurchaseOrder.class));

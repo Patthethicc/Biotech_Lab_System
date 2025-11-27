@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/ui/latest_transaction_table.dart';
@@ -9,6 +9,7 @@ import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
 import 'login.dart';
 import 'inventory_pie_chart.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -62,8 +63,9 @@ class _HomePageState extends State<HomePage> {
       final entries = await TransactionEntryService().fetchTransactionEntries();
       final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
-      final alerts = await StockAlertService().getStockAlerts();
-      final outOfStockItems = alerts.where((item) => item.quantityOnHand == 0).length;
+      final List<InventoryPayload> alerts = await StockAlertService().getStockAlerts();
+      final outOfStockItems = alerts.where((item) =>
+        item.locations.fold<int>(0, (sum, loc) => sum + loc.quantity) == 0).length;
 
       setState(() {
         transactions = filtered;
@@ -92,11 +94,11 @@ class _HomePageState extends State<HomePage> {
       loadingBottom = true;
     });
     try {
-      final t = await InventoryService().getTopStock();
-      final b = await InventoryService().getBottomStock();
+      final t_payloads = await InventoryService().getTopStock();
+      final b_payloads = await InventoryService().getBottomStock();
       setState(() {
-        top = t;
-        bottom = b;
+        top = t_payloads.map((payload) => payload.inventory).toList();
+        bottom = b_payloads.map((payload) => payload.inventory).toList();
       });
     } catch (e) {
       print('Stock load error: $e');
@@ -360,6 +362,7 @@ class _HomePageState extends State<HomePage> {
           ),
           buildDrawerItem(context, 'View Profile', '/view_profile'),
           buildDrawerItem(context, 'Transaction Entry', '/transaction_entry'),
+          buildDrawerItem(context, 'Locations', '/location'),
           buildDrawerItem(context, 'Inventory', '/inventory'),
           buildDrawerItem(context, 'Brands', '/brand'),
           buildDrawerItem(context, 'Stock Alerts', '/stock_alert'),
