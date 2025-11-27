@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/services/inventory_service.dart';
+import 'package:frontend/models/api/item_loc.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
@@ -77,8 +78,8 @@ class ExpiryAlert extends StatefulWidget {
 class _ExpiryAlertState extends State<ExpiryAlert> {
   final inventoryService = InventoryService();
 
-  List<Inventory> _allExpiryAlerts = [];
-  List<Inventory> _displayAlerts = [];
+  List<InventoryPayload> _allExpiryAlerts = [];
+  List<InventoryPayload> _displayAlerts = [];
   bool _isLoading = true;
   bool _isHovered = false;
 
@@ -134,6 +135,13 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
     final endIndex = (_startIndex + _rowsPerPage > _displayAlerts.length)
         ? _displayAlerts.length
         : _startIndex + _rowsPerPage;
+
+    final allLocations = _allExpiryAlerts
+        .expand((payload) => payload.locations.map((loc) => loc.locationName))
+        .toSet()
+        .where((locName) => locName != null)
+        .cast<String>()
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -191,19 +199,38 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
                           ),
                         )
                       : DataTable(                         
-                          columns: const [
-                            DataColumn(label: Text("Item Code", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Brand", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Description", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("lot Serial Number", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Stocks Manila", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Stocks Cebu", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Expiration Date", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Days till expiration", style: TextStyle(color: Colors.white))),
+                          headingRowColor: WidgetStateProperty.all(Colors.blue[400]),
+                          columns: [
+                            const DataColumn(
+                                label: Text("Item Code",
+                                    style: TextStyle(color: Colors.white))),
+                            const DataColumn(
+                                label: Text("Brand",
+                                    style: TextStyle(color: Colors.white))),
+                            const DataColumn(
+                                label: Text("Description",
+                                    style: TextStyle(color: Colors.white))),
+                            const DataColumn(
+                                label: Text("Lot Number",
+                                    style: TextStyle(color: Colors.white))),
+                            ...allLocations.map((loc) => DataColumn(
+                                label: Text("Stocks $loc",
+                                    style: const TextStyle(color: Colors.white)))),
+                            const DataColumn(
+                                label: Text("Expiry Date",
+                                    style: TextStyle(color: Colors.white))),
+                            const DataColumn(
+                                label: Text("Days Till Expiry",
+                                    style: TextStyle(color: Colors.white))),
                           ],
-                          rows: _populateRows().isEmpty
-                              ? []
-                              : _populateRows().sublist(_startIndex, endIndex),
+                          rows: _displayAlerts.isEmpty
+                            ? [
+                                const DataRow(cells: [
+                                  DataCell(Text('No results found')),
+                                ])
+                              ]
+                            : _populateRows(allLocations)
+                                .sublist(_startIndex, endIndex),
                         ),
                 ),
               ),
@@ -217,41 +244,50 @@ class _ExpiryAlertState extends State<ExpiryAlert> {
     );
   }
 
-  List<DataRow> _populateRows() {
-    if (_displayAlerts.isEmpty) {
-      return [
-        const DataRow(cells: [
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('No results found')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-          DataCell(Text('')),
-        ])
-      ];
-    }
+  List<DataRow> _populateRows(List<String> allLocations) {
+    int counter = 0;
 
-     int counter = 0;
+    return _displayAlerts.map((payload) {
+      final inv = payload.inventory;
 
-    return _displayAlerts.map((e) {
-      return DataRow(cells: [
-        DataCell(Text(e.itemCode.toString())),
-        DataCell(Text(e.brand)),
-        DataCell(Text(e.productDescription)),
-        DataCell(Text(e.lotSerialNumber)),
-        DataCell(Text(e.stocksManila.toString())),
-        DataCell(Text(e.stocksCebu.toString())),
-        DataCell(Text(e.expiryDate.toString())),
-        DataCell(Text(DateTime.parse(e.expiryDate).difference(DateTime.now()).inDays.toString(),style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),)),
-      ],
-      color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-        final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue
-        final subtleBlueTint2 = Color.fromRGBO(230, 240, 255, 1); // Even lighter blue
+      final daysTillExpiry =
+          DateTime.parse(inv.expiry).difference(DateTime.now()).inDays;
 
-        final color = counter.isEven ? subtleBlueTint1 : subtleBlueTint2;
-        counter++;
-        return color;
-      }));
+      final locationCells = allLocations.map((locName) {
+        final location = payload.locations.firstWhere(
+          (loc) => loc.locationName?.toLowerCase() == locName.toLowerCase(),
+          orElse: () => ItemLoc(locationId: 0, locationName: locName, quantity: 0),
+        );
+        return DataCell(Text(location.quantity.toString()));
+      }).toList();
+
+      return DataRow(
+        color: WidgetStateProperty.resolveWith<Color>((_) {
+          final color = counter.isEven
+              ? const Color.fromRGBO(241, 245, 255, 1)
+              : const Color.fromRGBO(230, 240, 255, 1);
+          counter++;
+          return color;
+        }),
+        cells: [
+          DataCell(Text(inv.itemCode)),
+          DataCell(Text(inv.brandId.toString())), // TODO: convert to brandName given brandId
+          DataCell(Text(inv.itemDescription)),
+          DataCell(Text(inv.lotNum.toString())),
+          ...locationCells,
+          DataCell(Text(inv.expiry)),
+          DataCell(
+            Text(
+              '$daysTillExpiry days',
+              style: TextStyle(
+                color: daysTillExpiry < 30 ? Colors.red : Colors.black,
+                fontWeight:
+                    daysTillExpiry < 30 ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      );
     }).toList();
   }
 
