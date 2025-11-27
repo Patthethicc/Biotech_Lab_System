@@ -413,7 +413,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<Location>(
-                      initialValue: selectedLocation,
+                      value: selectedLocation,
                       hint: const Text('Select Location'),
                       items: availableLocations.map((loc) {
                         return DropdownMenuItem<Location>(

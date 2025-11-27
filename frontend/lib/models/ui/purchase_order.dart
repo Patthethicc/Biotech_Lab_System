@@ -309,7 +309,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<Map<String, dynamic>>(
-                          initialValue: selectedBrand,
+                          value: selectedBrand,
                           decoration: const InputDecoration(
                             labelText: 'Brand',
                             border: OutlineInputBorder(),
@@ -535,7 +535,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<int>(
-                          initialValue: selectedBrandId,
+                          value: selectedBrandId,
                           decoration: const InputDecoration(
                             labelText: 'Brand',
                             border: OutlineInputBorder(),
