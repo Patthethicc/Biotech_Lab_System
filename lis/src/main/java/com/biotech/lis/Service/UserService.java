@@ -3,6 +3,7 @@ package com.biotech.lis.Service;
 import org.springframework.stereotype.Service;
 import com.biotech.lis.Repository.UserRepository;
 import com.biotech.lis.config.JwtService;
+import com.biotech.lis.DTO.UserSummary;
 import com.biotech.lis.Entity.LogInReq;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Exception.*;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.util.logging.Logger;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -100,6 +102,11 @@ public class UserService {
             throw new RuntimeException("Failed to retrieve user due to internal error", e);
         }
     }
+
+    public List<UserSummary> getAllUsers() {
+        return userRepository.findAllProjectedBy();
+    }
+
 
     public User updateUser(User user) {
         try {

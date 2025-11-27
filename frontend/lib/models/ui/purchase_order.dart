@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/existing_user.dart';
+import 'package:frontend/services/existing_user_service.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/services/purchase_order_service.dart';
@@ -88,8 +90,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   final PurchaseOrderService _poService = PurchaseOrderService();
   final TextEditingController _searchController = TextEditingController();
   final BrandService _brandService = BrandService();
+  final ExistingUserService _userService = ExistingUserService();
   List<PurchaseOrder> _allOrders = [];
   List<PurchaseOrder> _displayOrders = [];
+  List<ExistingUser> _allUsers = [];
   Set<PurchaseOrder> _selectedOrders = {};
   PurchaseOrder? _selectedOrderForEdit;
   List<Map<String, dynamic>> _availableBrands = [];
@@ -110,6 +114,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     _fetchPurchaseOrders();
     _searchController.addListener(_filterOrders);
     _fetchBrands();
+    _fetchUsers();
   }
 
   @override
@@ -181,6 +186,44 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final users = await _userService.fetchUsers();
+
+      final userList = users.toList();
+
+      if(!mounted) return;
+      setState(() {
+        _allUsers = userList;
+      });
+    } catch (e) {
+      if(mounted){
+        _showDialog('Error', 'Failed to load users: $e');
+      }
+    } finally {
+      if(mounted){
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String getUserNameById(int? userId) {
+    if (userId == null) return '';
+    
+    try {
+      final user = _allUsers.firstWhere((user) => user.userId == userId);
+      return user.firstName + user.lastName;
+    } catch (e) {
+      return 'Unknown User (ID: $userId)';
     }
   }
 
@@ -475,7 +518,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       poPireference: popiRefController.text,
                       addedBy: 1,
                     );
-                    print(newOrder.toJson());
+
                     try {
                       await _poService.addPurchaseOrder(newOrder);
                       if (!context.mounted) return;
@@ -884,42 +927,220 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
   //   }
   // }
 
-  Future<void> _generateAndSavePDF(PurchaseOrder po, String brandName) async {
+  Future<void> _generateAndSavePDF(PurchaseOrder po, String brandName, Map<String, String> approvalData) async {
     try {
       final pdf = pw.Document();
+      final byteData = await rootBundle.load('Assets/Images/logo.png');
+      final Uint8List logoImageData = byteData.buffer.asUint8List();
+      final arialBlackData = await rootBundle.load("Assets/Fonts/ARIBLK.TTF");
+      final pw.TtfFont arialBlackFont = pw.TtfFont(arialBlackData);
+      final latoRegularData = await rootBundle.load("Assets/Fonts/Lato-Regular.ttf");
+      final pw.TtfFont latoRegularFont = pw.TtfFont(latoRegularData);
+      final latoBoldData = await rootBundle.load("Assets/Fonts/Lato-Bold.ttf");
+      final pw.TtfFont latoBoldFont = pw.TtfFont(latoBoldData);
 
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          build:(pw.Context context) {
+          pageFormat: PdfPageFormat.letter,
+          build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(po.poPireference, 
-                  style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold, 
-                    fontSize: 24
+                pw.Center(
+                  child: pw.Image(
+                    pw.MemoryImage(logoImageData),
+                    width: 255,
+                    height: 60,
+                    fit: pw.BoxFit.fill
                   )
                 ),
-                pw.SizedBox(height: 24),
-                pw.TableHelper.fromTextArray(
-                  headers: ['Item Code', 'Brand', 'Product Description', 'Pack Size', 'Quantity', 'Unit Cost', 'Total Cost', 'PO/PI Reference'],
-                  data: [[po.itemCode, brandName, po.productDescription, po.packSize, po.quantity, po.unitCost, po.totalCost, po.poPireference]],
-                  border: pw.TableBorder.all(color: PdfColors.grey600, width: 1),
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
+
+                pw.SizedBox(height: 22),
+
+                pw.Center(
+                  child: pw.Text(
+                    'P U R C H A S E    O R D E R',
+                    style: pw.TextStyle(
+                      font: arialBlackFont,
+                      fontSize: 16,
+                    ),
                   ),
-                  headerDecoration: const pw.BoxDecoration(
-                    color: PdfColors.blueGrey800,
-                  ),
-                  cellStyle: const pw.TextStyle(fontSize: 12),
-                  cellAlignment: pw.Alignment.centerLeft,
-                  cellAlignments: {
-                    4: pw.Alignment.center,
-                    5: pw.Alignment.centerRight,
-                    6: pw.Alignment.centerRight,
-                  },
+                ),
+
+                pw.SizedBox(height: 41.5),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 70,
+                      child: pw.Text(
+                        'ITEM CODE: ${po.itemCode}',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    pw.Expanded(
+                      flex: 30,
+                      child: pw.Text(
+                        'BRAND: $brandName',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 70,
+                      child: pw.Text(
+                        'PackSize: ${po.packSize}',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    pw.Expanded(
+                      flex: 30,
+                      child: pw.Text(
+                        'Quantity: ${po.quantity.toString()}',
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Text('UNIT COST: ${po.unitCost.toString()}',
+                  style: pw.TextStyle(
+                    font: latoRegularFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Text('PURCHASE ORDER/PURCHASE INVOICE REFERENCE: ${po.poPireference}',
+                  style: pw.TextStyle(
+                    font: latoRegularFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30.5),
+
+                pw.Text('DESCRIPTION: ${po.productDescription}',
+                  style: pw.TextStyle(
+                    font: latoRegularFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30 * 2.5),
+
+                pw.Text('TOTAL COST: ${po.totalCost.toString()}',
+                  style: pw.TextStyle(
+                    font: latoBoldFont,
+                    fontSize: 11
+                  )
+                ),
+
+                pw.SizedBox(height: 30 * 1.8),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(flex: 48, child: pw.Text('PREPARED BY:',
+                      style: pw.TextStyle(
+                        font: latoBoldFont,
+                        fontSize: 11
+                      )
+                    )),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(flex: 52, child: pw.Text('APPROVED BY:',
+                      style: pw.TextStyle(
+                        font: latoBoldFont,
+                        fontSize: 11
+                      )
+                    )),
+                  ],
+                ),
+
+                pw.SizedBox(height: 30 * 1.6),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 48,
+                      child: pw.Container(height: 1, color: PdfColors.black)),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(
+                      flex: 52,
+                      child: pw.Container(height: 1, color: PdfColors.black)),
+                  ],
+                ),
+                
+                pw.SizedBox(height: 4),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 48,
+                      child: pw.Text(getUserNameById(po.addedBy),
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(
+                      flex: 52,
+                      child: pw.Text(approvalData['approvedBy'] ?? '',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                  ],
+                ),
+                
+                pw.SizedBox(height: 9),
+
+                pw.Row(
+                  children: [
+                    pw.Expanded(
+                      flex: 48,
+                      child: pw.Text(DateFormat('MMMM d, yyyy').format(po.dateTimeAdded ?? DateTime.now()),
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                    pw.SizedBox(width: 72),
+                    pw.Expanded(
+                      flex: 52,
+                      child: pw.Text(approvalData['dateApproved'] ?? '',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          font: latoRegularFont,
+                          fontSize: 11
+                        )
+                    )),
+                  ],
                 ),
               ],
             );
@@ -946,7 +1167,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
     }
   }
 
-  Future<void> _generateAndSaveDOCX(PurchaseOrder po, String brandName) async {
+  Future<void> _generateAndSaveDOCX(PurchaseOrder po, String brandName, Map<String, String> approvalData) async {
     try {
       final data = await rootBundle.load('Assets/Documents/template.docx');
       final bytes = data.buffer.asUint8List();
@@ -963,7 +1184,11 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ..add(TextContent("unitCost", po.unitCost.toStringAsFixed(2)))
         ..add(TextContent("poPireference", po.poPireference))
         ..add(TextContent("productDescription", po.productDescription))
-        ..add(TextContent("totalCost", po.totalCost.toStringAsFixed(2)));
+        ..add(TextContent("totalCost", po.totalCost.toStringAsFixed(2)))
+        ..add(TextContent("PrepFullName", getUserNameById(po.addedBy)))
+        ..add(TextContent("PrepDateAdded", DateFormat('MMMM d, yyyy').format(po.dateTimeAdded ?? DateTime.now())))
+        ..add(TextContent("AppFullName", approvalData['approvedBy']))
+        ..add(TextContent("AppDateAdded", approvalData['dateApproved']));
 
       final generatedBytes = await docx.generate(content);
       
@@ -1543,54 +1768,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                   color: Colors.blue[400],
                   tooltip: 'Download Purchase Order',
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext dialogContext) {
-                        return AlertDialog(
-                          title: const Text('Download Purchase Order'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              const Text('Choose a format to save the file:'),
-                              const SizedBox(height: 16),
-
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
-                                ),
-                                child: const Text('Save as DOCX'),
-                                onPressed: () {
-                                  Navigator.of(dialogContext).pop();
-                                  _generateAndSaveDOCX(order, brandName);
-                                },
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
-                                ),
-                                child: const Text('Save as PDF'),
-                                onPressed: () {
-                                  Navigator.of(dialogContext).pop();
-                                  _generateAndSavePDF(order, brandName);
-                                },
-                              ),
-                            ],
-                          ),
-                          
-                          actions: <Widget>[
-                            TextButton(
-                              child: const Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
+                    _showExportPODialog(context, order, brandName);
                   },
                 );
               },
@@ -1599,6 +1777,145 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
         ],
       );
     }).toList();
+  }
+
+  void _showExportPODialog (BuildContext context, PurchaseOrder order, String brandName) {
+    final formKey = GlobalKey<FormState>();
+
+    final appFullName = TextEditingController();
+    final appDateAdded = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Export Purchase Order'),
+          content: Form(
+            key: formKey,
+            child: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setStateDialog) {
+                return SingleChildScrollView(
+                  child: SizedBox(
+                    width: 300,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Approved By:'),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: appFullName,
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+
+                        const SizedBox(height: 16),
+                        const Text('Approval Date:'),
+                        const SizedBox(height: 8),
+
+                        TextFormField(
+                          controller: appDateAdded,
+                          readOnly: true,
+                          onTap: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              initialDate: DateTime.now(),
+                            );
+                            if (date != null) {
+                              setStateDialog(() {
+                                appDateAdded.text = DateFormat('MMMM d, yyyy').format(date);
+                              });
+                            }
+                          },
+                          validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if(formKey.currentState!.validate()){
+                  final Map<String, String> approvalData = {
+                    'approvedBy': appFullName.text,
+                    'dateApproved': appDateAdded.text,
+                  };
+
+                  Navigator.of(context).pop();
+
+                  _showExportFormatDialog(context, order, brandName, approvalData);
+                }
+              },
+              child: const Text('Next'),
+            )
+          ],
+        );
+      }
+    );
+  }
+
+  void _showExportFormatDialog (BuildContext context, PurchaseOrder order, String brandName, Map<String, String> approvalData){
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Download Purchase Order'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text('Choose a format to save the file:'),
+              const SizedBox(height: 16),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
+                ),
+                child: const Text('Save as DOCX'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _generateAndSaveDOCX(order, brandName, approvalData);
+                },
+              ),
+
+              const SizedBox(height: 10),
+
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 25),
+                ),
+                child: const Text('Save as PDF'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _generateAndSavePDF(order, brandName, approvalData);
+                },
+              ),
+            ],
+          ),
+          
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildPaginationControls(int endIndex) {

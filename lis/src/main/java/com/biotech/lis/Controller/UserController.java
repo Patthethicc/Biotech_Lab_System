@@ -4,11 +4,13 @@ import com.biotech.lis.Entity.LogInReq;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Service.UserService;
 import com.biotech.lis.Exception.*;
+import com.biotech.lis.DTO.UserSummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -117,6 +119,17 @@ public class UserController {
             errorResponse.put("status", "error");
             errorResponse.put("message", "Internal server error occurred");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @GetMapping("/getUsers")
+    public ResponseEntity<List<UserSummary>> getAllUsers() {
+        try {
+            List<UserSummary> users = userService.getAllUsers();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            System.err.println("Error fetching all users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
