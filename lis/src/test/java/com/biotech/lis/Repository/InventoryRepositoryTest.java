@@ -30,7 +30,7 @@ public class InventoryRepositoryTest {
     @Autowired
     private InventoryRepository inventoryRepository;
 
-    // Helper method to create a sample Inventory
+    // Helper method to create a sample inventory
     private Inventory createSampleInventory(String itemCode, String poReference, Integer quantity) {
         Inventory inventory = new Inventory();
         inventory.setItemCode(itemCode);
@@ -88,34 +88,56 @@ public class InventoryRepositoryTest {
     }
 
     @Test
-    public void testFindByQuantityLessThan() {
-        // Create and persist multiple inventories with different quantities
+    public void testfindByQuantityLessThanEqual() {
+       
         entityManager.persistAndFlush(createSampleInventory("ITEM001", "PO-001", 5));
-        entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 15));
+        entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 10)); 
+        entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 10));
         entityManager.persistAndFlush(createSampleInventory("ITEM003", "PO-003", 25));
         entityManager.persistAndFlush(createSampleInventory("ITEM004", "PO-004", 8));
         
-        // Test finding inventories with quantity less than 10
-        List<Inventory> lowStock = inventoryRepository.findByQuantityLessThan(10);
+       
+        List<Inventory> lowStock = inventoryRepository.findByQuantityLessThanEqual(10);
         
-        // Verify the results
+       
         assertNotNull(lowStock);
-        assertEquals(2, lowStock.size());
-        assertTrue(lowStock.stream().allMatch(inv -> inv.getQuantity() < 10));
+        assertEquals(3, lowStock.size()); // Should find ITEM001, ITEM002, and ITEM004
+        assertEquals(3, lowStock.size());
+        assertTrue(lowStock.stream().allMatch(inv -> inv.getQuantity() <= 10));
     }
 
     @Test
-    public void testFindByQuantityLessThan_NoResults() {
+    public void testfindByQuantityLessThanEqual_NoResults() {
         // Create and persist inventories with high quantities
         entityManager.persistAndFlush(createSampleInventory("ITEM001", "PO-001", 50));
         entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 100));
         
         // Test finding inventories with quantity less than 10
-        List<Inventory> lowStock = inventoryRepository.findByQuantityLessThan(10);
+        // Test finding inventories with quantity less than or equal to 10
+        List<Inventory> lowStock = inventoryRepository.findByQuantityLessThanEqual(10);
         
         // Verify no results
         assertNotNull(lowStock);
         assertTrue(lowStock.isEmpty());
+    }
+
+    @Test
+    public void testfindByQuantityLessThanEqual_WithZeroThreshold() {
+       
+        entityManager.persistAndFlush(createSampleInventory("ITEM001", "PO-001", 0));
+        entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 1));
+        entityManager.persistAndFlush(createSampleInventory("ITEM003", "PO-003", -1)); // Edge case: negative quantity
+        entityManager.persistAndFlush(createSampleInventory("ITEM003", "PO-003", -1));
+        
+        
+        List<Inventory> outOfStock = inventoryRepository.findByQuantityLessThanEqual(0);
+        
+        // Verify the results
+        assertNotNull(outOfStock);
+        assertEquals(2, outOfStock.size()); // Should find ITEM001 and ITEM003
+        assertEquals(2, outOfStock.size());
+        assertTrue(outOfStock.stream().anyMatch(inv -> inv.getItemCode().equals("ITEM001")));
+        assertTrue(outOfStock.stream().anyMatch(inv -> inv.getItemCode().equals("ITEM003")));
     }
 
     @Test

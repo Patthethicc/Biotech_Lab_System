@@ -14,17 +14,16 @@ import com.biotech.lis.Entity.InventoryPayload;
 import com.biotech.lis.Entity.ItemLoc;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
+import com.biotech.lis.Entity.Location;
 import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.ItemLocRepository;
+import com.biotech.lis.Repository.LocationRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
-import com.biotech.lis.Entity.PurchaseOrder;
 
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
-
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InventoryService {
@@ -51,6 +50,9 @@ public class InventoryService {
 
     @Autowired
     private ItemLocRepository itemLocRepository;
+
+    @Autowired
+    private LocationRepository locationRepository;
 
     public List<InventoryPayload> getInventoriesWithLocations() {
         List<Inventory> inventories = inventoryRepository.findAll();
@@ -79,7 +81,12 @@ public class InventoryService {
             itemLocRepository.save(loc);
         }
         
-        return inventoryRepository.save(savedInv);
+        Inventory finalSavedInv = inventoryRepository.save(savedInv);
+        
+        // Sync to Stock Locator
+        syncToStockLocator(finalSavedInv, payload.getLocations());
+        
+        return finalSavedInv;
     }
 
     public Inventory getInventoryByCode(String itemCode) {
@@ -149,6 +156,9 @@ public class InventoryService {
 
         List<ItemLoc> savedLocations = itemLocRepository.findByItemCode(savedInventory.getItemCode());
 
+        // Sync to Stock Locator
+        syncToStockLocator(savedInventory, savedLocations);
+
         InventoryPayload newPayload = new InventoryPayload(savedInventory, savedLocations);
 
         return newPayload;
@@ -158,19 +168,53 @@ public class InventoryService {
     public void deleteByInventoryId(String itemcode) {
         itemLocRepository.deleteByItemCode(itemcode);
         inventoryRepository.deleteById(itemcode);
+        // Also delete from StockLocator
+        try {
+            stockLocatorService.deleteStockLocator(itemcode);
+        } catch (Exception e) {
+            System.err.println("Failed to delete from StockLocator: " + e.getMessage());
+        }
     }
 
-    // public List<Inventory> getStockAlerts(Integer amount) {
-    //     return inventoryRepository.findByQuantityOnHandLessThan(amount);
-    // }
-    // 
-    // public Integer inventoryExists(Inventory inventory) {
-    //     String itemCode = inventory.getItemCode();
-    //     if (itemCode == null || itemCode.trim().isEmpty()) {
-    //         return 0;
-    //     }
-    // 
-    //     Optional<Inventory> found = inventoryRepository.findByItemCodeIgnoreCase(itemCode);
-    //     return found.map(inv -> inv.getInventoryId().intValue()).orElse(0);
-    // }
+    public List<InventoryPayload> getStockAlerts(Integer amount) {
+        List<Inventory> inventories = inventoryRepository.findByQuantityLessThanEqual(amount);
+        return inventories.stream()
+                .map(inv -> new InventoryPayload(inv, itemLocRepository.findByItemCode(inv.getItemCode())))
+                .collect(Collectors.toList());
+    }
+
+    public void syncAllInventoryToStockLocator() {
+        List<InventoryPayload> payloads = getInventoriesWithLocations();
+        for (InventoryPayload payload : payloads) {
+            syncToStockLocator(payload.getInventory(), payload.getLocations());
+        }
+    }
+
+    private void syncToStockLocator(Inventory inventory, List<ItemLoc> locations) {
+        try {
+            Brand brand = brandService.getBrandById(inventory.getBrandId());
+            String brandName = brand != null ? brand.getBrandName() : "Unknown";
+            
+            java.util.Map<Integer, String> locIdToName = locationRepository.findAll().stream()
+                .collect(Collectors.toMap(Location::getLocationId, Location::getLocationName));
+            
+            java.util.Map<String, Integer> locQuantities = new java.util.HashMap<>();
+            for (ItemLoc loc : locations) {
+                String name = locIdToName.get(loc.getLocationId());
+                if (name != null) {
+                    locQuantities.put(name, loc.getQuantity());
+                }
+            }
+            
+            stockLocatorService.updateStockFromInventory(
+                inventory.getItemCode(), 
+                brandName, 
+                inventory.getItemDescription(), 
+                locQuantities
+            );
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to sync to StockLocator: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

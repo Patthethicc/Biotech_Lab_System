@@ -4,6 +4,7 @@ import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
 
@@ -59,7 +60,20 @@ public class PurchaseOrderService {
 
         User user = getCurrentUser();
         setAuditFields(purchaseOrder, user);
-        return purchaseOrderRepository.save(purchaseOrder);
+        PurchaseOrder savedPO = purchaseOrderRepository.save(purchaseOrder);
+
+        // Create and save a corresponding TransactionEntry
+        TransactionEntry transactionEntry = new TransactionEntry();
+        transactionEntry.setDrSIReferenceNum(savedPO.getPoPireference()); // Or another unique reference
+        transactionEntry.setItemCode(savedPO.getItemCode());
+        transactionEntry.setBrand(brand.getBrandName());
+        transactionEntry.setProductDescription(savedPO.getProductDescription());
+        transactionEntry.setQuantity(savedPO.getQuantity());
+        transactionEntry.setCost(savedPO.getUnitCost() * savedPO.getQuantity());
+        transactionEntry.setStockLocation("limbaga"); // Default location, can be changed
+        transactionEntryRepository.save(transactionEntry);
+
+        return savedPO;
     }
 
     public Optional<PurchaseOrder> getPurchaseOrderByCode(String code) {
@@ -170,5 +184,3 @@ public class PurchaseOrderService {
         purchaseOrder.setDateTimeAdded(currentDateTime);
     }
 }
-
-

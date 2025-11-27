@@ -352,7 +352,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<Map<String, dynamic>>(
-                          value: selectedBrand,
+                          initialValue: selectedBrand,
                           decoration: const InputDecoration(
                             labelText: 'Brand',
                             border: OutlineInputBorder(),
@@ -518,7 +518,6 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       poPireference: popiRefController.text,
                       addedBy: 1,
                     );
-
                     try {
                       await _poService.addPurchaseOrder(newOrder);
                       if (!context.mounted) return;
@@ -578,7 +577,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         DropdownButtonFormField<int>(
-                          value: selectedBrandId,
+                          initialValue: selectedBrandId,
                           decoration: const InputDecoration(
                             labelText: 'Brand',
                             border: OutlineInputBorder(),

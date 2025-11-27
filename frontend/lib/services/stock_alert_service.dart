@@ -9,10 +9,10 @@ class StockAlertService {
   static final String baseUrl = dotenv.env['API_URL']!;
   final storage = FlutterSecureStorage();
 
-    Future<List<InventoryPayload>> getStockAlerts() async {
+    Future<List<InventoryPayload>> getStockAlerts({int threshold = 10}) async {
     String? token = await storage.read(key: 'jwt_token');
     final response = await http.get(
-      Uri.parse('$baseUrl/inv/v1/stockAlert/10'),
+      Uri.parse('$baseUrl/inv/v1/stockAlert/$threshold'),
       headers: {
         'Authorization': 'Bearer $token'
       },

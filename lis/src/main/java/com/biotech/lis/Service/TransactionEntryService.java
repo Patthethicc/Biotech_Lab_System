@@ -40,40 +40,25 @@ public class TransactionEntryService {
     @Autowired
     PurchaseOrderRepository purchaseOrderRepository;
 
-    // @Transactional
-    // public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
-    //     TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
-
-    //     validateTransactionEntry(transactionEntry);
-    //     validateTransactionId(transactionEntry.getDrSIReferenceNum());
+    @Transactional
+    public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
+        validateTransactionEntry(transactionEntry);
         
-    //     if (transactionEntryRepository.existsById(transactionEntry.getDrSIReferenceNum())) {
-    //         throw new IllegalArgumentException("Transaction already exists with ID: " + transactionEntry.getDrSIReferenceNum());
-    //     }
+        if (transactionEntryRepository.existsById(transactionEntry.getDrSIReferenceNum())) {
+            throw new IllegalArgumentException("Transaction already exists with ID: " + transactionEntry.getDrSIReferenceNum());
+        }
 
-    //     User user = getCurrentUser();
-    //     setAuditFields(transactionEntry, user);
+        User user = getCurrentUser();
+        setAuditFields(transactionEntry, user);
         
-    //     Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
-    //     if (brand == null) {
-    //         throw new EntityNotFoundException();
-    //     }
-
-    //     transactionEntry.setItemCode(brandService.generateItemCode(brand));
-    //     TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
-    //     stockLocatorService.updateStockFromTransaction(savedEntry, true);
+        TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
         
-    //     inventoryService.addInventory(savedEntry);
+        // This is the crucial call that creates the StockLocator entry
+        stockLocatorService.updateStockFromTransaction(savedEntry, true);
+        
+        return savedEntry;
+    }
 
-    //     PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
-    //     purchaseOrder.setItemCode(savedEntry.getItemCode());
-    //     // purchaseOrder.setAddedBy(savedEntry.getAddedBy());
-    //     // purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
-
-    //     purchaseOrderRepository.save(purchaseOrder);
-
-    //     return savedEntry;
-    // }
  
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
         validateTransactionId(id);

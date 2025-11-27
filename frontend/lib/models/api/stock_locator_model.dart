@@ -9,6 +9,7 @@ class StockLocator {
   int gandiaRef2 = 0;
   int limbaga = 0;
   int cebu = 0;
+  int totalStock = 0;
 
   StockLocator({
     required this.itemCode,
@@ -21,6 +22,7 @@ class StockLocator {
     required this.gandiaRef2,
     required this.limbaga,
     required this.cebu,
+    required this.totalStock,
   });
 
   StockLocator.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class StockLocator {
     gandiaRef2 = json["gandiaRef2"];
     limbaga = json["limbaga"];
     cebu = json["cebu"];
+    totalStock = json["totalStock"];
   }
 
   Map<String, dynamic> toJson() {
@@ -49,5 +52,21 @@ class StockLocator {
       'limbaga': limbaga,
       'cebu': cebu,
     };
+  }
+
+  StockLocator copyWith({Map<String, int>? newValues}) {
+    return StockLocator(
+      itemCode: itemCode,
+      brand: brand,
+      productDescription: productDescription,
+      lazcanoRef1: newValues?['lazcanoRef1'] ?? lazcanoRef1,
+      lazcanoRef2: newValues?['lazcanoRef2'] ?? lazcanoRef2,
+      gandiaColdStorage: newValues?['gandiaColdStorage'] ?? gandiaColdStorage,
+      gandiaRef1: newValues?['gandiaRef1'] ?? gandiaRef1,
+      gandiaRef2: newValues?['gandiaRef2'] ?? gandiaRef2,
+      limbaga: newValues?['limbaga'] ?? limbaga,
+      cebu: newValues?['cebu'] ?? cebu,
+      totalStock: totalStock,
+    );
   }
 }

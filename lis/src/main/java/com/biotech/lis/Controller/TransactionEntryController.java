@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,17 +35,17 @@ public class TransactionEntryController {
         this.transactionEntryService = transactionEntryService;
     }
 
-    // @PostMapping("/createTransactionEntry")
-    // public ResponseEntity<TransactionEntry> createTransactionEntry(@RequestBody CombinedTrnPO combinedTrnPO) {
-    //     try {
-    //         TransactionEntry newTransactionEntry = transactionEntryService.createTransactionEntry(combinedTrnPO);
-    //         return ResponseEntity.ok(newTransactionEntry);
-    //     } catch (IllegalArgumentException e) {
-    //         return ResponseEntity.badRequest().build(); // invalid input
-    //     } catch (Exception e) {
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
-    //     }
-    // }
+    @PostMapping("/createTransactionEntry")
+    public ResponseEntity<TransactionEntry> createTransactionEntry(@RequestBody TransactionEntry transactionEntry) {
+        try {
+            TransactionEntry newTransactionEntry = transactionEntryService.createTransactionEntry(transactionEntry);
+            return ResponseEntity.ok(newTransactionEntry);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build(); // invalid input
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // database error or other issues
+        }
+    }
 
     @GetMapping("/getTransactionByID/{id}")
     public ResponseEntity<TransactionEntry> getTransactionEntryById(@PathVariable("id") String id) {

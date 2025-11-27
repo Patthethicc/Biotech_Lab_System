@@ -82,20 +82,52 @@ class _StockAlertState extends State<StockAlert> {
   int _rowsPerPage = 5;
   final List<int> _rowsPerPageOptions = [5, 10, 25, 50];
   final int _showAllValue = -1;
+  final TextEditingController _stockAmountController = TextEditingController();
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _stockAmountController.text = '10'; // Default threshold
     _fetchStockAlerts();
   }
 
+  @override
+  void dispose() {
+    _stockAmountController.dispose();
+    super.dispose();
+  }
+
   void _fetchStockAlerts() {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final amount = int.tryParse(_stockAmountController.text);
+    if (amount == null || amount < 0) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Please enter a valid, non-negative number for the threshold.";
+        _displayStockAlerts = [];
+        _allStockAlerts = [];
+      });
+      return;
+    }
+
     final stockAlertService = StockAlertService();
-    stockAlertService.getStockAlerts().then((value) {
+    stockAlertService.getStockAlerts(threshold: amount).then((value) {
       setState(() {
         _allStockAlerts = value;
         _displayStockAlerts = List.from(_allStockAlerts);
         _isLoading = false;
+      });
+    }).catchError((error) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.toString().replaceFirst("Exception: ", "");
+        _displayStockAlerts = [];
+        _allStockAlerts = [];
       });
     });
   }
@@ -147,11 +179,6 @@ class _StockAlertState extends State<StockAlert> {
         elevation: 0,
         foregroundColor: Colors.black,
         actions: [
-          IconButton(
-            onPressed: _fetchStockAlerts,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Alerts',
-          ),
         ],
       ),
       body: Container(
@@ -167,8 +194,58 @@ class _StockAlertState extends State<StockAlert> {
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (_displayStockAlerts.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 200,
+                              child: Neumorphic(
+                                style: NeumorphicStyle(
+                                  depth: -4,
+                                  intensity: 0.6,
+                                  color: Colors.white,
+                                  boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(40)),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                                child: TextField(
+                                  controller: _stockAmountController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Stock Alert Threshold',
+                                    border: InputBorder.none,
+                                  ),
+                                  onSubmitted: (_) => _fetchStockAlerts(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            NeumorphicButton(
+                              onPressed: _fetchStockAlerts,
+                              style: NeumorphicStyle(
+                                depth: 3,
+                                intensity: 0.8,
+                                boxShape: NeumorphicBoxShape.circle(),
+                                color: Colors.white,
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: Icon(
+                                Icons.search,
+                                color: Colors.lightBlue[400],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_errorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Text(_errorMessage!, style: const TextStyle(fontSize: 16, color: Colors.red)),
+                        )
+                      else if (_displayStockAlerts.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(20.0),
                           child: Text(
@@ -216,20 +293,11 @@ class _StockAlertState extends State<StockAlert> {
                                         Text(
                                           "Quantity on Hand: ${alert.quantity}",
                                           style: TextStyle(
-                                            // Reduced font size
                                             fontSize: 14,
                                             color: Colors.grey[700],
                                           ),
                                         ),
-                                        const SizedBox(height: 2), // Reduced SizedBox height
-                                        Text(
-                                          "Item Code: ${alert.itemCode}",
-                                          style: TextStyle(
-                                            // Reduced font size
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
+                                        const SizedBox(height: 2),
                                       ],
                                     ),
                                   ),
