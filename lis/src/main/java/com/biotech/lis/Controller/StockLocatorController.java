@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,15 +42,11 @@ public class StockLocatorController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<StockLocator> getStockByBrandAndProduct(
-            @RequestParam String brand, 
-            @RequestParam String productDescription) {
-        Optional<StockLocator> stockLocator = stockLocatorService.getStocksByBrandAndProduct(brand, productDescription);
-        if (stockLocator.isPresent()) {
-            return ResponseEntity.ok(stockLocator.get());
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+    public ResponseEntity<List<StockLocator>> searchStockLocators(
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String query) {
+        List<StockLocator> results = stockLocatorService.searchStockLocators(brand, query);
+        return ResponseEntity.ok(results);
     }
 
     @PutMapping("/update")
@@ -78,5 +75,24 @@ public class StockLocatorController {
             @RequestParam String productDescription) {
         boolean exists = stockLocatorService.existsByBrandAndProduct(brand, productDescription);
         return ResponseEntity.ok(exists);
+    }
+
+    @Autowired
+    private com.biotech.lis.Service.InventoryService inventoryService;
+
+    @GetMapping("/descriptions")
+    public ResponseEntity<List<String>> getProductDescriptions(@RequestParam(required = false) String brand) {
+        List<String> descriptions = stockLocatorService.getProductDescriptions(brand);
+        return ResponseEntity.ok(descriptions);
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<String> syncStock() {
+        try {
+            inventoryService.syncAllInventoryToStockLocator();
+            return ResponseEntity.ok("Stock synchronization completed successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Synchronization failed: " + e.getMessage());
+        }
     }
 }

@@ -51,7 +51,7 @@ public class TransactionEntry {
     private String itemCode;
 
     @Column(name = "addedBy")
-    private String addedBy;
+    private Long addedBy;
 
     @Column(name = "dateTimeAdded")
     private LocalDateTime dateTimeAdded;

@@ -1,8 +1,125 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/stock_locator_model.dart';
 import 'package:frontend/models/api/brand_model.dart';
 import 'package:frontend/services/stock_locator_service.dart';
 import 'package:frontend/services/brand_service.dart';
+
+class _NeumorphicNavButton extends StatefulWidget {
+  const _NeumorphicNavButton({
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  @override
+  State<_NeumorphicNavButton> createState() => _NeumorphicNavButtonState();
+}
+
+class _NeumorphicNavButtonState extends State<_NeumorphicNavButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: NeumorphicButton(
+        onPressed: widget.enabled ? widget.onPressed : null,
+        tooltip: widget.tooltip,
+        style: NeumorphicStyle(
+          depth: _isHovered && widget.enabled ? -3 : 3,
+          intensity: 0.8,
+          surfaceIntensity: 0.5,
+          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(50)),
+          lightSource: LightSource.topLeft,
+          color: Colors.transparent,
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          widget.icon,
+          color: widget.enabled ? Colors.lightBlue[400] : Colors.grey[700],
+          size: 24,
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.isEnabled = true,
+    this.isDelete = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isEnabled;
+  final bool isDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSmall = MediaQuery.of(context).size.width < 600;
+
+    return NeumorphicButton(
+      onPressed: isEnabled ? onPressed : null,
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmall ? 8 : 12,
+        vertical: isSmall ? 6 : 8,
+      ),
+      style: NeumorphicStyle(
+        depth: isEnabled ? 3 : 0,
+        intensity: 0.8,
+        surfaceIntensity: 0.5,
+        boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
+        lightSource: LightSource.topLeft,
+        color: isDelete && isEnabled
+            ? Colors.red[400]
+            : isEnabled
+                ? Colors.white
+                : Colors.grey[300],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: isSmall ? 16 : 18,
+            color: isDelete && isEnabled
+                ? Colors.white
+                : isEnabled
+                    ? const Color(0xFF01579B)
+                    : Colors.grey[600],
+          ),
+          if (label.isNotEmpty) ...[
+            SizedBox(width: isSmall ? 4 : 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isDelete && isEnabled
+                    ? Colors.white
+                    : isEnabled
+                        ? const Color(0xFF01579B)
+                        : Colors.grey[600],
+                fontSize: isSmall ? 12 : 13,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 class StockLocatorPage extends StatefulWidget {
   const StockLocatorPage({super.key});
@@ -12,344 +129,232 @@ class StockLocatorPage extends StatefulWidget {
 }
 
 class _StockLocatorPageState extends State<StockLocatorPage> {
-  bool _isLoading = false;
-  bool _showTable = false;
-  bool _brandsLoading = true;
-  
-  final TextEditingController _productController = TextEditingController();
-  
-  List<BrandModel> _brands = [];
-  BrandModel? _selectedBrand;
-  StockLocator? _result;
-  String? _errorMessage;
-  
   final StockLocatorService _service = StockLocatorService();
   final BrandService _brandService = BrandService();
+  final TextEditingController _searchController = TextEditingController();
+
+  List<StockLocator> _allRecords = [];
+  List<StockLocator> _displayRecords = [];
+  List<BrandModel> _brands = [];
+  List<String> _productDescriptions = [];
+  StockLocator? _selectedEntry;
+  BrandModel? _selectedBrandFilter;
+  String? _selectedDescriptionFilter;
+
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  int _startIndex = 0;
+  int _rowsPerPage = 10;
+  final List<int> _rowsPerPageOptions = [10, 25, 50, 100];
+  final int _showAllValue = -1;
 
   @override
   void initState() {
     super.initState();
-    _loadBrands();
+    _fetchAndLoadInitialData();
+    _searchController.addListener(_filterRecords);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterRecords);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchAndLoadInitialData() async {
+    await _loadBrands();
+    await _loadProductDescriptions();
+    await _fetchRecords();
+  }
+
+  Future<void> _fetchRecords() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+        _selectedEntry = null;
+      });
+    }
+    try {
+      final records = await _service.searchStockLocators(
+        brand: _selectedBrandFilter?.brandName,
+        query: _selectedDescriptionFilter ?? _searchController.text,
+      );
+      if (mounted) {
+        setState(() {
+          _allRecords = records;
+          _displayRecords = List.from(_allRecords);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _errorMessage = "Error fetching stock data: $e");
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _loadBrands() async {
     try {
       final brands = await _brandService.getBrands();
-      setState(() {
-        _brands = brands;
-        _brandsLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _brands = brands;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _brandsLoading = false;
-        _errorMessage = 'Failed to load brands: $e';
-      });
+      if (mounted) {
+        setState(() => _errorMessage = 'Failed to load brands: $e');
+      }
     }
   }
+
+  Future<void> _loadProductDescriptions() async {
+    try {
+      final descriptions = await _service.getProductDescriptions(
+        brand: _selectedBrandFilter?.brandName,
+      );
+      if (mounted) {
+        setState(() {
+          _productDescriptions = descriptions;
+          // Reset description filter if it's no longer in the list (unless it's null)
+          if (_selectedDescriptionFilter != null && !descriptions.contains(_selectedDescriptionFilter)) {
+            _selectedDescriptionFilter = null;
+          }
+        });
+      }
+    } catch (e) {
+      // Fail silently or log, as this is secondary data
+      print('Failed to load product descriptions: $e');
+    }
+  }
+
+  void _filterRecords() {
+    _fetchRecords().then((_) {
+      _startIndex = 0;
+      _selectedEntry = null;
+    });
+  }
+
+  void _onEntrySelection(StockLocator entry) {
+    setState(() {
+      _selectedEntry = (_selectedEntry == entry) ? null : entry;
+    });
+  }
+
+  void _changeRowsPerPage(int newRowsPerPage) {
+    setState(() {
+      _rowsPerPage = newRowsPerPage;
+      _startIndex = 0;
+    });
+  }
+
+  void nextPage() {
+    if (_rowsPerPage == _showAllValue) return;
+    setState(() {
+      if (_startIndex + _rowsPerPage < _displayRecords.length) {
+        _startIndex += _rowsPerPage;
+      }
+    });
+  }
+
+  void prevPage() {
+    if (_rowsPerPage == _showAllValue) return;
+    setState(() {
+      if (_startIndex - _rowsPerPage >= 0) {
+        _startIndex -= _rowsPerPage;
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Locator'),
-        centerTitle: true,
+        title: const Text('Stock Locator', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.black,
+        actions: [
+          IconButton(onPressed: _fetchRecords, icon: const Icon(Icons.refresh), tooltip: 'Refresh Data')
+        ],
       ),
-      body: Stack(
-        children: [
-          // Background image
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('Assets/Images/bg.png'),
-                fit: BoxFit.cover,
+      body: Container(
+        decoration: const BoxDecoration(image: DecorationImage(image: AssetImage('Assets/Images/bg.png'), fit: BoxFit.cover)),
+        child: LayoutBuilder(
+          builder: (context, constraints) => Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildActionAndSearchBar(constraints),
+                  const SizedBox(height: 16),
+                  _buildDataTableContainer(constraints),
+                  const SizedBox(height: 16),
+                  if (!_isLoading) _buildPaginationControls(),
+                ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
 
-          // Foreground scrollable content
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
+  Widget _buildActionAndSearchBar(BoxConstraints constraints) {
+    final isSmallScreen = constraints.maxWidth < 800;
+    final selected = _selectedEntry;
 
-                // Search Row
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    children: [
-                      // Search Button
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.search),
-                          onPressed: () async {
-                            if (_selectedBrand == null || _productController.text.trim().isEmpty) {
-                              setState(() {
-                                _errorMessage = 'Please select a brand and enter product description to search.';
-                                _showTable = false;
-                                _result = null;
-                              });
-                              return;
-                            }
-
-                            setState(() {
-                              _isLoading = true;  
-                              _showTable = false;
-                            });
-
-                            final result = await _service.searchStockLocator(
-                              _selectedBrand!.brandName, 
-                              _productController.text.trim()
-                            );
-
-                            setState(() {
-                              _isLoading = false;
-                              if (result != null) {
-                                _result = result;
-                                _showTable = true;
-                                _errorMessage = null;
-                              } else {
-                                _result = null;
-                                _showTable = false;
-                                _errorMessage = 'Product not found.';
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Brand Dropdown
-                      Container(
-                        width: 275,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _brandsLoading
-                              ? const Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  ),
-                                )
-                              : DropdownButtonHideUnderline(
-                                  child: DropdownButton<BrandModel>(
-                                    value: _selectedBrand,
-                                    hint: const Text(
-                                      'Select Brand',
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                    isExpanded: true,
-                                    icon: const Icon(Icons.keyboard_arrow_down),
-                                    items: _brands.map((BrandModel brand) {
-                                      return DropdownMenuItem<BrandModel>(
-                                        value: brand,
-                                        child: Text(
-                                          brand.brandName,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (BrandModel? newValue) {
-                                      setState(() {
-                                        _selectedBrand = newValue;
-                                        // Clear previous results when brand changes
-                                        _showTable = false;
-                                        _result = null;
-                                        _errorMessage = null;
-                                      });
-                                    },
-                                  ),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // Product Field
-                      Container(
-                        width: 275,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _productController,
-                          decoration: const InputDecoration(
-                            hintText: "Enter Product Description",
-                            contentPadding: EdgeInsets.symmetric(horizontal: 20),
-                            border: InputBorder.none,
-                          ),
-                          onChanged: (value) {
-                            // Clear previous results when product description changes
-                            if (_showTable) {
-                              setState(() {
-                                _showTable = false;
-                                _result = null;
-                                _errorMessage = null;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Loading spinner
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.all(50.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                if (!_isLoading && _errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(35, 8, 16, 8),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(
-                        color: Color(0xFFD32F2F),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        shadows: [
-                          Shadow(
-                            offset: Offset(0.5, 0.5),
-                            blurRadius: 2.0,
-                            color: Colors.black26,
-                          ),
-                        ],
-                      ),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 0 : (constraints.maxWidth > 1200 ? 100 : 50)),
+      child: Row(
+        children: [
+          _ActionButton(
+            icon: Icons.inventory_2,
+            label: 'View & Edit Stock',
+            isEnabled: selected != null,
+            onPressed: () => _showEditStockDialog(selected!),
+          ),
+          const SizedBox(width: 8),
+          _ActionButton(
+            icon: Icons.filter_list,
+            label: _selectedBrandFilter?.brandName ?? 'All Brands',
+            onPressed: _showBrandFilterDialog,
+          ),
+          const SizedBox(width: 8),
+          _ActionButton(
+            icon: Icons.description,
+            label: _selectedDescriptionFilter ?? 'All Items',
+            onPressed: _showDescriptionFilterDialog,
+          ),
+          const Spacer(),
+          SizedBox(
+            height: 40,
+            width: isSmallScreen ? 180 : 300,
+            child: Neumorphic(
+              style: NeumorphicStyle(depth: -4, color: Colors.white, boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30))),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, color: Color(0xFF01579B)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(hintText: 'Search...', border: InputBorder.none, isDense: true),
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ),
-
-                if (_showTable && _result != null)
-                  Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Table(
-                          border: TableBorder.all(
-                            color: Colors.grey.shade300,
-                            width: 1,
-                          ),
-                          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                          columnWidths: const {
-                            0: FlexColumnWidth(2), // Location column
-                            1: FlexColumnWidth(1), // Quantity column
-                            2: FixedColumnWidth(60), // Edit button column
-                          },
-                          children: [
-                            // HEADER ROW
-                            TableRow(
-                              children: [
-                                TableCell(
-                                  verticalAlignment: TableCellVerticalAlignment.middle,
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF2F3F5),      
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12.0, horizontal: 10.0),
-                                    child: const Text(
-                                      'Location',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                TableCell(
-                                  verticalAlignment: TableCellVerticalAlignment.middle,
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF2F3F5),      
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12.0, horizontal: 10.0),
-                                    child: const Text(
-                                      'Quantity',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                TableCell(
-                                  verticalAlignment: TableCellVerticalAlignment.middle,
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFF2F3F5),      
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12.0, horizontal: 10.0),
-                                    child: const Text(
-                                      'Edit',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // DATA ROWS
-                            _buildStockRow('Lazcano Ref 1', _result!.lazcanoRef1, 'lazcanoRef1'),
-                            _buildStockRow('Lazcano Ref 2', _result!.lazcanoRef2, 'lazcanoRef2'),
-                            _buildStockRow('Gandia (Cold Storage)', _result!.gandiaColdStorage, 'gandiaColdStorage'),
-                            _buildStockRow('Gandia (Ref 1)', _result!.gandiaRef1, 'gandiaRef1'),
-                            _buildStockRow('Gandia (Ref 2)', _result!.gandiaRef2, 'gandiaRef2'),
-                            _buildStockRow('Limbaga', _result!.limbaga, 'limbaga'),
-                            _buildStockRow('Cebu', _result!.cebu, 'cebu'),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 32),
-              ],
+                  if (_searchController.text.isNotEmpty)
+                    GestureDetector(onTap: () => _searchController.clear(), child: const Icon(Icons.clear, color: Colors.grey)),
+                ],
+              ),
             ),
           ),
         ],
@@ -357,205 +362,356 @@ class _StockLocatorPageState extends State<StockLocatorPage> {
     );
   }
 
-  // builds one row of stock data
-  TableRow _buildStockRow(String locationName, int quantity, String fieldName) {
-    return TableRow(
-      decoration: const BoxDecoration(color: Colors.white),
-      children: [
-        TableCell(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(locationName),
-          ),
+  Widget _buildDataTableContainer(BoxConstraints constraints) {
+    return Neumorphic(
+        style: NeumorphicStyle(
+          depth: -5,
+          intensity: 0.7,
+          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
+          lightSource: LightSource.topLeft,
+          color: Colors.blue[400],
         ),
-        TableCell(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text('$quantity'),
-          ),
-        ),
-        TableCell(
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.edit, size: 18),
-                onPressed: () => _showEditQuantityDialog(locationName, quantity, fieldName),
-                tooltip: 'Edit $locationName quantity',
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
+        child: _isLoading
+            ? const Center(child: Padding(padding: EdgeInsets.all(50.0), child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))))
+            : SizedBox(
+                width: double.infinity,
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: DataTable(
+                    columnSpacing: 16,
+                    headingRowColor: WidgetStateProperty.all(Colors.blue[400]),
+                    headingTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    dataRowMinHeight: 40,
+                    dataRowMaxHeight: 60,
+                    columns: const [
+                      DataColumn(label: Expanded(child: Text('Item Code', overflow: TextOverflow.ellipsis))),
+                      DataColumn(label: Expanded(child: Text('Brand', overflow: TextOverflow.ellipsis))),
+                      DataColumn(label: Expanded(child: Text('Product Description', overflow: TextOverflow.ellipsis))),
+                      DataColumn(label: Expanded(child: Text('Total Stock', overflow: TextOverflow.ellipsis)), numeric: true),
+                    ],
+                    rows: _buildDataRows(constraints.maxWidth),
+                  ),
                 ),
-                padding: const EdgeInsets.all(4),
+              ));
+  }
+
+  List<DataRow> _buildDataRows(double screenWidth) {
+    final bool showAll = _rowsPerPage == _showAllValue;
+    final int effectiveRowsPerPage = showAll ? _displayRecords.length : _rowsPerPage;
+    final endIndex = showAll ? _displayRecords.length : (_startIndex + effectiveRowsPerPage > _displayRecords.length ? _displayRecords.length : _startIndex + effectiveRowsPerPage);
+
+    if (_displayRecords.isEmpty) {
+      return [const DataRow(cells: [DataCell(Text('')), DataCell(Text('No results found', style: TextStyle(color: Colors.white))), DataCell(Text('')), DataCell(Text(''))])];
+    }
+
+    final recordsToShow = _displayRecords.sublist(_startIndex, endIndex);
+    return recordsToShow.map<DataRow>((record) {
+      final isSelected = _selectedEntry == record;
+      final rowColor = _displayRecords.indexOf(record).isEven ? const Color.fromRGBO(241, 245, 255, 1) : const Color.fromRGBO(230, 240, 255, 1);
+
+      return DataRow(
+        selected: isSelected,
+        onSelectChanged: (_) => _onEntrySelection(record),
+        color: WidgetStateProperty.all(rowColor),
+        cells: [
+          DataCell(Expanded(child: Text(record.itemCode, overflow: TextOverflow.ellipsis))),
+          DataCell(Expanded(child: Text(record.brand, overflow: TextOverflow.ellipsis))),
+          DataCell(Expanded(child: Text(record.productDescription, overflow: TextOverflow.ellipsis, maxLines: 2))),
+          DataCell(Expanded(child: Text(record.totalStock.toString()))),
+        ],
+      );
+    }).toList();
+  }
+
+  Widget _buildPaginationControls() {
+    final bool showAll = _rowsPerPage == _showAllValue;
+    final int effectiveRowsPerPage = showAll ? _displayRecords.length : _rowsPerPage;
+    final endIndex = showAll ? _displayRecords.length : (_startIndex + effectiveRowsPerPage > _displayRecords.length ? _displayRecords.length : _startIndex + effectiveRowsPerPage);
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: isSmallScreen ? 8 : 16,
+      runSpacing: 8,
+      children: [
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(isSmallScreen ? 'Per page:' : 'Entries per page:'),
+          const SizedBox(width: 8),
+          Neumorphic(
+            style: NeumorphicStyle(depth: 2, boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(8)), color: Colors.white),
+            child: DropdownButtonHideUnderline(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: DropdownButton<int>(
+                  value: _rowsPerPage,
+                  items: [
+                    ..._rowsPerPageOptions.map((v) => DropdownMenuItem<int>(value: v, child: Text(v.toString()))),
+                    DropdownMenuItem<int>(value: _showAllValue, child: Text(isSmallScreen ? 'All' : 'Show All')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) _changeRowsPerPage(v);
+                  },
+                  style: const TextStyle(color: Color(0xFF01579B), fontWeight: FontWeight.w500),
+                  dropdownColor: Colors.white,
+                  iconEnabledColor: const Color(0xFF01579B),
+                ),
               ),
             ),
           ),
-        ),
+        ]),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          _NeumorphicNavButton(icon: Icons.chevron_left, enabled: !showAll && _startIndex > 0, onPressed: prevPage, tooltip: 'Previous Page'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              showAll ? 'Showing all ${_displayRecords.length} entries' : '${_displayRecords.isEmpty ? 0 : _startIndex + 1} – $endIndex of ${_displayRecords.length}',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          _NeumorphicNavButton(icon: Icons.chevron_right, enabled: !showAll && endIndex < _displayRecords.length, onPressed: nextPage, tooltip: 'Next Page'),
+        ]),
       ],
     );
   }
 
-  void _showEditQuantityDialog(String locationName, int currentQuantity, String fieldName) {
-    final TextEditingController quantityController = TextEditingController(
-      text: currentQuantity.toString(),
-    );
-
+  void _showBrandFilterDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          title: Text('Edit $locationName Stock'),
+          title: const Text('Filter by Brand'),
           content: SizedBox(
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Location: $locationName',
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Current Quantity: $currentQuantity',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'New Quantity',
-                    hintText: 'Enter new quantity',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.edit),
-                  ),
-                  autofocus: true,
-                ),
-              ],
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _brands.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return ListTile(
+                    title: const Text('All Brands', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onTap: () {
+                      setState(() => _selectedBrandFilter = null);
+                      _loadProductDescriptions(); // Reload descriptions for all brands
+                      _filterRecords();
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }
+                final brand = _brands[index - 1];
+                return ListTile(
+                  title: Text(brand.brandName),
+                  onTap: () {
+                    setState(() => _selectedBrandFilter = brand);
+                    _loadProductDescriptions(); // Reload descriptions for selected brand
+                    _filterRecords();
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _validateAndUpdateQuantity(locationName, quantityController.text, fieldName);
-              },
-              child: const Text('Update'),
-            ),
+            )
           ],
         );
       },
     );
   }
 
-  void _validateAndUpdateQuantity(String locationName, String newQuantityText, String fieldName) {
-    final int? newQuantity = int.tryParse(newQuantityText.trim());
-    
-    if (newQuantity == null) {
-      _showErrorDialog('Invalid quantity. Please enter a valid number.');
-      return;
-    }
+  void _showDescriptionFilterDialog() {
+    // Create a local controller for searching within the dialog
+    TextEditingController localSearchController = TextEditingController();
+    List<String> filteredDescriptions = List.from(_productDescriptions);
 
-    if (newQuantity < 0) {
-      _showErrorDialog('Quantity cannot be negative.');
-      return;
-    }
-
-    Navigator.of(context).pop(); // Close the edit dialog
-    _updateStockQuantity(locationName, newQuantity, fieldName);
-  }
-
-  Future<void> _updateStockQuantity(String locationName, int newQuantity, String fieldName) async {
-    if (_result == null) return;
-
-    // Show loading dialog
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const AlertDialog(
-          title: Text('Updating...'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Please wait while the stock is being updated.'),
-            ],
-          ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Filter by Item Description'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: localSearchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Search Description',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          filteredDescriptions = _productDescriptions
+                              .where((desc) => desc.toLowerCase().contains(value.toLowerCase()))
+                              .toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filteredDescriptions.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return ListTile(
+                              title: const Text('All Items', style: TextStyle(fontWeight: FontWeight.bold)),
+                              onTap: () {
+                                setState(() => _selectedDescriptionFilter = null);
+                                _filterRecords();
+                                Navigator.of(context).pop();
+                              },
+                            );
+                          }
+                          final description = filteredDescriptions[index - 1];
+                          return ListTile(
+                            title: Text(description),
+                            onTap: () {
+                              setState(() => _selectedDescriptionFilter = description);
+                              _filterRecords();
+                              Navigator.of(context).pop();
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                )
+              ],
+            );
+          },
         );
       },
     );
+  }
 
-    try {
-      // Create updated stock locator object
-      StockLocator updatedStock = StockLocator(
-        itemCode: _result!.itemCode,
-        brand: _result!.brand,
-        productDescription: _result!.productDescription,
-        lazcanoRef1: fieldName == 'lazcanoRef1' ? newQuantity : _result!.lazcanoRef1,
-        lazcanoRef2: fieldName == 'lazcanoRef2' ? newQuantity : _result!.lazcanoRef2,
-        gandiaColdStorage: fieldName == 'gandiaColdStorage' ? newQuantity : _result!.gandiaColdStorage,
-        gandiaRef1: fieldName == 'gandiaRef1' ? newQuantity : _result!.gandiaRef1,
-        gandiaRef2: fieldName == 'gandiaRef2' ? newQuantity : _result!.gandiaRef2,
-        limbaga: fieldName == 'limbaga' ? newQuantity : _result!.limbaga,
-        cebu: fieldName == 'cebu' ? newQuantity : _result!.cebu,
-      );
+  void _showEditStockDialog(StockLocator stock) {
+    showDialog(
+      context: context,
+      builder: (context) => _EditStockDialog(
+        stockLocator: stock,
+        onUpdate: (updatedStock) async {
+          final updatedRecord = await _service.updateStockLocator(updatedStock);
+          if (updatedRecord != null) {
+            await _fetchRecords();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Stock updated successfully!'), backgroundColor: Colors.green));
+            }
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update stock.'), backgroundColor: Colors.red));
+            }
+          }
+        },
+      ),
+    );
+  }
+}
 
-      final success = await _service.updateStockLocator(updatedStock);
+class _EditStockDialog extends StatefulWidget {
+  const _EditStockDialog({required this.stockLocator, required this.onUpdate});
 
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
+  final StockLocator stockLocator;
+  final Future<void> Function(StockLocator) onUpdate;
 
-      if (success) {
-        // Update local state
-        setState(() {
-          _result = updatedStock;
-        });
+  @override
+  State<_EditStockDialog> createState() => _EditStockDialogState();
+}
 
-        // Show success dialog
-        showDialog(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text('Success'),
-            content: Text('$locationName stock has been successfully updated to $newQuantity!'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        _showErrorDialog('Failed to update stock. Please try again.');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-      _showErrorDialog('An error occurred while updating stock: $e');
+class _EditStockDialogState extends State<_EditStockDialog> {
+  late final Map<String, TextEditingController> _controllers;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = {
+      'lazcanoRef1': TextEditingController(text: widget.stockLocator.lazcanoRef1.toString()),
+      'lazcanoRef2': TextEditingController(text: widget.stockLocator.lazcanoRef2.toString()),
+      'gandiaColdStorage': TextEditingController(text: widget.stockLocator.gandiaColdStorage.toString()),
+      'gandiaRef1': TextEditingController(text: widget.stockLocator.gandiaRef1.toString()),
+      'gandiaRef2': TextEditingController(text: widget.stockLocator.gandiaRef2.toString()),
+      'limbaga': TextEditingController(text: widget.stockLocator.limbaga.toString()),
+      'cebu': TextEditingController(text: widget.stockLocator.cebu.toString()),
+    };
+  }
+
+  @override
+  void dispose() {
+    _controllers.forEach((_, controller) => controller.dispose());
+    super.dispose();
+  }
+
+  void _handleSave() async {
+    setState(() => _isSaving = true);
+    final updatedStock = widget.stockLocator.copyWith(newValues: {
+      'lazcanoRef1': int.tryParse(_controllers['lazcanoRef1']!.text) ?? widget.stockLocator.lazcanoRef1,
+      'lazcanoRef2': int.tryParse(_controllers['lazcanoRef2']!.text) ?? widget.stockLocator.lazcanoRef2,
+      'gandiaColdStorage': int.tryParse(_controllers['gandiaColdStorage']!.text) ?? widget.stockLocator.gandiaColdStorage,
+      'gandiaRef1': int.tryParse(_controllers['gandiaRef1']!.text) ?? widget.stockLocator.gandiaRef1,
+      'gandiaRef2': int.tryParse(_controllers['gandiaRef2']!.text) ?? widget.stockLocator.gandiaRef2,
+      'limbaga': int.tryParse(_controllers['limbaga']!.text) ?? widget.stockLocator.limbaga,
+      'cebu': int.tryParse(_controllers['cebu']!.text) ?? widget.stockLocator.cebu,
+    });
+
+    await widget.onUpdate(updatedStock);
+
+    if (mounted) {
+      setState(() => _isSaving = false);
+      Navigator.of(context).pop();
     }
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Edit Stock for ${widget.stockLocator.itemCode}'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.stockLocator.productDescription, style: const TextStyle(fontWeight: FontWeight.bold)),
+            const Divider(height: 20),
+            _buildStockField('Lazcano Ref 1', _controllers['lazcanoRef1']!),
+            _buildStockField('Lazcano Ref 2', _controllers['lazcanoRef2']!),
+            _buildStockField('Gandia (Cold Storage)', _controllers['gandiaColdStorage']!),
+            _buildStockField('Gandia (Ref 1)', _controllers['gandiaRef1']!),
+            _buildStockField('Gandia (Ref 2)', _controllers['gandiaRef2']!),
+            _buildStockField('Limbaga', _controllers['limbaga']!),
+            _buildStockField('Cebu', _controllers['cebu']!),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _handleSave,
+          child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save Changes'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStockField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
       ),
     );
   }

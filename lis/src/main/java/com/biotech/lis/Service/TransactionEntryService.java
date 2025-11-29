@@ -10,9 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.biotech.lis.Entity.Brand;
-import com.biotech.lis.Entity.CombinedTrnPO;
-import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
@@ -46,11 +43,8 @@ public class TransactionEntryService {
     PurchaseOrderRepository purchaseOrderRepository;
 
     @Transactional
-    public TransactionEntry createTransactionEntry(CombinedTrnPO combinedTrnPO) {
-        TransactionEntry transactionEntry = combinedTrnPO.toTransactionEntry();
-
+    public TransactionEntry createTransactionEntry(TransactionEntry transactionEntry) {
         validateTransactionEntry(transactionEntry);
-        validateTransactionId(transactionEntry.getDrSIReferenceNum());
         
         if (transactionEntryRepository.existsById(transactionEntry.getDrSIReferenceNum())) {
             throw new IllegalArgumentException("Transaction already exists with ID: " + transactionEntry.getDrSIReferenceNum());
@@ -59,26 +53,14 @@ public class TransactionEntryService {
         User user = getCurrentUser();
         setAuditFields(transactionEntry, user);
         
-        Brand brand = brandService.getBrandbyName(transactionEntry.getBrand());
-        if (brand == null) {
-            throw new EntityNotFoundException();
-        }
-
-        transactionEntry.setItemCode(brandService.generateItemCode(brand));
         TransactionEntry savedEntry = transactionEntryRepository.save(transactionEntry);
+        
+        // This is the crucial call that creates the StockLocator entry
         stockLocatorService.updateStockFromTransaction(savedEntry, true);
         
-        inventoryService.addInventory(savedEntry);
-
-        PurchaseOrder purchaseOrder = combinedTrnPO.toPurchaseOrder();
-        purchaseOrder.setItemCode(savedEntry.getItemCode());
-        // purchaseOrder.setAddedBy(savedEntry.getAddedBy());
-        // purchaseOrder.setDateTimeAdded(savedEntry.getDateTimeAdded());
-
-        purchaseOrderRepository.save(purchaseOrder);
-
         return savedEntry;
     }
+
  
     public Optional<TransactionEntry> getTransactionEntryById(String id) {   
         validateTransactionId(id);
@@ -115,7 +97,7 @@ public class TransactionEntryService {
             stockLocatorService.updateStockFromTransaction(updatedEntry, false);
         }
 
-        inventoryService.updateInventoryTrns(updatedEntry);
+        // inventoryService.updateInventoryTrns(updatedEntry);
 
         return updatedEntry;
     }
@@ -187,7 +169,7 @@ public class TransactionEntryService {
     
     private void setAuditFields(TransactionEntry transactionEntry, User user) {
         LocalDateTime currentDateTime = LocalDateTime.now();
-        transactionEntry.setAddedBy(user.getFirstName() + " " + user.getLastName());
+        transactionEntry.setAddedBy(user.getUserId());
         transactionEntry.setDateTimeAdded(currentDateTime);
     }
 }
