@@ -4,8 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.DTO.DashboardStatsDTO;
-import com.biotech.lis.Repository.TransactionEntryRepository;
-import com.biotech.lis.Entity.TransactionEntry;
+import com.biotech.lis.Repository.CustomerTransactionRepository;
+import com.biotech.lis.Entity.CustomerTransaction;
+import com.biotech.lis.Entity.Sold;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -16,7 +17,7 @@ import java.util.List;
 public class DashboardService {
     
     @Autowired
-    private TransactionEntryRepository transactionRepository;
+    private CustomerTransactionRepository transactionRepository;
     
     public DashboardStatsDTO getDashboardStats(String period, String date) {
         LocalDate startDate;
@@ -67,26 +68,29 @@ public class DashboardService {
         }
         
         // Get all data and filter manually (simpler approach)
-        List<TransactionEntry> allTransactions = transactionRepository.findAll();
+        List<CustomerTransaction> allTransactions = transactionRepository.findAll();
         
-        // Count transactions in date range
-        int totalTransactions = (int) allTransactions.stream()
+        // Filter transactions in date range
+        List<CustomerTransaction> filteredTransactions = allTransactions.stream()
             .filter(t -> t.getTransactionDate() != null)
-            .filter(t -> !t.getTransactionDate().isBefore(startDate) && !t.getTransactionDate().isAfter(endDate))
-            .count();
+            .filter(t -> {
+                LocalDate txDate = t.getTransactionDate().toLocalDate();
+                return !txDate.isBefore(startDate) && !txDate.isAfter(endDate);
+            })
+            .toList();
+
+        // Count transactions
+        int totalTransactions = filteredTransactions.size();
             
-        // Sum quantities in date range
-        int totalQuantityTransacted = allTransactions.stream()
-            .filter(t -> t.getTransactionDate() != null)
-            .filter(t -> !t.getTransactionDate().isBefore(startDate) && !t.getTransactionDate().isAfter(endDate))
-            .mapToInt(t -> t.getQuantity() != null ? t.getQuantity() : 0)
+        // Sum quantities in date range (sum of all items in all filtered transactions)
+        int totalQuantityTransacted = filteredTransactions.stream()
+            .flatMap(t -> t.getItems().stream())
+            .mapToInt(item -> item.getQuantity() != null ? item.getQuantity() : 0)
             .sum();
             
         // Sum order values in date range
-        double totalTransactionValue = allTransactions.stream()
-            .filter(t -> t.getTransactionDate() != null)
-            .filter(t -> !t.getTransactionDate().isBefore(startDate) && !t.getTransactionDate().isAfter(endDate))
-            .mapToDouble(t -> t.getCost())
+        double totalTransactionValue = filteredTransactions.stream()
+            .mapToDouble(t -> t.getTotalRetailPrice() != null ? t.getTotalRetailPrice() : 0.0)
             .sum();
         
         return new DashboardStatsDTO(

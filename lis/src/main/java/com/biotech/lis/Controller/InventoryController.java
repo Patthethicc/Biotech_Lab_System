@@ -25,6 +25,8 @@ public class InventoryController {
 
     //For future reference
 
+
+
     @PostMapping("/addInv")
     public ResponseEntity<InventoryPayload> addInventory(@RequestBody InventoryPayload payload) {
         Inventory savedInventory = inventoryService.addInventory(payload);
@@ -46,6 +48,18 @@ public class InventoryController {
     public ResponseEntity<List<InventoryPayload>> getInv() {
         final List<InventoryPayload> inventories = inventoryService.getInventoriesWithLocations();
         return ResponseEntity.ok(inventories);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Inventory> searchInventory(
+            @RequestParam String brand,
+            @RequestParam String description) {
+        Inventory inventory = inventoryService.searchInventory(brand, description);
+        if (inventory != null) {
+            return ResponseEntity.ok(inventory);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
 

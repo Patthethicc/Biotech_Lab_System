@@ -23,6 +23,7 @@ public class TransactionEntry {
     private String drSIReferenceNum;
     
     @Column(name = "transactionDate")
+    @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate transactionDate;
     
     @Column(name = "brand")
@@ -51,7 +52,7 @@ public class TransactionEntry {
     private String itemCode;
 
     @Column(name = "addedBy")
-    private String addedBy;
+    private Long addedBy;
 
     @Column(name = "dateTimeAdded")
     private LocalDateTime dateTimeAdded;

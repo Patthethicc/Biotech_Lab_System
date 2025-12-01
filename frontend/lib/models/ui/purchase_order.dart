@@ -518,6 +518,7 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
                       poPireference: popiRefController.text,
                       addedBy: 1,
                     );
+                    print(newOrder.toJson());
                     try {
                       await _poService.addPurchaseOrder(newOrder);
                       if (!context.mounted) return;

@@ -167,7 +167,7 @@ public class TransactionEntryService {
     
     private void setAuditFields(TransactionEntry transactionEntry, User user) {
         LocalDateTime currentDateTime = LocalDateTime.now();
-        transactionEntry.setAddedBy(user.getFirstName() + " " + user.getLastName());
+        transactionEntry.setAddedBy(user.getUserId());
         transactionEntry.setDateTimeAdded(currentDateTime);
     }
 }

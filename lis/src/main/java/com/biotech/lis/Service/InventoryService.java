@@ -217,4 +217,20 @@ public class InventoryService {
             e.printStackTrace();
         }
     }
+    public Inventory searchInventory(String brandName, String description) {
+        try {
+            Brand brand = brandService.getBrandbyName(brandName);
+            if (brand == null) return null;
+            
+            List<Inventory> allInventory = inventoryRepository.findAll();
+            return allInventory.stream()
+                .filter(i -> i.getBrandId() != null && i.getBrandId().equals(brand.getBrandId()) && 
+                             i.getItemDescription() != null && i.getItemDescription().equalsIgnoreCase(description))
+                .findFirst()
+                .orElse(null);
+        } catch (Exception e) {
+            System.err.println("Error searching inventory: " + e.getMessage());
+            return null;
+        }
+    }
 }

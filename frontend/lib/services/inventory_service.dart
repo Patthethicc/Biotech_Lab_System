@@ -138,4 +138,38 @@ class InventoryService {
       throw Exception('Failed to load expiring items: ${response.statusCode} ${response.body}');
     }
   }
+  Future<Inventory?> searchInventory(String brand, String description) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(
+      Uri.parse('$baseUrl/inv/v1/search?brand=${Uri.encodeComponent(brand)}&description=${Uri.encodeComponent(description)}'),
+      headers: {
+        'Authorization': 'Bearer $token'
+      }
+    );
+
+    if (response.statusCode == 200) {
+      return Inventory.fromJson(json.decode(response.body));
+    } else if (response.statusCode == 404) {
+      return null;
+    } else {
+      throw Exception('Failed to search inventory: ${response.statusCode}');
+    }
+  }
+
+  Future<List<String>> getProductDescriptions(String brand) async {
+    String? token = await storage.read(key: 'jwt_token');
+    final response = await http.get(
+      Uri.parse('${baseUrl.replaceAll("/inv/v1", "")}/stock-locator/descriptions?brand=${Uri.encodeComponent(brand)}'),
+      headers: {
+        'Authorization': 'Bearer $token'
+      }
+    );
+
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => e.toString()).toList();
+    } else {
+      throw Exception('Failed to load descriptions: ${response.statusCode}');
+    }
+  }
 }
