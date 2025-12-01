@@ -16,8 +16,6 @@ import com.biotech.lis.Repository.InventoryRepository;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
 
-import jakarta.persistence.EntityNotFoundException;
-
 @Service
 public class TransactionEntryService {
 
