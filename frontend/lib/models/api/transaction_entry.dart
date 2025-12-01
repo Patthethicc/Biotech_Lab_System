@@ -24,15 +24,15 @@ class TransactionEntry {
 
   factory TransactionEntry.fromJson(Map<String, dynamic> json) {
     return TransactionEntry(
-      reference: json['drSIReferenceNum'],
-      transactionDate: DateTime.parse(json['transactionDate']),
-      brand: json['brand'],
-      itemDescription: json['productDescription'],
-      lotNumber: json['lotSerialNumber'].toString(),
-      expiryDate: DateTime.parse(json['expiryDate']),
-      cost: json['cost'],
-      quantity: json['quantity'],
-      stockLocation: json['stockLocation']
+      reference: json['drSIReferenceNum'] ?? 'N/A',
+      transactionDate: json['transactionDate'] != null ? DateTime.parse(json['transactionDate']) : DateTime.now(),
+      brand: json['brand'] ?? 'N/A',
+      itemDescription: json['productDescription'] ?? 'N/A',
+      lotNumber: json['lotSerialNumber']?.toString() ?? 'N/A',
+      expiryDate: json['expiryDate'] != null ? DateTime.parse(json['expiryDate']) : DateTime.now(),
+      cost: (json['cost'] as num?)?.toDouble() ?? 0.0,
+      quantity: json['quantity'] ?? 0,
+      stockLocation: json['stockLocation'] ?? 'N/A'
     );
   }
 

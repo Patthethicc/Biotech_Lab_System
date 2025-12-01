@@ -28,6 +28,12 @@ public class CustomerService {
     public Customer updateCustomer(Customer customer) {
         Customer existingCustomer = customerRepository.findById(customer.getCustomerId()).orElse(null);
         if (existingCustomer != null) {
+            // Check if name is taken by another customer
+            Customer duplicateNameCustomer = customerRepository.findByName(customer.getName());
+            if (duplicateNameCustomer != null && !duplicateNameCustomer.getCustomerId().equals(customer.getCustomerId())) {
+                throw new IllegalArgumentException("Customer name already exists");
+            }
+            
             existingCustomer.setName(customer.getName());
             existingCustomer.setAddress(customer.getAddress());
             existingCustomer.setSalesRepresentative(customer.getSalesRepresentative());

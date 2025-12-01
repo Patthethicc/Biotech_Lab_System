@@ -10,7 +10,7 @@ import 'models/ui/home.dart';
 import 'models/ui/view_profile.dart';
 import 'models/ui/edit_profile.dart';
 import 'models/ui/purchase_order.dart';
-import 'models/ui/transaction_entry_page.dart';
+import 'models/ui/customer_transaction_page.dart';
 import 'models/ui/inventory_page.dart';
 import 'models/ui/stock_locator.dart';
 import 'models/ui/customer.dart';
@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
         '/stock_alert': (context) => StockAlert(),
         '/expiry_alert': (context) => ExpiryAlert(),
         '/purchase_order': (context) => const PurchaseOrderPage(),
-        '/transaction_entry': (context) => TransactionEntryPage(),
+        '/transaction_entry': (context) => CustomerTransactionPage(),
         '/inventory': (context) => InventoryPage(),
         '/brand': (context) => BrandPage(),
         '/stock_locator': (context) => StockLocatorPage(),

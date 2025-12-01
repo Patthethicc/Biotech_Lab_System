@@ -13,10 +13,10 @@ class Customer {
 
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
-      customerId: json['customerId'].toString(),
-      name: json['name'],
-      address: json['address'],
-      salesRepresentative: json['salesRepresentative'],
+      customerId: json['customerId'].toString(), 
+      name: json['name'] as String,
+      address: json['address'] as String,
+      salesRepresentative: json['salesRepresentative'] as String,
     );
   }
 
@@ -28,4 +28,14 @@ class Customer {
       'salesRepresentative': salesRepresentative,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Customer &&
+          runtimeType == other.runtimeType &&
+          customerId == other.customerId;
+
+  @override
+  int get hashCode => customerId.hashCode;
 }
