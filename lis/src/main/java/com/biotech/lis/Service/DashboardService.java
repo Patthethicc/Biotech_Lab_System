@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import com.biotech.lis.DTO.DashboardStatsDTO;
 import com.biotech.lis.Repository.CustomerTransactionRepository;
 import com.biotech.lis.Entity.CustomerTransaction;
-import com.biotech.lis.Entity.Sold;
 
 import java.time.LocalDate;
 import java.time.YearMonth;

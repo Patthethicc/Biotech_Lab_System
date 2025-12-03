@@ -16,6 +16,12 @@ public class LocationService {
     private LocationRepository locationRepository;
 
     public Location addLocation(Location location) {
+        String cleanName = location.getLocationName().trim();
+
+        if (locationRepository.existsByLocationNameIgnoreCase(cleanName)) {
+            throw new IllegalArgumentException("Location with name '" + cleanName + "' already exists.");
+        }
+
         return locationRepository.save(location);
     }
 
@@ -32,10 +38,19 @@ public class LocationService {
 
     public Location updateLocation(String name, Location updatedLocation) {
         Location location = getLocationByName(name);
-        if (updatedLocation.getLocationName() != null && !updatedLocation.getLocationName().isBlank()) {
-            location.setLocationName(updatedLocation.getLocationName());
+        String newName = updatedLocation.getLocationName().trim();
+
+        if (newName != null && !newName.isBlank() && !newName.equalsIgnoreCase(location.getLocationName())) {
+            if (locationRepository.existsByLocationNameIgnoreCase(newName)) {
+                throw new IllegalArgumentException("Location name '" + newName + "' already exists.");
+            }
+
+            location.setLocationName(newName);
         }
-        return locationRepository.save(location);
+
+        Location savedLocation = locationRepository.save(location);
+        
+        return savedLocation;
     }
 
     public void deleteLocation(Integer id) {

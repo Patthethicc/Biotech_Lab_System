@@ -72,7 +72,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - .env
+    # - .env
     - Assets/Database/data.csv
     - Assets/Icons/bellicon.png
     - Assets/Images/bg.png
