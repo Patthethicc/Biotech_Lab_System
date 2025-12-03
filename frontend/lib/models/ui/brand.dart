@@ -4,12 +4,11 @@ import 'package:frontend/services/brand_service.dart';
 
 class _NeumorphicNavButton extends StatefulWidget {
   const _NeumorphicNavButton({
-    Key? key,
     required this.icon,
     required this.enabled,
     required this.onPressed,
     required this.tooltip,
-  }) : super(key: key);
+  });
 
   final IconData icon;
   final bool enabled;
@@ -22,21 +21,18 @@ class _NeumorphicNavButton extends StatefulWidget {
 
 class _NeumorphicNavButtonState extends State<_NeumorphicNavButton> {
   bool _isHovered = false;
-  bool _lastEnabled = false;
 
   @override
   void didUpdateWidget(covariant _NeumorphicNavButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.enabled != widget.enabled) {
       _isHovered = false;
-      _lastEnabled = widget.enabled;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isEnabled = widget.enabled;
-    _lastEnabled = isEnabled;
 
     return MouseRegion(
       onEnter: (_) {
@@ -79,7 +75,6 @@ class _BrandPageState extends State<BrandPage> {
   List<BrandModel> _allBrands = [];
   List<BrandModel> _displayBrands = [];
   bool _isLoading = true;
-  bool _isHovered = false;
 
   int _startIndex = 0;
   final int _rowsPerPage = 5;
@@ -90,26 +85,35 @@ class _BrandPageState extends State<BrandPage> {
   void initState() {
     super.initState();
     _fetchData();
-    //_searchController.addListener(_filterInventories);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    //_searchController.removeListener(_filterInventories);
+    _searchController.addListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
   void _fetchData() {
+    setState(() {
+      _isLoading = true;
+    });
     brandService.getBrands().then((value) {
       setState(() {
         _allBrands = value;
         _displayBrands = List.from(_allBrands);
         _isLoading = false;
       });
+    }).catchError((e) {
+        setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        _showDialog('Error', 'Failed to Load Brands: $e');
+      }
     });
   }
-
 
   void _resetToFullList() {
     setState(() {
@@ -135,13 +139,22 @@ class _BrandPageState extends State<BrandPage> {
     });
   }
 
-  // leave invID 0 if ur in write mode
+  void _onSearchChanged() {
+    String query = _searchController.text.toLowerCase();
+    setState(() {
+      _displayBrands = _allBrands.where((brand) {
+        return brand.brandName.toLowerCase().contains(query);
+      }).toList();
+      _startIndex = 0;
+    });
+  }
+
   void showAddDialogue() {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController();
 
     showDialog(context: context, 
-    builder: (context) {
+    builder: (dialogContext) {
       return AlertDialog(
         title: Text('Add Brand'),
         content: SizedBox(
@@ -171,25 +184,109 @@ class _BrandPageState extends State<BrandPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
-              final BrandModel newBrand = BrandModel(brandName: nameController.text,);
-              await brandService.createBrand(newBrand);
-              Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                builder: (BuildContext context) => super.widget));
-              
-            } ,
+              if(formKey.currentState!.validate()){
+                final BrandModel newBrand = BrandModel(brandName: nameController.text,);
+                try {
+                  await brandService.createBrand(newBrand);
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  _fetchData();
+                  _showDialog('Success', 'Successfully Added Brand');
+                } catch (e) {
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  _showDialog('Error', 'Failed to Add Brand: $e');
+                }
+              }
+            },
             child: const Text("Add")
           )
         ],
       );
     });
+  }
+
+  void showEditDialogue(BrandModel brand) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(text: brand.brandName);
+    final originalName = brand.brandName;
+
+    showDialog(context: context, 
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: Text('Edit Brand'),
+        content: SizedBox(
+          width: 500,
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: "Brand Name"
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Required';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if(formKey.currentState!.validate()){
+                final BrandModel updatedBrand = BrandModel(brandId:brand.brandId , brandName: nameController.text,);
+                try {
+                  await brandService.updateBrand(originalName, updatedBrand);
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  _fetchData();
+                  _showDialog('Success', 'Successfully Edited Brand');
+                } catch (e) {
+                  if (!mounted) return;
+                  _showDialog('Error', 'Failed to Edit Brand: $e');
+                }
+              }
+            },
+            child: const Text("Edit")
+          )
+        ],
+      );
+    });
+  }
+
+  void _showDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
   
   @override
@@ -204,12 +301,12 @@ class _BrandPageState extends State<BrandPage> {
           'Brand Data',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.black, // Set text color explicitly if background is transparent
+            color: Colors.black,
           ),
         ),
         backgroundColor: Colors.transparent,
-        elevation: 0, // Remove drop shadow
-        foregroundColor: Colors.black, // For icon and text colors
+        elevation: 0,
+        foregroundColor: Colors.black,
         actions: [
           IconButton(
             onPressed: _resetToFullList,
@@ -227,120 +324,104 @@ class _BrandPageState extends State<BrandPage> {
           )
         ),
         child:Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0, left: 500, right: 500),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center, // Adjust as needed
-                  children: [
-                    // Search field
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 10.0),
-                        child: SizedBox(
-                          width: 700,
-                          height: 40,
-                          child: Neumorphic(
-                            style: NeumorphicStyle(
-                              depth: -4,
-                              color: Colors.white,
-                              boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.search, color: Color(0xFF01579B)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _searchController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Search by Item Code or Brand',
-                                      border: InputBorder.none,
-                                      isDense: true,
+        child:ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 450),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 10.0),
+                          child: SizedBox(
+                            width: 700,
+                            height: 40,
+                            child: Neumorphic(
+                              style: NeumorphicStyle(
+                                depth: -4,
+                                color: Colors.white,
+                                boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.search, color: Color(0xFF01579B)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: const InputDecoration(
+                                        hintText: 'Search by Brand Name',
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                      ),
+                                      style: const TextStyle(fontSize: 12),
                                     ),
-                                    style: const TextStyle(fontSize: 12),
                                   ),
-                                ),
-                                if (_searchController.text.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      _searchController.clear();
-                                    },
-                                    child: const Icon(Icons.clear, color: Colors.grey),
-                                  ),
-                              ],
+                                  if (_searchController.text.isNotEmpty)
+                                    GestureDetector(
+                                      onTap: () {
+                                        _searchController.clear();
+                                        _onSearchChanged();
+                                      },
+                                      child: const Icon(Icons.clear, color: Colors.grey),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-
-                    // Add Data button
-                    MouseRegion(
-                      onEnter: (_) => setState(() => _isHovered = true),
-                      onExit: (_) => setState(() => _isHovered = false),
-                      child: NeumorphicButton(
+                      _AddDataButton(
                         onPressed: () => showAddDialogue(),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // smaller height
-                        style: NeumorphicStyle(
-                          depth: _isHovered ? -4 : 4,
-                          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
-                          lightSource: LightSource.topLeft,
-                          color: Colors.white,
-                        ),
-                        child: const Text(
-                          'Add Data',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF01579B), // dark blue text
-                            fontSize: 15,
-                          ),
-                        ),
                       ),
-                    ),
-                  ],
-                )
-              ),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                clipBehavior: Clip.antiAlias,
-                child: Neumorphic(
-                    style: NeumorphicStyle(
-                      depth: -5,
-                      intensity: 0.7,
-                      boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
-                      lightSource: LightSource.topLeft,
-                      shadowDarkColorEmboss: const Color.fromARGB(197, 93, 126, 153),
-                      // shadowLightColorEmboss: const Color.fromARGB(197, 228, 237, 244),
-                      color: Colors.blue[400],
-                    ),
-                  child: _isLoading
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(50.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      : DataTable(                         
-                          columns: const [
-                            DataColumn(label: Text("", style: TextStyle(color: Colors.white))),
-                            DataColumn(label: Text("Brand Name", style: TextStyle(color: Colors.white))),
-                          ],
-                          rows: _populateRows().isEmpty
-                              ? []
-                              : _populateRows().sublist(_startIndex, endIndex),
-                        ),
+                    ],
+                  )
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (!_isLoading) _buildPaginationControls(endIndex),
-            ],
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  clipBehavior: Clip.antiAlias,
+                  child: Neumorphic(
+                      style: NeumorphicStyle(
+                        depth: -5,
+                        intensity: 0.7,
+                        boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(15)),
+                        lightSource: LightSource.topLeft,
+                        shadowDarkColorEmboss: const Color.fromARGB(197, 93, 126, 153),
+                        // shadowLightColorEmboss: const Color.fromARGB(197, 228, 237, 244),
+                        color: Colors.blue[400],
+                      ),
+                    child: _isLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(50.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _displayBrands.isEmpty
+                          ? Center(child: Text("No Brands Found"))
+                          : DataTable(                         
+                            columns: const [
+                              DataColumn(label: Text("", style: TextStyle(color: Colors.white))),
+                              DataColumn(label: Text("Brand Name", style: TextStyle(color: Colors.white))),
+                            ],
+                            rows: _populateRows().isEmpty
+                                ? []
+                                : _populateRows().sublist(_startIndex, endIndex),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (!_isLoading) _buildPaginationControls(endIndex),
+              ],
+            ),
           ),
         ),
       ),
@@ -363,36 +444,67 @@ class _BrandPageState extends State<BrandPage> {
     return _displayBrands.map((e) {
       return DataRow(cells: [
         DataCell(Row(
-          children: [IconButton(
-            icon: Icon(Icons.delete_forever),
-            onPressed: () async {
-              await brandService.deleteBrand(e.brandId!.toInt());
-              Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                  builder: (BuildContext context) => super.widget));
-            },
+          children: [
+            IconButton(
+              icon: Icon(Icons.delete_forever),
+              onPressed: () {
+                _deleteConfirmationDialog(e);
+              },
             ),
-
             IconButton(
               icon: Icon(Icons.edit),
               onPressed: () {
-                //showAddDialogue("Edit", e.inventoryID!.toInt());
+                showEditDialogue(e);
               },
             )
-            ]
+          ]
         )),
         DataCell(Text(e.brandName.toString())),
       ],
       color: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-        final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1); // Light blue
-        final subtleBlueTint2 = Color.fromRGBO(230, 240, 255, 1); // Even lighter blue
+        final subtleBlueTint1 = Color.fromRGBO(241, 245, 255, 1);
+        final subtleBlueTint2 = Color.fromRGBO(230, 240, 255, 1);
 
         final color = counter.isEven ? subtleBlueTint1 : subtleBlueTint2;
         counter++;
         return color;
       }));
     }).toList();
+  }
+
+  void _deleteConfirmationDialog(BrandModel brand){
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text("Are you sure you want to delete ${brand.brandName} as a brand?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await brandService.deleteBrand(brand.brandId ?? 0);
+                  if (!mounted) return;
+                  Navigator.of(context).pop();
+                  _fetchData();
+                  _showDialog('Success', 'Successfully Deleted Brand');
+                } catch (e) {
+                  if (!mounted) return;
+                  Navigator.of(context).pop();
+                  _showDialog('Error', 'Failed to Delete Brand: $e');
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Padding _buildPaginationControls(int endIndex) {
@@ -421,6 +533,44 @@ class _BrandPageState extends State<BrandPage> {
             tooltip: 'Next Page',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AddDataButton extends StatefulWidget {
+  const _AddDataButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  State<_AddDataButton> createState() => _AddDataButtonState();
+}
+
+class _AddDataButtonState extends State<_AddDataButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: NeumorphicButton(
+        onPressed: widget.onPressed,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        style: NeumorphicStyle(
+          depth: _isHovered ? -4 : 4,
+          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(30)),
+          lightSource: LightSource.topLeft,
+          color: Colors.white,
+        ),
+        child: const Text(
+          'Add Data',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF01579B),
+            fontSize: 15,
+          ),
+        ),
       ),
     );
   }
