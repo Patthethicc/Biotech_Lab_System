@@ -92,7 +92,6 @@ public class InventoryRepositoryTest {
        
         entityManager.persistAndFlush(createSampleInventory("ITEM001", "PO-001", 5));
         entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 10)); 
-        entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 10));
         entityManager.persistAndFlush(createSampleInventory("ITEM003", "PO-003", 25));
         entityManager.persistAndFlush(createSampleInventory("ITEM004", "PO-004", 8));
         
@@ -127,8 +126,6 @@ public class InventoryRepositoryTest {
         entityManager.persistAndFlush(createSampleInventory("ITEM001", "PO-001", 0));
         entityManager.persistAndFlush(createSampleInventory("ITEM002", "PO-002", 1));
         entityManager.persistAndFlush(createSampleInventory("ITEM003", "PO-003", -1)); // Edge case: negative quantity
-        entityManager.persistAndFlush(createSampleInventory("ITEM003", "PO-003", -1));
-        
         
         List<Inventory> outOfStock = inventoryRepository.findByQuantityLessThanEqual(0);
         

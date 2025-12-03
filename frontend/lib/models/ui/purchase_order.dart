@@ -1158,6 +1158,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       );
 
       if(outputFile != null){
+        // Ensure the path has .pdf extension
+        if (!outputFile.toLowerCase().endsWith('.pdf')) {
+          outputFile = '$outputFile.pdf';
+        }
         final file = File(outputFile);
         await file.writeAsBytes(bytes);
         _showDialog('Success', 'PDF Successfully Saved at $outputFile');
@@ -1205,6 +1209,10 @@ class _PurchaseOrderPageState extends State<PurchaseOrderPage> {
       );
 
       if(outputFile != null){
+        // Ensure the path has .docx extension
+        if (!outputFile.toLowerCase().endsWith('.docx')) {
+          outputFile = '$outputFile.docx';
+        }
         final file = File(outputFile);
         await file.writeAsBytes(generatedBytes);
         _showDialog('Success', 'DOCX Successfully Saved at $outputFile');
