@@ -109,10 +109,9 @@ class _LocationPageState extends State<LocationPage> {
         setState(() {
         _isLoading = false;
       });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load locations: $e')),
-      );
+      if (mounted) {
+        _showDialog('Error', 'Failed to Load Locations: $e');
+      }
     });
   }
 
@@ -197,14 +196,11 @@ class _LocationPageState extends State<LocationPage> {
                   if (!mounted) return;
                   Navigator.pop(context);
                   _fetchData();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Successfully Added Location')),
-                  );
+                  _showDialog('Success', 'Successfully Added Location');
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to add location: $e')),
-                  );
+                  Navigator.pop(context);
+                  _showDialog('Error', 'Failed to Add Location: $e');
                 }
               }
             },
@@ -263,14 +259,10 @@ class _LocationPageState extends State<LocationPage> {
                   if (!mounted) return;
                   Navigator.pop(context);
                   _fetchData();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Successfully Edited Location')),
-                  );
+                  _showDialog('Success', 'Successfully Edited Location');
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to add location: $e')),
-                  );
+                  _showDialog('Error', 'Failed to Edit Location: $e');
                 }
               }
             },
@@ -279,6 +271,22 @@ class _LocationPageState extends State<LocationPage> {
         ],
       );
     });
+  }
+
+  void _showDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
   
   @override
@@ -483,14 +491,11 @@ class _LocationPageState extends State<LocationPage> {
                   if (!mounted) return;
                   Navigator.of(context).pop();
                   _fetchData();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Successfully Deleted Location')),
-                  );
+                  _showDialog('Success', 'Successfully Deleted Location');
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete location: $e')),
-                  );
+                  Navigator.of(context).pop();
+                  _showDialog('Error', 'Failed to Delete Location: $e');
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
