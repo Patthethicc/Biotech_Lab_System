@@ -85,6 +85,10 @@ public class PurchaseOrderService {
         return purchaseOrderRepository.findAll();
     }
 
+    public List<PurchaseOrder> getFilteredPurchaseOrders() {
+        return purchaseOrderRepository.findAvailablePurchaseOrders();
+    }
+
     @Transactional
     public PurchaseOrder updatePurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);

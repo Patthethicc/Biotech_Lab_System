@@ -35,6 +35,25 @@ class PurchaseOrderService {
     }
   }
 
+  Future<List<PurchaseOrder>> fetchFilteredPurchaseOrders() async {
+    String? token = await storage.read(key: 'jwt_token');
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/PO/v1/getFilteredPOs'),
+      headers:{'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        return data.map((json) => PurchaseOrder.fromJson(json)).toList();
+      } else {
+        throw NetworkException('Failed to load purchase orders: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is FormatException) {
+        throw DataParsingException('Invalid JSON response: $e');
+      }
+      rethrow; 
+    }
+  }
+
   Future<void> addPurchaseOrder(PurchaseOrder po) async {
     String? token = await storage.read(key: 'jwt_token');
     try {
