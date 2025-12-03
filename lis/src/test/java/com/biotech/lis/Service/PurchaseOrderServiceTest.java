@@ -4,6 +4,7 @@ import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Entity.PurchaseOrder;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
+import com.biotech.lis.Repository.TransactionEntryRepository; 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,9 @@ public class PurchaseOrderServiceTest {
     
     @Mock
     private UserService userService;
+    
+    @Mock
+    private TransactionEntryRepository transactionEntryRepository; // Add this mock
 
     @InjectMocks
     private PurchaseOrderService purchaseOrderService;
@@ -67,11 +71,14 @@ public class PurchaseOrderServiceTest {
         // Mock security context
         mockSecurityContext();
         
-        // Update this mock to return a PO with the expected generated code
+        // Update this mock to return a PO with ALL required fields
         PurchaseOrder savedMockPO = new PurchaseOrder();
-        savedMockPO.setItemCode("TST0000"); // The code that will be generated (sequence 0)
+        savedMockPO.setItemCode("TST0000");
         savedMockPO.setBrandId(1); 
         savedMockPO.setProductDescription("Test Description");
+        savedMockPO.setUnitCost(100.0); 
+        savedMockPO.setQuantity(5); 
+        savedMockPO.setPoPireference("REF123"); // for TransactionEntry
         when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedMockPO);
 
         // Execute
@@ -79,7 +86,7 @@ public class PurchaseOrderServiceTest {
 
         // Verify
         assertNotNull(savedPO);
-        assertEquals("TST0000", savedPO.getItemCode()); // Updated expectation
+        assertEquals("TST0000", savedPO.getItemCode());
         assertEquals(1, savedPO.getBrandId()); 
         verify(purchaseOrderRepository, times(1)).save(any(PurchaseOrder.class));
     }

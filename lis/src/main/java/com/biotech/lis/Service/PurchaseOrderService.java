@@ -40,6 +40,12 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);
+        
+        // Add validation for required fields
+        if (purchaseOrder.getUnitCost() == null || purchaseOrder.getQuantity() == null) {
+            throw new IllegalArgumentException("Unit cost and quantity are required");
+        }
+        
         Brand brand = brandService.getBrandById(purchaseOrder.getBrandId());
 
 
