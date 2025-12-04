@@ -1,10 +1,12 @@
 // import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:frontend/models/api/existing_user.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/purchase_order.dart';
 import 'package:frontend/models/api/item_loc.dart';
 import 'package:frontend/models/api/inventory_payload.dart';
 import 'package:frontend/services/brand_service.dart';
+import 'package:frontend/services/existing_user_service.dart';
 import 'package:frontend/services/inventory_service.dart';
 import 'package:frontend/services/location_service.dart';
 import 'package:frontend/services/purchase_order_service.dart';
@@ -86,6 +88,7 @@ class _InventoryPageState extends State<InventoryPage> {
   final PurchaseOrderService _poService = PurchaseOrderService();
   final BrandService _brandService = BrandService();
   final LocationService _locationService = LocationService();
+  final ExistingUserService _userService = ExistingUserService();
   final ScrollController _scrollController = ScrollController();
   List<InventoryPayload> _allInventories = [];
   List<InventoryPayload> _displayInventories = [];
@@ -94,6 +97,7 @@ class _InventoryPageState extends State<InventoryPage> {
   List<PurchaseOrder> _availablePOs = [];
   List<Map<String, dynamic>> _allBrands = [];
   List<Location> _availableLocations = [];
+  List<ExistingUser> _allUsers = [];
 
   bool _isLoading = true;
   bool _selectAll = false;
@@ -111,6 +115,7 @@ class _InventoryPageState extends State<InventoryPage> {
     _fetchAvailablePOs();
     _fetchBrands();
     _fetchLocations();
+    _fetchUsers();
     _searchController.addListener(_filterInventories);
   }
 
@@ -207,6 +212,33 @@ class _InventoryPageState extends State<InventoryPage> {
       debugPrint('Error fetching POs: $e');
     }
   }
+
+  Future<void> _fetchUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final users = await _userService.fetchUsers();
+
+      final userList = users.toList();
+
+      if(!mounted) return;
+      setState(() {
+        _allUsers = userList;
+      });
+    } catch (e) {
+      if(mounted){
+        _showDialog('Error', 'Failed to load users: $e');
+      }
+    } finally {
+      if(mounted){
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
   
   void _clearSelection() {
       _selectedInventories.clear();
@@ -295,6 +327,17 @@ class _InventoryPageState extends State<InventoryPage> {
       return location.locationName;
     } catch (e) {
       return 'Unknown Location (ID: $locId)';
+    }
+  }
+
+  String getUserNameById(int? userId) {
+    if (userId == null) return '';
+    
+    try {
+      final user = _allUsers.firstWhere((user) => user.userId == userId);
+      return user.firstName + user.lastName;
+    } catch (e) {
+      return 'Unknown User (ID: $userId)';
     }
   }
 
@@ -1826,7 +1869,7 @@ class _InventoryPageState extends State<InventoryPage> {
             ),
           ),
           DataCell(Text(inventory.note ?? '')),
-          DataCell(Text(inventory.addedBy.toString())),  // TODO: get username given user id
+          DataCell(Text(getUserNameById(inventory.addedBy))),
           DataCell(Text(inventory.dateTimeAdded.toString())),
         ],
       );
