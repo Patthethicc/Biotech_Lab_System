@@ -83,14 +83,14 @@ public class InventoryController {
     }
 
     @GetMapping("/getTopStock")
-    public ResponseEntity<List<Inventory>> getTopStock() {
-        List<Inventory> topInv = inventoryService.getHighestStock();
+    public ResponseEntity<List<InventoryPayload>> getTopStock() {
+        List<InventoryPayload> topInv = inventoryService.getHighestStock();
         return ResponseEntity.ok(topInv);
     }
 
     @GetMapping("/getLowStock")
-    public ResponseEntity<List<Inventory>> getBottomStock() {
-        List<Inventory> lowInv = inventoryService.getLowestStock();
+    public ResponseEntity<List<InventoryPayload>> getBottomStock() {
+        List<InventoryPayload> lowInv = inventoryService.getLowestStock();
         return ResponseEntity.ok(lowInv);
     }
 

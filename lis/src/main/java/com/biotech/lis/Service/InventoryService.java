@@ -97,20 +97,22 @@ public class InventoryService {
         return inventoryRepository.findAll();
     }
 
-    public List<Inventory> getHighestStock() {
-        List<Inventory> inventories = getInventories();
-        inventories.sort((o1, o2)
-                  -> o2.getQuantity().compareTo(
-                      o1.getQuantity()));
-        return inventories;
+public List<InventoryPayload> getHighestStock() {
+        List<Inventory> inventories = inventoryRepository.findAll();
+        inventories.sort((o1, o2) -> o2.getQuantity().compareTo(o1.getQuantity()));
+        
+        return inventories.stream()
+            .map(inv -> new InventoryPayload(inv, itemLocRepository.findByItemCode(inv.getItemCode())))
+            .collect(Collectors.toList());
     }
 
-    public List<Inventory> getLowestStock() {
-        List<Inventory> inventories = getInventories();
-        inventories.sort((o1, o2)
-                  -> o1.getQuantity().compareTo(
-                      o2.getQuantity()));
-        return inventories;
+    public List<InventoryPayload> getLowestStock() {
+        List<Inventory> inventories = inventoryRepository.findAll();
+        inventories.sort((o1, o2) -> o1.getQuantity().compareTo(o2.getQuantity()));
+
+        return inventories.stream()
+            .map(inv -> new InventoryPayload(inv, itemLocRepository.findByItemCode(inv.getItemCode())))
+            .collect(Collectors.toList());
     }
 
     @Transactional

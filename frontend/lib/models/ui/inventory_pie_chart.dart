@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/api/inventory.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -6,51 +7,28 @@ class InventoryPieChart extends StatelessWidget {
   final String title;
   final List<Inventory> data;
   final bool isLoading;
+  final Map<int, String> brandMap;
 
   const InventoryPieChart({
     super.key,
     required this.title,
     required this.data,
     required this.isLoading,
+    required this.brandMap,
   });
-
-  // List<Inventory> groupByBrand(List<Inventory> originalList) {
-  //   final Map<String, int> brandQuantities = {};
-
-  //   for (final item in originalList) {
-  //     brandQuantities[item.brand] = (brandQuantities[item.brand] ?? 0) + item.quantityOnHand;
-  //   }
-
-  //   // Convert to list of Inventory-like objects with brand and quantityOnHand
-  //   return brandQuantities.entries.map((entry) {
-  //     return Inventory(
-  //         inventoryID: 0,
-  //         itemCode: '',
-  //         brand: entry.key,
-  //         productDescription: '',
-  //         lotSerialNumber: '',
-  //         cost: 0,
-  //         expiryDate: '',
-  //         stocksManila: 0,
-  //         stocksCebu: 0,
-  //         addedBy: '',
-  //         dateTimeAdded: '',
-  //       )..quantityOnHand = entry.value;
-  //     }).toList();
-  // }
 
   List<MapEntry<String, int>> groupByBrand(List<Inventory> originalList) {
     final Map<String, int> brandQuantities = {};
 
     for (final item in originalList) {
-      final String brandKey = 'Brand ${item.brandId}';
+      final String brandName = brandMap[item.brandId] ?? 'Brand ${item.brandId}';
 
-      brandQuantities[brandKey] = (brandQuantities[brandKey] ?? 0) + item.quantity;
+      brandQuantities[brandName] =
+          (brandQuantities[brandName] ?? 0) + item.quantity;
     }
 
     return brandQuantities.entries.toList();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +91,7 @@ class InventoryPieChart extends StatelessWidget {
                             ),
                             tooltipBehavior: TooltipBehavior(
                               enable: true,
+                              duration: 300,
                               format: 'point.x: point.y',
                               builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
                                 final entry = data as MapEntry<String, int>;
@@ -184,4 +163,3 @@ class InventoryPieChart extends StatelessWidget {
     );
   }
 }
-

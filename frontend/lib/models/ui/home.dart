@@ -10,6 +10,7 @@ import 'package:frontend/models/api/transaction_entry.dart';
 import 'login.dart';
 import 'inventory_pie_chart.dart';
 import 'package:frontend/models/api/inventory_payload.dart';
+import 'package:frontend/services/brand_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,6 +26,8 @@ class _HomePageState extends State<HomePage> {
   List<Inventory> bottom = [];
   List<TransactionEntry> transactions = [];
   bool loadingTop = true, loadingBottom = true, loadingTable = true;
+
+  Map<int, String> _brandMap = {};
 
   int outOfStock = 0;
   String selectedPeriod = 'daily';
@@ -51,6 +54,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _loadAllStats();
     _loadInventories();
+    _loadBrands();
   }
 
   Future<void> _loadAllStats() async {
@@ -85,9 +89,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-
-
-
   Future<void> _loadInventories() async {
     setState(() {
       loadingTop = true;
@@ -107,6 +108,18 @@ class _HomePageState extends State<HomePage> {
         loadingTop = false;
         loadingBottom = false;
       });
+    }
+  }
+
+  Future<void> _loadBrands() async {
+    try {
+      final brands = await BrandService().getBrands();
+
+      setState(() {
+        _brandMap = {for (var b in brands) b.brandId!: b.brandName};
+      });
+    } catch (e) {
+      debugPrint('Error loading brands: $e');
     }
   }
 
@@ -183,6 +196,7 @@ class _HomePageState extends State<HomePage> {
                   title: 'Highest Stocks',
                   data: top,
                   isLoading: loadingTop,
+                  brandMap: _brandMap,
                 ),
                 const SizedBox(width: 20),
                 InventoryPieChart(
@@ -190,6 +204,7 @@ class _HomePageState extends State<HomePage> {
                   title: 'Lowest Stocks',
                   data: bottom,
                   isLoading: loadingBottom,
+                  brandMap: _brandMap,
                 ),
                 // buildRightColumn(),
               ],
@@ -390,7 +405,13 @@ class _HomePageState extends State<HomePage> {
       title: Text(title, style: const TextStyle(fontSize: 14)),
       onTap: () {
         Navigator.pop(context);
-        Navigator.pushNamed(context, route);
+        Navigator.pushNamed(context, route).then((_) {
+          if (mounted) { 
+            _loadAllStats();
+            _loadInventories();
+            _loadBrands();
+          }
+        });
       },
     );
   }
