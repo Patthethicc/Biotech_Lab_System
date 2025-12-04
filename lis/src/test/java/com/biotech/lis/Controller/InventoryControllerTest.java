@@ -300,7 +300,16 @@ public class InventoryControllerTest {
         inv3.setItemCode("ITEM003");
         inv3.setQuantity(50);
 
-        List<Inventory> topStock = Arrays.asList(inv2, inv1, inv3);
+        // Create InventoryPayload objects
+        ItemLoc loc1 = new ItemLoc(1, "ITEM001", 100);
+        ItemLoc loc2 = new ItemLoc(1, "ITEM002", 200);
+        ItemLoc loc3 = new ItemLoc(1, "ITEM003", 50);
+
+        InventoryPayload payload1 = new InventoryPayload(inv1, Collections.singletonList(loc1));
+        InventoryPayload payload2 = new InventoryPayload(inv2, Collections.singletonList(loc2));
+        InventoryPayload payload3 = new InventoryPayload(inv3, Collections.singletonList(loc3));
+
+        List<InventoryPayload> topStock = Arrays.asList(payload2, payload1, payload3);
 
         when(inventoryService.getHighestStock()).thenReturn(topStock);
 
@@ -308,9 +317,9 @@ public class InventoryControllerTest {
         mockMvc.perform(get("/inv/v1/getTopStock"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].quantity").value(200))
-                .andExpect(jsonPath("$[1].quantity").value(100))
-                .andExpect(jsonPath("$[2].quantity").value(50));
+                .andExpect(jsonPath("$[0].inventory.quantity").value(200))
+                .andExpect(jsonPath("$[1].inventory.quantity").value(100))
+                .andExpect(jsonPath("$[2].inventory.quantity").value(50));
 
         verify(inventoryService, times(1)).getHighestStock();
     }
@@ -330,7 +339,16 @@ public class InventoryControllerTest {
         inv3.setItemCode("ITEM003");
         inv3.setQuantity(25);
 
-        List<Inventory> lowStock = Arrays.asList(inv1, inv3, inv2);
+        // Create InventoryPayload objects instead of just Inventory
+        ItemLoc loc1 = new ItemLoc(1, "ITEM001", 10);
+        ItemLoc loc2 = new ItemLoc(1, "ITEM002", 50);
+        ItemLoc loc3 = new ItemLoc(1, "ITEM003", 25);
+
+        InventoryPayload payload1 = new InventoryPayload(inv1, Collections.singletonList(loc1));
+        InventoryPayload payload2 = new InventoryPayload(inv2, Collections.singletonList(loc2));
+        InventoryPayload payload3 = new InventoryPayload(inv3, Collections.singletonList(loc3));
+
+        List<InventoryPayload> lowStock = Arrays.asList(payload1, payload3, payload2);
 
         when(inventoryService.getLowestStock()).thenReturn(lowStock);
 
@@ -338,9 +356,9 @@ public class InventoryControllerTest {
         mockMvc.perform(get("/inv/v1/getLowStock"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].quantity").value(10))
-                .andExpect(jsonPath("$[1].quantity").value(25))
-                .andExpect(jsonPath("$[2].quantity").value(50));
+                .andExpect(jsonPath("$[0].inventory.quantity").value(10))
+                .andExpect(jsonPath("$[1].inventory.quantity").value(25))
+                .andExpect(jsonPath("$[2].inventory.quantity").value(50));
 
         verify(inventoryService, times(1)).getLowestStock();
     }

@@ -277,16 +277,17 @@ public class InventoryServiceTest {
 
         List<Inventory> inventories = Arrays.asList(inv1, inv2, inv3);
         when(inventoryRepository.findAll()).thenReturn(inventories);
+        when(itemLocRepository.findByItemCode(anyString())).thenReturn(Collections.emptyList());
 
         // Execute
-        List<Inventory> result = inventoryService.getHighestStock();
+        List<InventoryPayload> result = inventoryService.getHighestStock();
 
         // Verify - Should be sorted in descending order
         assertNotNull(result);
         assertEquals(3, result.size());
-        assertEquals(100, result.get(0).getQuantity());
-        assertEquals(50, result.get(1).getQuantity());
-        assertEquals(25, result.get(2).getQuantity());
+        assertEquals(100, result.get(0).getInventory().getQuantity());
+        assertEquals(50, result.get(1).getInventory().getQuantity());
+        assertEquals(25, result.get(2).getInventory().getQuantity());
     }
 
     @Test
@@ -306,16 +307,17 @@ public class InventoryServiceTest {
 
         List<Inventory> inventories = Arrays.asList(inv1, inv2, inv3);
         when(inventoryRepository.findAll()).thenReturn(inventories);
+        when(itemLocRepository.findByItemCode(anyString())).thenReturn(Collections.emptyList());
 
         // Execute
-        List<Inventory> result = inventoryService.getLowestStock();
+        List<InventoryPayload> result = inventoryService.getLowestStock();
 
         // Verify - Should be sorted in ascending order
         assertNotNull(result);
         assertEquals(3, result.size());
-        assertEquals(25, result.get(0).getQuantity());
-        assertEquals(50, result.get(1).getQuantity());
-        assertEquals(100, result.get(2).getQuantity());
+        assertEquals(25, result.get(0).getInventory().getQuantity());
+        assertEquals(50, result.get(1).getInventory().getQuantity());
+        assertEquals(100, result.get(2).getInventory().getQuantity());
     }
 
     @Test
