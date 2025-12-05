@@ -17,17 +17,20 @@ import lombok.NoArgsConstructor;
 @Table(name = "`inventory`")
 public class Inventory {
     @Id
-    private Integer inventoryId;
     private String itemCode;
-    private String brand;
-    private String productDescription;
-    private String lotSerialNumber;
-    private Double cost;
-    private LocalDate expiryDate;
-    private Integer stocksManila;
-    private Integer stocksCebu;
-    //note: do not display on frontend inventory table
-    private Integer quantityOnHand;
-    private String addedBy;
+
+    private String poPireference;
+    private String invoiceNum;
+    private String itemDescription;
+    private Integer brandId;
+    private Integer lotNum;
+    private LocalDate expiry;
+    private Integer packSize;
+    private Integer quantity;
+    private Double costOfSale;
+    private String note;
+
+    //note: do not display on frontend inventory tabl
+    private Long addedBy;
     private LocalDateTime dateTimeAdded;
 }

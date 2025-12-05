@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:frontend/models/ui/latest_transaction_table.dart';
@@ -9,6 +9,8 @@ import 'package:frontend/models/api/inventory.dart';
 import 'package:frontend/models/api/transaction_entry.dart';
 import 'login.dart';
 import 'inventory_pie_chart.dart';
+import 'package:frontend/models/api/inventory_payload.dart';
+import 'package:frontend/services/brand_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,6 +26,8 @@ class _HomePageState extends State<HomePage> {
   List<Inventory> bottom = [];
   List<TransactionEntry> transactions = [];
   bool loadingTop = true, loadingBottom = true, loadingTable = true;
+
+  Map<int, String> _brandMap = {};
 
   int outOfStock = 0;
   String selectedPeriod = 'daily';
@@ -50,6 +54,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _loadAllStats();
     _loadInventories();
+    _loadBrands();
   }
 
   Future<void> _loadAllStats() async {
@@ -62,8 +67,9 @@ class _HomePageState extends State<HomePage> {
       final entries = await TransactionEntryService().fetchTransactionEntries();
       final filtered = _filterTransactionsByPeriod(entries, selectedPeriod);
 
-      final alerts = await StockAlertService().getStockAlerts();
-      final outOfStockItems = alerts.where((item) => item.quantityOnHand == 0).length;
+      final List<InventoryPayload> alerts = await StockAlertService().getStockAlerts();
+      final outOfStockItems = alerts.where((item) =>
+        item.locations.fold<int>(0, (sum, loc) => sum + loc.quantity) == 0).length;
 
       setState(() {
         transactions = filtered;
@@ -83,20 +89,17 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-
-
-
   Future<void> _loadInventories() async {
     setState(() {
       loadingTop = true;
       loadingBottom = true;
     });
     try {
-      final t = await InventoryService().getTopStock();
-      final b = await InventoryService().getBottomStock();
+      final t_payloads = await InventoryService().getTopStock();
+      final b_payloads = await InventoryService().getBottomStock();
       setState(() {
-        top = t;
-        bottom = b;
+        top = t_payloads.map((payload) => payload.inventory).toList();
+        bottom = b_payloads.map((payload) => payload.inventory).toList();
       });
     } catch (e) {
       print('Stock load error: $e');
@@ -105,6 +108,18 @@ class _HomePageState extends State<HomePage> {
         loadingTop = false;
         loadingBottom = false;
       });
+    }
+  }
+
+  Future<void> _loadBrands() async {
+    try {
+      final brands = await BrandService().getBrands();
+
+      setState(() {
+        _brandMap = {for (var b in brands) b.brandId!: b.brandName};
+      });
+    } catch (e) {
+      debugPrint('Error loading brands: $e');
     }
   }
 
@@ -181,6 +196,7 @@ class _HomePageState extends State<HomePage> {
                   title: 'Highest Stocks',
                   data: top,
                   isLoading: loadingTop,
+                  brandMap: _brandMap,
                 ),
                 const SizedBox(width: 20),
                 InventoryPieChart(
@@ -188,6 +204,7 @@ class _HomePageState extends State<HomePage> {
                   title: 'Lowest Stocks',
                   data: bottom,
                   isLoading: loadingBottom,
+                  brandMap: _brandMap,
                 ),
                 // buildRightColumn(),
               ],
@@ -359,13 +376,14 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           buildDrawerItem(context, 'View Profile', '/view_profile'),
-          buildDrawerItem(context, 'Transaction Entry', '/transaction_entry'),
-          buildDrawerItem(context, 'Inventory', '/inventory'),
-          buildDrawerItem(context, 'Brands', '/brand'),
-          buildDrawerItem(context, 'Stock Alerts', '/stock_alert'),
-          buildDrawerItem(context, 'Stock Locator', '/stock_locator'),
-          buildDrawerItem(context, 'Expiration Alert', '/expiry_alert'),
           buildDrawerItem(context, 'Purchase Order', '/purchase_order'),
+          buildDrawerItem(context, 'Inventory', '/inventory'),
+          buildDrawerItem(context, 'Transaction Entry', '/transaction_entry'),
+          buildDrawerItem(context, 'Stock Locator', '/stock_locator'),
+          buildDrawerItem(context, 'Stock Alerts', '/stock_alert'),
+          buildDrawerItem(context, 'Brands', '/brand'),
+          buildDrawerItem(context, 'Locations', '/location'),
+          buildDrawerItem(context, 'Customer List', '/customer'),
           ListTile(
             title: const Text('Log out', style: TextStyle(fontSize: 14)),
             onTap: () {
@@ -387,7 +405,13 @@ class _HomePageState extends State<HomePage> {
       title: Text(title, style: const TextStyle(fontSize: 14)),
       onTap: () {
         Navigator.pop(context);
-        Navigator.pushNamed(context, route);
+        Navigator.pushNamed(context, route).then((_) {
+          if (mounted) { 
+            _loadAllStats();
+            _loadInventories();
+            _loadBrands();
+          }
+        });
       },
     );
   }

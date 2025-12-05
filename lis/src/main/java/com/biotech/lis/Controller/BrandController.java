@@ -2,6 +2,7 @@ package com.biotech.lis.Controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,10 +27,13 @@ public class BrandController {
     }
 
     @PostMapping("/addBrand")
-    public ResponseEntity<Brand> addBrand(@RequestBody Brand brand) {
-        Brand savedBrand = brandService.addBrand(brand);
-
-        return ResponseEntity.ok(savedBrand);
+    public ResponseEntity<?> addBrand(@RequestBody Brand brand) {
+        try {
+            Brand savedBrand = brandService.addBrand(brand);
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedBrand);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
     }
 
     @GetMapping("/getBrandById/{id}")
@@ -44,15 +48,20 @@ public class BrandController {
         return ResponseEntity.ok(brand);
     }
 
-    @PutMapping("/updateBrand")
-    public ResponseEntity<Brand> updateBrand(@RequestBody Brand Brand) {
-        Brand updatedBrnd = brandService.updateBrand(Brand);
-        return ResponseEntity.ok(updatedBrnd);
+    @PutMapping("/updateBrand/{name}")
+    public ResponseEntity<?> updateBrand(@PathVariable("name") String name, @RequestBody Brand brand) {
+        try {
+            return ResponseEntity.ok(brandService.updateBrand(name, brand));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("deleteBrand/{id}")
     public ResponseEntity<Brand> deleteBrand(@PathVariable("id") Integer id) {
         brandService.deleteBrand(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

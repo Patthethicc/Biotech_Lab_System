@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/models/ui/brand.dart';
 import 'package:frontend/models/ui/expiry_alert.dart';
+import 'package:frontend/models/ui/location.dart';
 import 'models/ui/stock_alert.dart';
 import 'models/ui/login.dart';
 import 'models/ui/register.dart';
@@ -9,9 +10,10 @@ import 'models/ui/home.dart';
 import 'models/ui/view_profile.dart';
 import 'models/ui/edit_profile.dart';
 import 'models/ui/purchase_order.dart';
-import 'models/ui/transaction_entry_page.dart';
+import 'models/ui/customer_transaction_page.dart';
 import 'models/ui/inventory_page.dart';
 import 'models/ui/stock_locator.dart';
+import 'models/ui/customer.dart';
 
 void main() async {
   await dotenv.load(fileName: ".env");
@@ -35,10 +37,12 @@ class MyApp extends StatelessWidget {
         '/stock_alert': (context) => StockAlert(),
         '/expiry_alert': (context) => ExpiryAlert(),
         '/purchase_order': (context) => const PurchaseOrderPage(),
-        '/transaction_entry': (context) => TransactionEntryPage(),
+        '/transaction_entry': (context) => CustomerTransactionPage(),
         '/inventory': (context) => InventoryPage(),
         '/brand': (context) => BrandPage(),
         '/stock_locator': (context) => StockLocatorPage(),
+        '/location': (context) => LocationPage(),
+        '/customer': (context) => CustomerPage(),
       },
     );
   }

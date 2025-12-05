@@ -1,12 +1,10 @@
 package com.biotech.lis.Service;
 
-
 import com.biotech.lis.Entity.Brand;
-import com.biotech.lis.Entity.Inventory;
 import com.biotech.lis.Entity.PurchaseOrder;
-import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Entity.User;
 import com.biotech.lis.Repository.InventoryRepository;
+import com.biotech.lis.Entity.TransactionEntry;
 import com.biotech.lis.Repository.PurchaseOrderRepository;
 import com.biotech.lis.Repository.TransactionEntryRepository;
 
@@ -42,18 +40,46 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrder addPurchaseOrder(PurchaseOrder purchaseOrder) {
         validatePurchaseOrder(purchaseOrder);
-        Brand brand = brandService.getBrandbyName(purchaseOrder.getBrand());
         
-        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", brand.getLatestSequence()));
-
-        validatePurchaseOrderCode(purchaseOrder.getItemCode());
-        if (purchaseOrderRepository.existsById(purchaseOrder.getItemCode())) {
-            throw new IllegalArgumentException("Purchase order already exists with item code:" + purchaseOrder.getItemCode());
+        // Add validation for required fields
+        if (purchaseOrder.getUnitCost() == null || purchaseOrder.getQuantity() == null) {
+            throw new IllegalArgumentException("Unit cost and quantity are required");
         }
+        
+        Brand brand = brandService.getBrandById(purchaseOrder.getBrandId());
+
+
+        String lastItemCode = purchaseOrderRepository.findTopByBrandIdOrderByItemCodeDesc(brand.getBrandId()).map(PurchaseOrder::getItemCode).orElse(null);
+
+        int nextSequence = 0;
+
+        if (lastItemCode != null) {
+            String numberPart = lastItemCode.substring(brand.getAbbreviation().length());
+            try {
+                nextSequence = Integer.parseInt(numberPart) + 1;
+            } catch (NumberFormatException e) {
+                nextSequence = brand.getLatestSequence(); // fallback
+            }
+        }
+        
+        purchaseOrder.setItemCode(brand.getAbbreviation() + String.format("%04d", nextSequence));
 
         User user = getCurrentUser();
         setAuditFields(purchaseOrder, user);
-        return purchaseOrderRepository.save(purchaseOrder);
+        PurchaseOrder savedPO = purchaseOrderRepository.save(purchaseOrder);
+
+        // Create and save a corresponding TransactionEntry
+        TransactionEntry transactionEntry = new TransactionEntry();
+        transactionEntry.setDrSIReferenceNum(savedPO.getPoPireference()); // Or another unique reference
+        transactionEntry.setItemCode(savedPO.getItemCode());
+        transactionEntry.setBrand(brand.getBrandName());
+        transactionEntry.setProductDescription(savedPO.getProductDescription());
+        transactionEntry.setQuantity(savedPO.getQuantity());
+        transactionEntry.setCost(savedPO.getUnitCost() * savedPO.getQuantity());
+        transactionEntry.setStockLocation("limbaga"); // Default location, can be changed
+        transactionEntryRepository.save(transactionEntry);
+
+        return savedPO;
     }
 
     public Optional<PurchaseOrder> getPurchaseOrderByCode(String code) {
@@ -63,6 +89,10 @@ public class PurchaseOrderService {
 
     public List<PurchaseOrder> getAllPurchaseOrders() {
         return purchaseOrderRepository.findAll();
+    }
+
+    public List<PurchaseOrder> getFilteredPurchaseOrders() {
+        return purchaseOrderRepository.findAvailablePurchaseOrders();
     }
 
     @Transactional
@@ -75,16 +105,13 @@ public class PurchaseOrderService {
         }
 
         PurchaseOrder existingPurchaseOrder = getPurchaseOrderByCode(purchaseOrder.getItemCode()).get();
-
-        existingPurchaseOrder.setBrand(purchaseOrder.getBrand());
-        existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
-        existingPurchaseOrder.setBrand(purchaseOrder.getBrand());
-        existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
+        
+        existingPurchaseOrder.setBrandId(purchaseOrder.getBrandId());
         existingPurchaseOrder.setPackSize(purchaseOrder.getPackSize());
         existingPurchaseOrder.setQuantity(purchaseOrder.getQuantity());
         existingPurchaseOrder.setUnitCost(purchaseOrder.getUnitCost());
-        existingPurchaseOrder.setTotalCost(purchaseOrder.getTotalCost());
-        existingPurchaseOrder.setPoPIreference(purchaseOrder.getPoPIreference());
+        existingPurchaseOrder.setPoPireference(purchaseOrder.getPoPireference());
+        existingPurchaseOrder.setProductDescription(purchaseOrder.getProductDescription());
 
         // existingPurchaseOrder.setPurchaseOrderFile(purchaseOrder.getPurchaseOrderFile());
         // existingPurchaseOrder.setSuppliersPackingList(purchaseOrder.getSuppliersPackingList());
@@ -93,8 +120,8 @@ public class PurchaseOrderService {
         // existingPurchaseOrder.setDrSIReferenceNum(purchaseOrder.getDrSIReferenceNum());
         // existingPurchaseOrder.setLotSerialNumber(purchaseOrder.getLotSerialNumber());
 
-        // User user = getCurrentUser();
-        // setAuditFields(existingPurchaseOrder, user);
+        User user = getCurrentUser();
+        setAuditFields(existingPurchaseOrder, user);
 
         // Inventory inventory = inventoryRepository.findByItemCodeIgnoreCase(existingPurchaseOrder.getItemCode()).get();
         // inventory.setBrand(existingPurchaseOrder.getBrand());
@@ -163,9 +190,7 @@ public class PurchaseOrderService {
 
     private void setAuditFields(PurchaseOrder purchaseOrder, User user) {
         LocalDateTime currentDateTime = LocalDateTime.now();
-        // purchaseOrder.setAddedBy(user.getFirstName() + " " + user.getLastName());
-        // purchaseOrder.setDateTimeAdded(currentDateTime);
+        purchaseOrder.setAddedBy(user.getUserId().intValue());
+        purchaseOrder.setDateTimeAdded(currentDateTime);
     }
 }
-
-

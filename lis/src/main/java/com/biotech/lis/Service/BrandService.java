@@ -1,14 +1,13 @@
 package com.biotech.lis.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.biotech.lis.Entity.Brand;
 import com.biotech.lis.Repository.BrandRepository;
-
-import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class BrandService {
@@ -17,6 +16,11 @@ public class BrandService {
 
     public Brand addBrand(Brand brand) {
         String name = brand.getBrandName().trim();
+
+        if (brandRepository.existsByBrandNameIgnoreCase(name)) {
+            throw new IllegalArgumentException("Brand with name '" + name + "' already exists.");
+        }
+
         String abbreviation = name.charAt(0) + "" + name.charAt(name.length() - 1);
         brand.setAbbreviation(abbreviation);
         brand.setLatestSequence(0);
@@ -41,27 +45,30 @@ public class BrandService {
     }
 
     public Brand getBrandbyName(String brand) {
-        if (brand == null || brand.trim().isEmpty()) {
-            throw new EntityNotFoundException("Brand is supposed to be not null.");
-        }
-        return brandRepository.findByBrandName(brand.trim());
+        Optional<Brand> optionalBrand = brandRepository.findByBrandName(brand);
+        return optionalBrand.orElseThrow(
+            () -> new RuntimeException("Location not found with name: " + brand)
+        );
     }
 
-    public Brand updateBrand(Brand currentBrand) {
-        Brand check = brandRepository.findByBrandName(currentBrand.getBrandName());
-        if(check != null && !check.getBrandId().equals(currentBrand.getBrandId())) {
-            throw new IllegalArgumentException("Brand name already exists.");
+    public Brand updateBrand(String name, Brand updatedBrand) {
+        Brand brand = getBrandbyName(name);
+        String newName = updatedBrand.getBrandName().trim();
+
+        if (newName != null && !newName.isBlank() && !newName.equalsIgnoreCase(brand.getBrandName())) {
+            if (brandRepository.existsByBrandNameIgnoreCase(newName)) {
+                throw new IllegalArgumentException("Brand name '" + newName + "' already exists.");
+            }
+
+            brand.setBrandName(newName);
         }
-        Brand existingBrand = getBrandById(currentBrand.getBrandId());
-        if (existingBrand == null) {
-            throw new EntityNotFoundException("Brand not found.");
-        }
-        existingBrand.setBrandName(currentBrand.getBrandName());
-        return brandRepository.save(existingBrand);
+
+        Brand savedBrand = brandRepository.save(brand);
+        
+        return savedBrand;
     }
 
     public void deleteBrand(Integer id) {
-        Brand brand = getBrandById(id);
-        brandRepository.delete(brand);
+        brandRepository.deleteById(id);
     }
 }
