@@ -137,10 +137,11 @@ public class LocationControllerTest {
         when(locationService.updateLocation(eq("NONEXISTENT"), any(Location.class)))
             .thenThrow(new RuntimeException("Location not found with name: NONEXISTENT"));
 
+        // Controller returns 404 for RuntimeException in updateLocation
         mockMvc.perform(put("/locations/editLoc/NONEXISTENT")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateData)))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNotFound());
 
         verify(locationService, times(1)).updateLocation(eq("NONEXISTENT"), any(Location.class));
     }
